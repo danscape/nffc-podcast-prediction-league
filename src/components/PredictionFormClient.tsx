@@ -33,6 +33,8 @@ type PlayerPageData = {
     team_points: number;
     team_clean_sweeps: number;
     team_blanks: number;
+    individual_rank_out_of?: number | null;
+    team_rank_out_of?: number | null;
   } | null;
   predictions: {
     fixture_id: string;
@@ -111,6 +113,11 @@ type ScoreBreakdownData = {
   }[];
 };
 
+type RankingTotals = {
+  individualTotal: number | null;
+  teamTotal: number | null;
+};
+
 type ChangedFixture = {
   gameweek: number;
   gameweek_label: string;
@@ -152,8 +159,9 @@ function isConfirmedPrediction(prediction: PlayerPageData["predictions"][number]
   return prediction.status === "finished" && prediction.forest_result !== null;
 }
 
-function formatRank(value: number | null | undefined) {
+function formatRank(value: number | null | undefined, total?: number | null) {
   if (!value || value <= 0) return "—";
+  if (total && total > 0) return `${value}/${total}`;
   return `${value}`;
 }
 
@@ -178,6 +186,10 @@ export default function PredictionFormClient({
   const [predictions, setPredictions] = useState(initialData.predictions);
   const [extraData, setExtraData] = useState<ExtraPredictionsData | null>(null);
   const [scoreData, setScoreData] = useState<ScoreBreakdownData | null>(null);
+  const [rankingTotals, setRankingTotals] = useState<RankingTotals>({
+    individualTotal: initialData.rankings?.individual_rank_out_of ?? null,
+    teamTotal: initialData.rankings?.team_rank_out_of ?? null,
+  });
   const [savingFixtureId, setSavingFixtureId] = useState<string | null>(null);
   const [savingExtraKey, setSavingExtraKey] = useState<string | null>(null);
   const [showCompletedFixtures, setShowCompletedFixtures] = useState(false);
@@ -195,16 +207,26 @@ export default function PredictionFormClient({
   const pendingChangedFixturesRef = useRef<Map<number, ChangedFixture>>(new Map());
 
   useEffect(() => {
-    async function loadExtraPredictions() {
-      const [{ data: extras, error: extrasError }, { data: scores, error: scoresError }] =
-        await Promise.all([
-          supabase.rpc("get_player_extra_predictions", {
-            target_token: token,
-          }),
-          supabase.rpc("get_player_score_breakdown", {
-            target_token: token,
-          }),
-        ]);
+    async function loadExtraPredictionsAndCounts() {
+      const [
+        { data: extras, error: extrasError },
+        { data: scores, error: scoresError },
+        { count: individualCount },
+        { count: teamCount },
+      ] = await Promise.all([
+        supabase.rpc("get_player_extra_predictions", {
+          target_token: token,
+        }),
+        supabase.rpc("get_player_score_breakdown", {
+          target_token: token,
+        }),
+        supabase
+          .from("individual_leaderboard")
+          .select("*", { count: "exact", head: true }),
+        supabase
+          .from("team_leaderboard")
+          .select("*", { count: "exact", head: true }),
+      ]);
 
       if (!extrasError && extras) {
         setExtraData(extras as ExtraPredictionsData);
@@ -213,10 +235,25 @@ export default function PredictionFormClient({
       if (!scoresError && scores) {
         setScoreData(scores as ScoreBreakdownData);
       }
+
+      setRankingTotals({
+        individualTotal:
+          initialData.rankings?.individual_rank_out_of ??
+          individualCount ??
+          null,
+        teamTotal:
+          initialData.rankings?.team_rank_out_of ??
+          teamCount ??
+          null,
+      });
     }
 
-    loadExtraPredictions();
-  }, [token]);
+    loadExtraPredictionsAndCounts();
+  }, [
+    token,
+    initialData.rankings?.individual_rank_out_of,
+    initialData.rankings?.team_rank_out_of,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -548,6 +585,16 @@ export default function PredictionFormClient({
   const rankings = initialData.rankings;
   const scoreSummary = scoreData?.summary;
 
+  const individualRankLabel = formatRank(
+    rankings?.individual_rank,
+    rankingTotals.individualTotal
+  );
+
+  const teamRankLabel = formatRank(
+    rankings?.team_rank,
+    rankingTotals.teamTotal
+  );
+
   return (
     <main className="min-h-screen bg-[#F7F6F2] text-[#111111]">
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
@@ -570,9 +617,25 @@ export default function PredictionFormClient({
               <p className="mt-4 text-base font-black leading-6 text-[#111111] sm:text-lg">
                 {player.team_display_name ?? player.team_name}
                 <span className="ml-2 text-sm font-black uppercase tracking-wide text-[#C8102E]">
-                  Team rank {formatRank(rankings?.team_rank)}
+                  Team rank {teamRankLabel}
                 </span>
               </p>
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                <a
+                  href="/#leaderboards"
+                  className="rounded-full bg-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+                >
+                  View leaderboards
+                </a>
+
+                <a
+                  href="/"
+                  className="rounded-full border border-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+                >
+                  League homepage
+                </a>
+              </div>
             </div>
 
             <div className="xl:min-w-[780px]">
@@ -580,13 +643,19 @@ export default function PredictionFormClient({
                 <span>
                   Individual rank{" "}
                   <span className="text-[#C8102E]">
-                    {formatRank(rankings?.individual_rank)}
+                    {individualRankLabel}
                   </span>
                 </span>
                 <span>
                   Individual points{" "}
                   <span className="text-[#C8102E]">
                     {rankings?.individual_points ?? 0}
+                  </span>
+                </span>
+                <span>
+                  Team rank{" "}
+                  <span className="text-[#C8102E]">
+                    {teamRankLabel}
                   </span>
                 </span>
                 <span>
