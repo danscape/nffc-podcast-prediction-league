@@ -4,38 +4,44 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
+type PredictionValue = "W" | "D" | "L";
+
 type IndividualLeaderboardRow = {
   player_id: string;
   player_name: string;
   short_name: string | null;
-  table_display_name: string | null;
-  team_id: string;
   team_name: string;
-  team_display_name: string | null;
-  team_abbreviation: string | null;
-  total_points: number;
   base_points: number;
   streak_bonus: number;
   maverick_bonus: number;
   rogue_bonus: number;
   cup_bonus: number;
+  total_points: number;
   correct_predictions: number;
-  completed_predictions: number;
+  fixtures_scored: number;
   accuracy_percentage: number;
-  current_correct_streak: number;
+  bonus_points: number | null;
+  accuracy_whole_percentage: number | null;
+  best_streak: number | null;
+  current_streak: number | null;
 };
 
 type TeamLeaderboardRow = {
   team_id: string;
   team_name: string;
   display_name: string | null;
-  abbreviation: string | null;
   x_handle: string | null;
   total_team_points: number;
   clean_sweeps: number;
   blanks: number;
-  player_count: number;
   best_player_accuracy_percentage: number;
+  logo_url: string | null;
+  logo_alt: string | null;
+  brand_colour: string | null;
+  mvp_player_id?: string | null;
+  mvp_player_name?: string | null;
+  mvp_short_name?: string | null;
+  mvp_accuracy_percentage?: number | null;
 };
 
 type FixtureRow = {
@@ -48,7 +54,7 @@ type FixtureRow = {
   result_confirmed: boolean;
   home_score: number | null;
   away_score: number | null;
-  forest_result: "W" | "D" | "L" | null;
+  forest_result: PredictionValue | null;
   updated_at: string | null;
 };
 
@@ -59,6 +65,25 @@ function formatPercent(value: number | null | undefined) {
 
 function formatPoints(value: number | null | undefined) {
   return Number(value ?? 0).toFixed(1).replace(".0", "");
+}
+
+function displayPlayerName(row: IndividualLeaderboardRow) {
+  return row.short_name ?? row.player_name;
+}
+
+function displayMvpName(row: TeamLeaderboardRow) {
+  return row.mvp_short_name ?? row.mvp_player_name ?? "—";
+}
+
+function getBonusPoints(row: IndividualLeaderboardRow) {
+  return (
+    row.bonus_points ??
+    row.streak_bonus + row.maverick_bonus + row.rogue_bonus + row.cup_bonus
+  );
+}
+
+function getAccuracyWhole(row: IndividualLeaderboardRow) {
+  return row.accuracy_whole_percentage ?? Math.round(Number(row.accuracy_percentage ?? 0));
 }
 
 export default function AdminLeaderboardsPage() {
@@ -89,7 +114,7 @@ export default function AdminLeaderboardsPage() {
         .from("individual_leaderboard")
         .select("*")
         .order("total_points", { ascending: false })
-        .order("accuracy_percentage", { ascending: false })
+        .order("accuracy_whole_percentage", { ascending: false })
         .order("player_name", { ascending: true })
         .range(0, 1000),
       supabase
@@ -125,7 +150,8 @@ export default function AdminLeaderboardsPage() {
   }
 
   const completedFixtures = fixtures.filter((fixture) => fixture.result_confirmed);
-  const lastConfirmedFixture = completedFixtures[completedFixtures.length - 1] ?? null;
+  const lastConfirmedFixture =
+    completedFixtures[completedFixtures.length - 1] ?? null;
 
   const filteredIndividualRows = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -133,14 +159,7 @@ export default function AdminLeaderboardsPage() {
     if (!search) return individualRows;
 
     return individualRows.filter((row) =>
-      [
-        row.player_name,
-        row.short_name,
-        row.table_display_name,
-        row.team_name,
-        row.team_display_name,
-        row.team_abbreviation,
-      ]
+      [row.player_name, row.short_name, row.team_name]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(search))
     );
@@ -152,7 +171,13 @@ export default function AdminLeaderboardsPage() {
     if (!search) return teamRows;
 
     return teamRows.filter((row) =>
-      [row.team_name, row.display_name, row.abbreviation, row.x_handle]
+      [
+        row.team_name,
+        row.display_name,
+        row.x_handle,
+        row.mvp_player_name,
+        row.mvp_short_name,
+      ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(search))
     );
@@ -239,7 +264,7 @@ export default function AdminLeaderboardsPage() {
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search players or teams"
+                placeholder="Search players, teams or MVPs"
                 className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
               />
             </label>
@@ -302,19 +327,20 @@ function IndividualLeaderboard({ rows }: { rows: IndividualLeaderboardRow[] }) {
         </div>
       </div>
 
-      <div className="hidden overflow-hidden rounded-2xl border border-[#D9D6D1] xl:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-[#D9D6D1] 2xl:block">
         <table className="w-full border-collapse text-left text-sm">
           <thead className="bg-[#111111] text-white">
             <tr>
               <th className="px-4 py-3">Rank</th>
               <th className="px-4 py-3">Player</th>
               <th className="px-4 py-3">Team</th>
-              <th className="px-4 py-3">Total</th>
-              <th className="px-4 py-3">Base</th>
-              <th className="px-4 py-3">Bonuses</th>
-              <th className="px-4 py-3">Correct</th>
-              <th className="px-4 py-3">Accuracy</th>
-              <th className="px-4 py-3">Streak</th>
+              <th className="px-4 py-3 text-right">Total Score</th>
+              <th className="px-4 py-3 text-right">Points</th>
+              <th className="px-4 py-3 text-right">Bonus Pts</th>
+              <th className="px-4 py-3 text-right">Correct</th>
+              <th className="px-4 py-3 text-right">Accuracy</th>
+              <th className="px-4 py-3 text-right">Best Streak</th>
+              <th className="px-4 py-3 text-right">Current Streak</th>
             </tr>
           </thead>
           <tbody>
@@ -327,41 +353,34 @@ function IndividualLeaderboard({ rows }: { rows: IndividualLeaderboardRow[] }) {
                   {index + 1}
                 </td>
                 <td className="px-4 py-3">
-                  <div className="font-black">
-                    {row.table_display_name ?? row.short_name ?? row.player_name}
-                  </div>
-                  <div className="text-xs text-neutral-500">
-                    {row.player_name}
-                  </div>
+                  <div className="font-black">{displayPlayerName(row)}</div>
+                  {row.short_name && row.short_name !== row.player_name && (
+                    <div className="text-xs text-neutral-500">
+                      {row.player_name}
+                    </div>
+                  )}
                 </td>
-                <td className="px-4 py-3">
-                  <div className="font-bold">
-                    {row.team_display_name ?? row.team_name}
-                  </div>
-                  <div className="text-xs text-neutral-500">
-                    {row.team_abbreviation ?? "—"}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-2xl font-black">
+                <td className="px-4 py-3 font-bold">{row.team_name}</td>
+                <td className="px-4 py-3 text-right text-2xl font-black">
                   {formatPoints(row.total_points)}
                 </td>
-                <td className="px-4 py-3 font-bold">
+                <td className="px-4 py-3 text-right font-bold">
                   {formatPoints(row.base_points)}
                 </td>
-                <td className="px-4 py-3 text-xs font-bold uppercase text-neutral-600">
-                  S {formatPoints(row.streak_bonus)} · M{" "}
-                  {formatPoints(row.maverick_bonus)} · R{" "}
-                  {formatPoints(row.rogue_bonus)} · Cup{" "}
-                  {formatPoints(row.cup_bonus)}
+                <td className="px-4 py-3 text-right font-bold">
+                  {formatPoints(getBonusPoints(row))}
                 </td>
-                <td className="px-4 py-3 font-bold">
-                  {row.correct_predictions}/{row.completed_predictions}
+                <td className="px-4 py-3 text-right font-bold">
+                  {row.correct_predictions}/{row.fixtures_scored}
                 </td>
-                <td className="px-4 py-3 font-bold">
-                  {formatPercent(row.accuracy_percentage)}
+                <td className="px-4 py-3 text-right font-bold">
+                  {getAccuracyWhole(row)}%
                 </td>
-                <td className="px-4 py-3 font-bold">
-                  {row.current_correct_streak}
+                <td className="px-4 py-3 text-right font-bold">
+                  {row.best_streak ?? 0}
+                </td>
+                <td className="px-4 py-3 text-right font-bold">
+                  {row.current_streak ?? 0}
                 </td>
               </tr>
             ))}
@@ -369,7 +388,7 @@ function IndividualLeaderboard({ rows }: { rows: IndividualLeaderboardRow[] }) {
         </table>
       </div>
 
-      <div className="grid gap-3 xl:hidden">
+      <div className="grid gap-3 2xl:hidden">
         {rows.map((row, index) => (
           <div
             key={row.player_id}
@@ -381,10 +400,10 @@ function IndividualLeaderboard({ rows }: { rows: IndividualLeaderboardRow[] }) {
                   Rank {index + 1}
                 </div>
                 <div className="mt-1 text-xl font-black">
-                  {row.table_display_name ?? row.short_name ?? row.player_name}
+                  {displayPlayerName(row)}
                 </div>
                 <div className="text-sm font-semibold text-neutral-600">
-                  {row.team_display_name ?? row.team_name}
+                  {row.team_name}
                 </div>
               </div>
               <div className="text-3xl font-black text-[#C8102E]">
@@ -392,23 +411,26 @@ function IndividualLeaderboard({ rows }: { rows: IndividualLeaderboardRow[] }) {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-2 text-sm font-bold">
-              <MiniStat label="Base" value={formatPoints(row.base_points)} />
+            <div className="mt-4 grid grid-cols-2 gap-2 text-sm font-bold md:grid-cols-4">
+              <MiniStat label="Points" value={formatPoints(row.base_points)} />
               <MiniStat
-                label="Accuracy"
-                value={formatPercent(row.accuracy_percentage)}
+                label="Bonus Pts"
+                value={formatPoints(getBonusPoints(row))}
               />
               <MiniStat
                 label="Correct"
-                value={`${row.correct_predictions}/${row.completed_predictions}`}
+                value={`${row.correct_predictions}/${row.fixtures_scored}`}
               />
-              <MiniStat label="Streak" value={row.current_correct_streak} />
-            </div>
-
-            <div className="mt-3 rounded-2xl bg-white p-3 text-xs font-bold uppercase text-neutral-600">
-              Streaker {formatPoints(row.streak_bonus)} · Maverick{" "}
-              {formatPoints(row.maverick_bonus)} · Rogue{" "}
-              {formatPoints(row.rogue_bonus)} · Cup {formatPoints(row.cup_bonus)}
+              <MiniStat label="Accuracy" value={`${getAccuracyWhole(row)}%`} />
+              <MiniStat label="Best Streak" value={row.best_streak ?? 0} />
+              <MiniStat label="Current Streak" value={row.current_streak ?? 0} />
+              <MiniStat label="Streaker" value={formatPoints(row.streak_bonus)} />
+              <MiniStat
+                label="Mav/Rogue/Cup"
+                value={`${formatPoints(row.maverick_bonus)}/${formatPoints(
+                  row.rogue_bonus
+                )}/${formatPoints(row.cup_bonus)}`}
+              />
             </div>
           </div>
         ))}
@@ -432,17 +454,17 @@ function TeamLeaderboard({ rows }: { rows: TeamLeaderboardRow[] }) {
         </div>
       </div>
 
-      <div className="hidden overflow-hidden rounded-2xl border border-[#D9D6D1] lg:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-[#D9D6D1] xl:block">
         <table className="w-full border-collapse text-left text-sm">
           <thead className="bg-[#111111] text-white">
             <tr>
               <th className="px-4 py-3">Rank</th>
               <th className="px-4 py-3">Team</th>
-              <th className="px-4 py-3">Points</th>
-              <th className="px-4 py-3">Players</th>
-              <th className="px-4 py-3">Clean sweeps</th>
-              <th className="px-4 py-3">Blanks</th>
-              <th className="px-4 py-3">Best accuracy</th>
+              <th className="px-4 py-3 text-right">Points</th>
+              <th className="px-4 py-3 text-right">Clean Sweeps</th>
+              <th className="px-4 py-3 text-right">Blanks</th>
+              <th className="px-4 py-3">MVP</th>
+              <th className="px-4 py-3 text-right">MVP Accuracy</th>
               <th className="px-4 py-3">X</th>
             </tr>
           </thead>
@@ -456,21 +478,43 @@ function TeamLeaderboard({ rows }: { rows: TeamLeaderboardRow[] }) {
                   {index + 1}
                 </td>
                 <td className="px-4 py-3">
-                  <div className="font-black">
-                    {row.display_name ?? row.team_name}
-                  </div>
-                  <div className="text-xs text-neutral-500">
-                    {row.abbreviation ?? "—"}
+                  <div className="flex items-center gap-3">
+                    {row.logo_url ? (
+                      <img
+                        src={row.logo_url}
+                        alt={row.logo_alt ?? row.display_name ?? row.team_name}
+                        className="h-9 w-9 rounded-xl border border-[#D9D6D1] bg-white object-contain"
+                      />
+                    ) : (
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D9D6D1] bg-[#F7F6F2] text-xs font-black text-[#C8102E]">
+                        {row.team_name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-black">
+                        {row.display_name ?? row.team_name}
+                      </div>
+                      {row.brand_colour && (
+                        <div className="text-xs text-neutral-500">
+                          Brand: {row.brand_colour}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-2xl font-black">
+                <td className="px-4 py-3 text-right text-2xl font-black">
                   {formatPoints(row.total_team_points)}
                 </td>
-                <td className="px-4 py-3 font-bold">{row.player_count}</td>
-                <td className="px-4 py-3 font-bold">{row.clean_sweeps}</td>
-                <td className="px-4 py-3 font-bold">{row.blanks}</td>
-                <td className="px-4 py-3 font-bold">
-                  {formatPercent(row.best_player_accuracy_percentage)}
+                <td className="px-4 py-3 text-right font-bold">
+                  {row.clean_sweeps}
+                </td>
+                <td className="px-4 py-3 text-right font-bold">{row.blanks}</td>
+                <td className="px-4 py-3 font-bold">{displayMvpName(row)}</td>
+                <td className="px-4 py-3 text-right font-bold">
+                  {formatPercent(
+                    row.mvp_accuracy_percentage ??
+                      row.best_player_accuracy_percentage
+                  )}
                 </td>
                 <td className="px-4 py-3 font-bold">{row.x_handle ?? "—"}</td>
               </tr>
@@ -479,36 +523,54 @@ function TeamLeaderboard({ rows }: { rows: TeamLeaderboardRow[] }) {
         </table>
       </div>
 
-      <div className="grid gap-3 lg:hidden">
+      <div className="grid gap-3 xl:hidden">
         {rows.map((row, index) => (
           <div
             key={row.team_id}
             className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4"
           >
             <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
-                  Rank {index + 1}
-                </div>
-                <div className="mt-1 text-xl font-black">
-                  {row.display_name ?? row.team_name}
-                </div>
-                <div className="text-sm font-semibold text-neutral-600">
-                  {row.abbreviation ?? "—"} · {row.x_handle ?? "No X handle"}
+              <div className="flex items-start gap-3">
+                {row.logo_url ? (
+                  <img
+                    src={row.logo_url}
+                    alt={row.logo_alt ?? row.display_name ?? row.team_name}
+                    className="h-11 w-11 rounded-xl border border-[#D9D6D1] bg-white object-contain"
+                  />
+                ) : (
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#D9D6D1] bg-white text-xs font-black text-[#C8102E]">
+                    {row.team_name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+
+                <div>
+                  <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                    Rank {index + 1}
+                  </div>
+                  <div className="mt-1 text-xl font-black">
+                    {row.display_name ?? row.team_name}
+                  </div>
+                  <div className="text-sm font-semibold text-neutral-600">
+                    {row.x_handle ?? "No X handle"}
+                  </div>
                 </div>
               </div>
+
               <div className="text-3xl font-black text-[#C8102E]">
                 {formatPoints(row.total_team_points)}
               </div>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2 text-sm font-bold">
-              <MiniStat label="Players" value={row.player_count} />
-              <MiniStat label="Clean sweeps" value={row.clean_sweeps} />
+              <MiniStat label="Clean Sweeps" value={row.clean_sweeps} />
               <MiniStat label="Blanks" value={row.blanks} />
+              <MiniStat label="MVP" value={displayMvpName(row)} />
               <MiniStat
-                label="Best accuracy"
-                value={formatPercent(row.best_player_accuracy_percentage)}
+                label="MVP Accuracy"
+                value={formatPercent(
+                  row.mvp_accuracy_percentage ??
+                    row.best_player_accuracy_percentage
+                )}
               />
             </div>
           </div>
