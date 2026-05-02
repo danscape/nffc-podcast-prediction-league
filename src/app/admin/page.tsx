@@ -178,25 +178,30 @@ export default function AdminDashboardPage() {
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <AdminCard
+            title="Season"
+            description="Set the current season and football-data.org season used by fixture sync."
+            href="/admin/season"
+          />
+          <AdminCard
+            title="Fixtures"
+            description="Review GW labels, opponents, kick-off times, API data, locks and results."
+            href="/admin/fixtures"
+          />
+          <AdminCard
+            title="Cups"
+            description="Set actual cup rounds reached and award Cup Specialist bonuses."
+            href="/admin/cups"
+          />
+          <AdminCard
             title="Players"
             description="View players, tokens, emails, teams and joined gameweek."
             href="/admin/players"
           />
           <AdminCard
             title="Teams"
-            description="Manage parent podcasts, team names, abbreviations, X handles and logo fields."
+            description="Manage parent podcasts, team names, abbreviations, logos and X handles."
             href="/admin/teams"
           />
-          <AdminCard
-            title="Fixtures"
-            description="Review GW labels, opponents, kick-off times, locks and results."
-            href="/admin/fixtures"
-          />
-<AdminCard
-  title="Season / API Sync"
-  description="Manage active season settings and run fixture/results API syncs."
-  href="/admin/season"
-/>
           <AdminCard
             title="Manual predictions"
             description="Update player predictions when entries are sent outside the form."
@@ -208,14 +213,14 @@ export default function AdminDashboardPage() {
             href="/admin/leaderboards"
           />
           <AdminCard
-            title="Social output"
-            description="Generate weekly post copy and graphics data."
-            href="/admin/social"
+            title="Reminders"
+            description="Preview and send fixture reminder emails to players."
+            href="/admin/reminders"
           />
           <AdminCard
-            title="Reminder emails"
-            description="Dry-run or send fixture reminder emails around 2 days before Premier League kick-off."
-            href="/admin/reminders"
+            title="Social output"
+            description="Generate weekly post copy, leaderboard cards and preview stats."
+            href="/admin/social"
           />
         </section>
       </section>
