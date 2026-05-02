@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
+type PredictionValue = "W" | "D" | "L";
+
 type FixtureRow = {
   id: string;
   season: string;
@@ -22,9 +24,14 @@ type FixtureRow = {
   status: string;
   home_score: number | null;
   away_score: number | null;
-  forest_result: "W" | "D" | "L" | null;
+  forest_result: PredictionValue | null;
   actual_forest_points: number | null;
   result_confirmed: boolean;
+  api_status: string | null;
+  api_home_score: number | null;
+  api_away_score: number | null;
+  api_forest_result: PredictionValue | null;
+  api_last_synced_at: string | null;
 };
 
 type SaveResult = {
@@ -59,6 +66,33 @@ function fixtureTitle(fixture: FixtureRow) {
   return `${fixture.gameweek_label} — ${fixture.opponent_short} ${fixture.venue}`;
 }
 
+function officialOrApiHomeScore(fixture: FixtureRow) {
+  return fixture.home_score ?? fixture.api_home_score;
+}
+
+function officialOrApiAwayScore(fixture: FixtureRow) {
+  return fixture.away_score ?? fixture.api_away_score;
+}
+
+function displayScore(home: number | null, away: number | null) {
+  if (home === null || away === null) return "Not entered";
+  return `${home}-${away}`;
+}
+
+function hasApiScore(fixture: FixtureRow) {
+  return fixture.api_home_score !== null && fixture.api_away_score !== null;
+}
+
+function apiResultLabel(fixture: FixtureRow) {
+  if (!hasApiScore(fixture)) return "No API score imported";
+
+  const result = fixture.api_forest_result
+    ? `Forest ${fixture.api_forest_result}`
+    : "No Forest result";
+
+  return `${fixture.api_home_score}-${fixture.api_away_score} · ${result}`;
+}
+
 export default function AdminFixturesPage() {
   const [fixtures, setFixtures] = useState<FixtureRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +117,13 @@ export default function AdminFixturesPage() {
       .select("*")
       .order("gameweek", { ascending: true });
 
+    if (error) {
+      setMessage({
+        type: "error",
+        text: error.message,
+      });
+    }
+
     if (!error && data) {
       setFixtures(data as FixtureRow[]);
     }
@@ -103,6 +144,8 @@ export default function AdminFixturesPage() {
         fixture.venue,
         fixture.status,
         fixture.forest_result,
+        fixture.api_status,
+        fixture.api_forest_result,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(search));
@@ -115,11 +158,17 @@ export default function AdminFixturesPage() {
       fixture.prediction_lock_at &&
       new Date(fixture.prediction_lock_at).getTime() <= Date.now()
   ).length;
+  const apiSyncedCount = fixtures.filter((fixture) => fixture.api_last_synced_at).length;
 
   function startEdit(fixture: FixtureRow) {
     setMessage(null);
     setEditingFixtureId(fixture.id);
-    setFixtureDraft({ ...fixture });
+
+    setFixtureDraft({
+      ...fixture,
+      home_score: officialOrApiHomeScore(fixture),
+      away_score: officialOrApiAwayScore(fixture),
+    });
   }
 
   function cancelEdit() {
@@ -140,6 +189,19 @@ export default function AdminFixturesPage() {
     updateDraft({
       kickoff_at: kickoffIso,
       prediction_lock_at: lockIso,
+    });
+  }
+
+  function useApiScore() {
+    if (!fixtureDraft) return;
+
+    updateDraft({
+      home_score: fixtureDraft.api_home_score,
+      away_score: fixtureDraft.api_away_score,
+      status:
+        fixtureDraft.api_status?.toUpperCase() === "FINISHED"
+          ? "finished"
+          : fixtureDraft.status,
     });
   }
 
@@ -263,7 +325,7 @@ export default function AdminFixturesPage() {
                 Fixtures
               </h1>
               <p className="mt-3 text-sm font-semibold text-neutral-600">
-                Edit fixture dates, lock times, status and confirmed results.
+                Edit fixture dates, lock times, status and confirmed scoring results.
               </p>
             </div>
 
@@ -288,10 +350,11 @@ export default function AdminFixturesPage() {
           </div>
         )}
 
-        <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
           <AdminStat label="Fixtures" value={fixtures.length} />
           <AdminStat label="Confirmed" value={confirmedCount} />
           <AdminStat label="Locked" value={lockedCount} />
+          <AdminStat label="API synced" value={apiSyncedCount} />
           <AdminStat
             label="TBC kick-offs"
             value={fixtures.filter((fixture) => !fixture.kickoff_at).length}
@@ -326,6 +389,15 @@ export default function AdminFixturesPage() {
                 draft.prediction_lock_at &&
                 new Date(draft.prediction_lock_at).getTime() <= Date.now();
 
+              const displayedHomeScore = officialOrApiHomeScore(fixture);
+              const displayedAwayScore = officialOrApiAwayScore(fixture);
+              const scoreSource =
+                fixture.home_score !== null && fixture.away_score !== null
+                  ? "Official"
+                  : hasApiScore(fixture)
+                    ? "API"
+                    : "None";
+
               return (
                 <div
                   key={fixture.id}
@@ -355,10 +427,15 @@ export default function AdminFixturesPage() {
                               Locked
                             </span>
                           )}
+                          {fixture.api_last_synced_at && (
+                            <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-800">
+                              API synced
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      <div className="grid gap-2 text-sm font-semibold text-neutral-700 lg:min-w-[360px]">
+                      <div className="grid gap-2 text-sm font-semibold text-neutral-700 lg:min-w-[420px]">
                         <div>
                           <span className="text-neutral-500">Kick-off: </span>
                           {formatDateTime(fixture.kickoff_at)}
@@ -368,10 +445,14 @@ export default function AdminFixturesPage() {
                           {formatDateTime(fixture.prediction_lock_at)}
                         </div>
                         <div>
-                          <span className="text-neutral-500">Score: </span>
-                          {fixture.home_score === null || fixture.away_score === null
-                            ? "Not entered"
-                            : `${fixture.home_score}-${fixture.away_score}`}
+                          <span className="text-neutral-500">
+                            Score ({scoreSource}):{" "}
+                          </span>
+                          {displayScore(displayedHomeScore, displayedAwayScore)}
+                        </div>
+                        <div>
+                          <span className="text-neutral-500">API says: </span>
+                          {apiResultLabel(fixture)}
                         </div>
                       </div>
 
@@ -402,6 +483,34 @@ export default function AdminFixturesPage() {
                               Locked
                             </span>
                           )}
+                          {draft.api_last_synced_at && (
+                            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black uppercase text-blue-800">
+                              API synced
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mb-4 rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4">
+                        <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                          API imported result
+                        </div>
+                        <div className="mt-2 flex flex-col gap-2 text-sm font-semibold text-neutral-700 md:flex-row md:items-center md:justify-between">
+                          <div>
+                            {apiResultLabel(draft)}
+                            <span className="ml-2 text-neutral-500">
+                              · Last synced {formatDateTime(draft.api_last_synced_at)}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={useApiScore}
+                            disabled={!hasApiScore(draft)}
+                            className="rounded-full border border-[#111111] px-4 py-2 text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Use API score
+                          </button>
                         </div>
                       </div>
 
@@ -411,12 +520,14 @@ export default function AdminFixturesPage() {
                           value={draft.gameweek_label}
                           onChange={(value) => updateDraft({ gameweek_label: value })}
                         />
+
                         <TextField
                           label="Opponent"
                           value={draft.opponent}
                           onChange={(value) => updateDraft({ opponent: value })}
                           className="xl:col-span-2"
                         />
+
                         <TextField
                           label="Short"
                           value={draft.opponent_short}
@@ -424,6 +535,7 @@ export default function AdminFixturesPage() {
                             updateDraft({ opponent_short: value })
                           }
                         />
+
                         <label className="block">
                           <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
                             Venue
@@ -439,6 +551,7 @@ export default function AdminFixturesPage() {
                             <option value="A">A</option>
                           </select>
                         </label>
+
                         <label className="block">
                           <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
                             Status
@@ -453,6 +566,7 @@ export default function AdminFixturesPage() {
                             <option value="scheduled">scheduled</option>
                             <option value="postponed">postponed</option>
                             <option value="in_progress">in_progress</option>
+                            <option value="live">live</option>
                             <option value="finished">finished</option>
                           </select>
                         </label>
@@ -490,19 +604,19 @@ export default function AdminFixturesPage() {
                         <div className="md:col-span-2 xl:col-span-2">
                           <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4">
                             <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
-                              Result
+                              Official scoring result
                             </div>
                             <div className="mt-3 grid grid-cols-2 gap-3">
                               <NumberField
                                 label="Home"
-                                value={draft.home_score ?? 0}
+                                value={draft.home_score}
                                 onChange={(value) =>
                                   updateDraft({ home_score: value })
                                 }
                               />
                               <NumberField
                                 label="Away"
-                                value={draft.away_score ?? 0}
+                                value={draft.away_score}
                                 onChange={(value) =>
                                   updateDraft({ away_score: value })
                                 }
@@ -611,8 +725,8 @@ function NumberField({
   onChange,
 }: {
   label: string;
-  value: number;
-  onChange: (value: number) => void;
+  value: number | null;
+  onChange: (value: number | null) => void;
 }) {
   return (
     <label className="block">
@@ -621,8 +735,11 @@ function NumberField({
       </span>
       <input
         type="number"
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
+        value={value ?? ""}
+        placeholder="—"
+        onChange={(event) =>
+          onChange(event.target.value === "" ? null : Number(event.target.value))
+        }
         className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
       />
     </label>
@@ -646,10 +763,10 @@ function StatusBadge({ status }: { status: string }) {
     );
   }
 
-  if (status === "in_progress") {
+  if (status === "in_progress" || status === "live") {
     return (
       <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-black uppercase text-yellow-800">
-        In progress
+        Live
       </span>
     );
   }
