@@ -81,7 +81,10 @@ export default async function HomePage() {
     { data: completedFixturesData },
   ] = await Promise.all([
     supabase.from("teams").select("*", { count: "exact", head: true }),
-    supabase.from("players").select("*", { count: "exact", head: true }).eq("active", true),
+    supabase
+      .from("players")
+      .select("*", { count: "exact", head: true })
+      .eq("active", true),
     supabase.from("fixtures").select("*", { count: "exact", head: true }),
     supabase.from("current_predictions").select("*", { count: "exact", head: true }),
     supabase
@@ -94,7 +97,7 @@ export default async function HomePage() {
       .order("total_points", { ascending: false })
       .order("accuracy_percentage", { ascending: false })
       .order("player_name", { ascending: true })
-      .range(0, 9),
+      .range(0, 1000),
     supabase
       .from("team_leaderboard")
       .select("*")
@@ -102,10 +105,12 @@ export default async function HomePage() {
       .order("clean_sweeps", { ascending: false })
       .order("blanks", { ascending: true })
       .order("team_name", { ascending: true })
-      .range(0, 10),
+      .range(0, 1000),
     supabase
       .from("fixtures")
-      .select("gameweek, gameweek_label, opponent, opponent_short, venue, kickoff_at, status, result_confirmed")
+      .select(
+        "gameweek, gameweek_label, opponent, opponent_short, venue, kickoff_at, status, result_confirmed"
+      )
       .neq("status", "finished")
       .order("gameweek", { ascending: true })
       .limit(1),
@@ -123,7 +128,8 @@ export default async function HomePage() {
     ])
   );
 
-  const season = settings.get("season_label") ?? settings.get("current_season") ?? "2025/26";
+  const season =
+    settings.get("season_label") ?? settings.get("current_season") ?? "2025/26";
   const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
   const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
   const nextFixture = (nextFixtureData?.[0] ?? null) as FixtureRow | null;
@@ -151,8 +157,9 @@ export default async function HomePage() {
               </h1>
 
               <p className="mt-6 max-w-2xl text-base font-semibold leading-7 text-neutral-700 md:text-lg">
-                Individual and team score prediction game for the Forest podcast community.
-                Track the tables, follow the season mood, and see who called it right.
+                Individual and team score prediction game for the Forest podcast
+                community. Track the tables, follow the season mood, and see who
+                called it right.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
@@ -201,7 +208,10 @@ export default async function HomePage() {
           />
         </section>
 
-        <section id="leaderboards" className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <section
+          id="leaderboards"
+          className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]"
+        >
           <div className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -209,11 +219,11 @@ export default async function HomePage() {
                   Individual leaderboard
                 </h2>
                 <p className="mt-1 text-sm font-semibold text-neutral-600">
-                  Top 10 players by current prediction league score.
+                  All players ranked by current prediction league score.
                 </p>
               </div>
               <div className="text-sm font-black uppercase tracking-wide text-[#C8102E]">
-                Top 10
+                {individualRows.length} players
               </div>
             </div>
 
@@ -225,7 +235,9 @@ export default async function HomePage() {
                     <th className="px-4 py-3">Player</th>
                     <th className="hidden px-4 py-3 md:table-cell">Team</th>
                     <th className="px-4 py-3 text-right">Points</th>
-                    <th className="hidden px-4 py-3 text-right md:table-cell">Accuracy</th>
+                    <th className="hidden px-4 py-3 text-right md:table-cell">
+                      Accuracy
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -322,12 +334,16 @@ export default async function HomePage() {
               </div>
               <h2 className="mt-3 text-3xl font-black uppercase">
                 {nextFixture
-                  ? `${nextFixture.gameweek_label}: Forest ${nextFixture.venue === "H" ? "v" : "at"} ${nextFixture.opponent_short}`
+                  ? `${nextFixture.gameweek_label}: Forest ${
+                      nextFixture.venue === "H" ? "v" : "at"
+                    } ${nextFixture.opponent_short}`
                   : "Next fixture TBC"}
               </h2>
               <p className="mt-3 text-sm font-semibold leading-6 text-neutral-300">
                 {nextFixture
-                  ? `Kick-off: ${formatDateTime(nextFixture.kickoff_at)}. Predictions lock 5 minutes before kick-off.`
+                  ? `Kick-off: ${formatDateTime(
+                      nextFixture.kickoff_at
+                    )}. Predictions lock 5 minutes before kick-off.`
                   : "Fixture information will update from the API sync."}
               </p>
             </div>
