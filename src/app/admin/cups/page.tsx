@@ -24,6 +24,17 @@ type CupSummary = {
   actual_round_reached: string | null;
 };
 
+type JoinedTeam = {
+  team_name: string;
+  display_name: string | null;
+};
+
+type JoinedPlayer = {
+  player_name: string;
+  short_name: string | null;
+  teams: JoinedTeam[] | JoinedTeam | null;
+};
+
 type CupPrediction = {
   id: string;
   player_id: string;
@@ -32,14 +43,7 @@ type CupPrediction = {
   actual_round_reached: string | null;
   bonus_awarded: number;
   cup_competition_id: string;
-  players: {
-    player_name: string;
-    short_name: string | null;
-    teams: {
-      team_name: string;
-      display_name: string | null;
-    } | null;
-  } | null;
+  players: JoinedPlayer[] | JoinedPlayer | null;
 };
 
 type SaveResult = {
@@ -76,20 +80,31 @@ function formatDateTime(value: string | null) {
   }).format(new Date(value));
 }
 
+function firstItem<T>(value: T[] | T | null | undefined): T | null {
+  if (!value) return null;
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value;
+}
+
+function getJoinedPlayer(prediction: CupPrediction) {
+  return firstItem(prediction.players);
+}
+
+function getJoinedTeam(prediction: CupPrediction) {
+  const player = getJoinedPlayer(prediction);
+  return firstItem(player?.teams);
+}
+
 function playerDisplayName(prediction: CupPrediction) {
-  return (
-    prediction.players?.short_name ??
-    prediction.players?.player_name ??
-    "Unknown player"
-  );
+  const player = getJoinedPlayer(prediction);
+
+  return player?.short_name ?? player?.player_name ?? "Unknown player";
 }
 
 function teamDisplayName(prediction: CupPrediction) {
-  return (
-    prediction.players?.teams?.display_name ??
-    prediction.players?.teams?.team_name ??
-    "No team"
-  );
+  const team = getJoinedTeam(prediction);
+
+  return team?.display_name ?? team?.team_name ?? "No team";
 }
 
 export default function AdminCupsPage() {
@@ -114,36 +129,38 @@ export default function AdminCupsPage() {
     setLoading(true);
     setMessage(null);
 
-    const [{ data: competitionData, error: competitionError }, { data: predictionData, error: predictionError }] =
-      await Promise.all([
-        supabase
-          .from("cup_competitions")
-          .select("*")
-          .eq("active", true)
-          .order("competition", { ascending: true }),
-        supabase
-          .from("cup_predictions")
-          .select(
-            `
-            id,
-            player_id,
-            competition,
-            predicted_round_reached,
-            actual_round_reached,
-            bonus_awarded,
-            cup_competition_id,
-            players (
-              player_name,
-              short_name,
-              teams (
-                team_name,
-                display_name
-              )
-            )
+    const [
+      { data: competitionData, error: competitionError },
+      { data: predictionData, error: predictionError },
+    ] = await Promise.all([
+      supabase
+        .from("cup_competitions")
+        .select("*")
+        .eq("active", true)
+        .order("competition", { ascending: true }),
+      supabase
+        .from("cup_predictions")
+        .select(
           `
+          id,
+          player_id,
+          competition,
+          predicted_round_reached,
+          actual_round_reached,
+          bonus_awarded,
+          cup_competition_id,
+          players (
+            player_name,
+            short_name,
+            teams (
+              team_name,
+              display_name
+            )
           )
-          .order("competition", { ascending: true }),
-      ]);
+        `
+        )
+        .order("competition", { ascending: true }),
+    ]);
 
     if (competitionError || predictionError) {
       setMessage({
@@ -158,7 +175,7 @@ export default function AdminCupsPage() {
     }
 
     const loadedCompetitions = (competitionData ?? []) as CupCompetition[];
-    const loadedPredictions = (predictionData ?? []) as CupPrediction[];
+    const loadedPredictions = (predictionData ?? []) as unknown as CupPrediction[];
 
     setCompetitions(loadedCompetitions);
     setPredictions(loadedPredictions);
@@ -240,7 +257,9 @@ export default function AdminCupsPage() {
 
     setMessage({
       type: "success",
-      text: `${competition.display_name} saved as ${selectedRound}. ${result.bonus_count ?? 0} bonus winners.`,
+      text: `${competition.display_name} saved as ${selectedRound}. ${
+        result.bonus_count ?? 0
+      } bonus winners.`,
     });
 
     await loadCupData();
