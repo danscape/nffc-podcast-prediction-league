@@ -1,84 +1,378 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
+
+type AppSetting = {
+  key: string;
+  value: string;
+};
+
+type IndividualLeaderboardRow = {
+  player_id: string;
+  player_name: string;
+  short_name: string | null;
+  table_display_name: string | null;
+  team_name: string;
+  team_display_name: string | null;
+  total_points: number;
+  accuracy_percentage: number;
+};
+
+type TeamLeaderboardRow = {
+  team_id: string;
+  team_name: string;
+  display_name: string | null;
+  total_team_points: number;
+  clean_sweeps: number;
+  blanks: number;
+};
+
+type FixtureRow = {
+  gameweek: number;
+  gameweek_label: string;
+  opponent: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  kickoff_at: string | null;
+  status: string;
+  result_confirmed: boolean;
+};
+
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing Supabase environment variables.");
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
+
+function formatPoints(value: number | null | undefined) {
+  return Number(value ?? 0).toFixed(1).replace(".0", "");
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) return "TBC";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/London",
+  }).format(new Date(value));
+}
+
+function getDisplayName(row: IndividualLeaderboardRow) {
+  return row.table_display_name ?? row.short_name ?? row.player_name;
+}
 
 export default async function HomePage() {
+  const supabase = getSupabaseClient();
+
   const [
-    { data: settings },
     { count: teamCount },
     { count: playerCount },
     { count: fixtureCount },
+    { count: predictionCount },
+    { data: settingsData },
+    { data: individualData },
+    { data: teamData },
+    { data: nextFixtureData },
+    { data: completedFixturesData },
   ] = await Promise.all([
-    supabase.from("app_settings").select("*"),
     supabase.from("teams").select("*", { count: "exact", head: true }),
-    supabase.from("players").select("*", { count: "exact", head: true }),
+    supabase.from("players").select("*", { count: "exact", head: true }).eq("active", true),
     supabase.from("fixtures").select("*", { count: "exact", head: true }),
+    supabase.from("current_predictions").select("*", { count: "exact", head: true }),
+    supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["current_season", "season_label"]),
+    supabase
+      .from("individual_leaderboard")
+      .select("*")
+      .order("total_points", { ascending: false })
+      .order("accuracy_percentage", { ascending: false })
+      .order("player_name", { ascending: true })
+      .range(0, 9),
+    supabase
+      .from("team_leaderboard")
+      .select("*")
+      .order("total_team_points", { ascending: false })
+      .order("clean_sweeps", { ascending: false })
+      .order("blanks", { ascending: true })
+      .order("team_name", { ascending: true })
+      .range(0, 10),
+    supabase
+      .from("fixtures")
+      .select("gameweek, gameweek_label, opponent, opponent_short, venue, kickoff_at, status, result_confirmed")
+      .neq("status", "finished")
+      .order("gameweek", { ascending: true })
+      .limit(1),
+    supabase
+      .from("fixtures")
+      .select("gameweek")
+      .eq("status", "finished")
+      .eq("result_confirmed", true),
   ]);
 
-  const settingsMap = Object.fromEntries(
-    (settings ?? []).map((setting) => [setting.key, setting.value])
+  const settings = new Map(
+    ((settingsData ?? []) as AppSetting[]).map((setting) => [
+      setting.key,
+      setting.value,
+    ])
   );
 
+  const season = settings.get("season_label") ?? settings.get("current_season") ?? "2025/26";
+  const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
+  const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
+  const nextFixture = (nextFixtureData?.[0] ?? null) as FixtureRow | null;
+  const completedFixtureCount = completedFixturesData?.length ?? 0;
+
+  const totalPossiblePredictions = (playerCount ?? 0) * (fixtureCount ?? 0);
+  const predictionCompletion =
+    totalPossiblePredictions > 0
+      ? Math.round(((predictionCount ?? 0) / totalPossiblePredictions) * 100)
+      : 0;
+
   return (
-    <main className="min-h-screen bg-[#F7F6F2] text-[#111111]">
-      <section className="mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-6 py-12">
-        <div className="mb-8 inline-flex w-fit items-center gap-3 border-b-2 border-[#C8102E] pb-2 text-sm font-semibold uppercase tracking-[0.25em] text-[#C8102E]">
-          🔮 NFFC Podcast Prediction League
-        </div>
+    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
+      <section className="mx-auto max-w-7xl">
+        <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
+          <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-end">
+            <div>
+              <div className="mb-4 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+                🔮 NFFC Podcast Prediction League
+              </div>
 
-        <div className="grid gap-10 lg:grid-cols-[1.4fr_0.8fr] lg:items-center">
-          <div>
-            <h1 className="max-w-4xl text-5xl font-black uppercase tracking-tight text-[#C8102E] md:text-7xl">
-              NFFC Podcast
-              <span className="block text-[#111111]">Prediction League</span>
-            </h1>
+              <h1 className="max-w-4xl text-5xl font-black uppercase leading-[0.92] tracking-tight text-[#C8102E] md:text-7xl">
+                NFFC Podcast
+                <span className="block text-[#111111]">Prediction League</span>
+              </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-neutral-700">
-              Individual and team score prediction game for the Forest podcast
-              community. Predict every game, track the table, and follow the
-              season&apos;s changing mood.
-            </p>
+              <p className="mt-6 max-w-2xl text-base font-semibold leading-7 text-neutral-700 md:text-lg">
+                Individual and team score prediction game for the Forest podcast community.
+                Track the tables, follow the season mood, and see who called it right.
+              </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/test-data"
-                className="rounded-full bg-[#111111] px-5 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
-              >
-                View imported data
-              </Link>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  href="/admin/login"
+                  className="rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+                >
+                  Admin login
+                </Link>
+                <a
+                  href="#leaderboards"
+                  className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+                >
+                  View leaderboards
+                </a>
+              </div>
+            </div>
 
-              <Link
-                href="/test-supabase"
-                className="rounded-full border border-[#111111] px-5 py-3 text-sm font-bold uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
-              >
-                Supabase test
-              </Link>
+            <div className="rounded-3xl border border-[#D9D6D1] bg-[#F7F6F2] p-5 shadow-sm">
+              <div className="mb-4 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+                Current setup
+              </div>
+
+              <SetupRow label="Season" value={season} />
+              <SetupRow label="Teams" value={teamCount ?? 0} />
+              <SetupRow label="Players" value={playerCount ?? 0} />
+              <SetupRow label="Fixtures" value={fixtureCount ?? 0} />
+              <SetupRow label="Completed GWs" value={completedFixtureCount} />
+              <SetupRow label="Timezone" value="Europe/London" />
+            </div>
+          </div>
+        </header>
+
+        <section className="mb-6 grid gap-3 md:grid-cols-4">
+          <StatCard label="Current season" value={season} />
+          <StatCard label="Predictions stored" value={predictionCount ?? 0} />
+          <StatCard label="Prediction coverage" value={`${predictionCompletion}%`} />
+          <StatCard
+            label="Next fixture"
+            value={
+              nextFixture
+                ? `${nextFixture.gameweek_label} ${nextFixture.opponent_short} ${nextFixture.venue}`
+                : "TBC"
+            }
+            subValue={nextFixture ? formatDateTime(nextFixture.kickoff_at) : undefined}
+          />
+        </section>
+
+        <section id="leaderboards" className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-3xl font-black uppercase text-[#111111]">
+                  Individual leaderboard
+                </h2>
+                <p className="mt-1 text-sm font-semibold text-neutral-600">
+                  Top 10 players by current prediction league score.
+                </p>
+              </div>
+              <div className="text-sm font-black uppercase tracking-wide text-[#C8102E]">
+                Top 10
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-[#D9D6D1]">
+              <table className="w-full border-collapse text-left text-sm">
+                <thead className="bg-[#111111] text-white">
+                  <tr>
+                    <th className="px-4 py-3">Rank</th>
+                    <th className="px-4 py-3">Player</th>
+                    <th className="hidden px-4 py-3 md:table-cell">Team</th>
+                    <th className="px-4 py-3 text-right">Points</th>
+                    <th className="hidden px-4 py-3 text-right md:table-cell">Accuracy</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {individualRows.length ? (
+                    individualRows.map((row, index) => (
+                      <tr
+                        key={row.player_id}
+                        className="border-b border-[#E7E2DA] last:border-b-0"
+                      >
+                        <td className="px-4 py-3 text-lg font-black text-[#C8102E]">
+                          {index + 1}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-black">{getDisplayName(row)}</div>
+                          <div className="text-xs font-semibold text-neutral-500 md:hidden">
+                            {row.team_display_name ?? row.team_name}
+                          </div>
+                        </td>
+                        <td className="hidden px-4 py-3 font-semibold text-neutral-700 md:table-cell">
+                          {row.team_display_name ?? row.team_name}
+                        </td>
+                        <td className="px-4 py-3 text-right text-xl font-black">
+                          {formatPoints(row.total_points)}
+                        </td>
+                        <td className="hidden px-4 py-3 text-right font-bold text-neutral-600 md:table-cell">
+                          {formatPoints(row.accuracy_percentage)}%
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="px-4 py-6 text-neutral-600" colSpan={5}>
+                        Individual leaderboard not available yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-6 shadow-sm">
-            <div className="mb-4 text-sm font-bold uppercase tracking-[0.25em] text-[#C8102E]">
-              Current setup
+          <div className="grid gap-6">
+            <div className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+              <div className="mb-5 flex items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-3xl font-black uppercase text-[#111111]">
+                    Team table
+                  </h2>
+                  <p className="mt-1 text-sm font-semibold text-neutral-600">
+                    Podcast team standings.
+                  </p>
+                </div>
+                <div className="text-sm font-black uppercase tracking-wide text-[#C8102E]">
+                  {teamRows.length} teams
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                {teamRows.length ? (
+                  teamRows.map((row, index) => (
+                    <div
+                      key={row.team_id}
+                      className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                            Rank {index + 1}
+                          </div>
+                          <div className="mt-1 text-lg font-black">
+                            {row.display_name ?? row.team_name}
+                          </div>
+                          <div className="mt-2 text-xs font-bold uppercase tracking-wide text-neutral-500">
+                            Clean sweeps {row.clean_sweeps} · Blanks {row.blanks}
+                          </div>
+                        </div>
+                        <div className="text-3xl font-black text-[#C8102E]">
+                          {formatPoints(row.total_team_points)}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
+                    Team leaderboard not available yet.
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-4">
-              <Stat label="Season" value={settingsMap.current_season ?? "TBC"} />
-              <Stat label="Teams" value={String(teamCount ?? 0)} />
-              <Stat label="Players" value={String(playerCount ?? 0)} />
-              <Stat label="Fixtures" value={String(fixtureCount ?? 0)} />
-              <Stat label="Timezone" value={settingsMap.timezone ?? "Europe/London"} />
+            <div className="rounded-3xl border border-[#D9D6D1] bg-[#111111] p-5 text-white shadow-sm md:p-6">
+              <div className="text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+                Season pulse
+              </div>
+              <h2 className="mt-3 text-3xl font-black uppercase">
+                {nextFixture
+                  ? `${nextFixture.gameweek_label}: Forest ${nextFixture.venue === "H" ? "v" : "at"} ${nextFixture.opponent_short}`
+                  : "Next fixture TBC"}
+              </h2>
+              <p className="mt-3 text-sm font-semibold leading-6 text-neutral-300">
+                {nextFixture
+                  ? `Kick-off: ${formatDateTime(nextFixture.kickoff_at)}. Predictions lock 5 minutes before kick-off.`
+                  : "Fixture information will update from the API sync."}
+              </p>
             </div>
           </div>
-        </div>
+        </section>
       </section>
     </main>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function SetupRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
   return (
-    <div className="flex items-center justify-between border-b border-[#D9D6D1] pb-3">
-      <span className="text-sm text-neutral-500">{label}</span>
-      <span className="text-xl font-black text-[#111111]">{value}</span>
+    <div className="flex items-center justify-between border-b border-[#D9D6D1] py-3 last:border-b-0">
+      <span className="text-sm font-semibold text-neutral-500">{label}</span>
+      <span className="text-lg font-black text-[#111111]">{value}</span>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  subValue,
+}: {
+  label: string;
+  value: string | number;
+  subValue?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
+      <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+        {label}
+      </div>
+      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
+      {subValue && (
+        <div className="mt-2 text-xs font-semibold text-neutral-500">
+          {subValue}
+        </div>
+      )}
     </div>
   );
 }
