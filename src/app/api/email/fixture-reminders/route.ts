@@ -127,13 +127,18 @@ type TeamLeaderboardRow = {
 
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Missing Supabase environment variables.");
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error("Missing Supabase service role environment variables.");
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey);
+  return createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
 }
 
 function getBearerToken(request: Request) {
@@ -551,6 +556,7 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const dryRun = body?.dryRun === true;
     const limit = typeof body?.limit === "number" ? body.limit : 1000;
+
     const manualGameweek =
       typeof body?.manualGameweek === "number" &&
       Number.isInteger(body.manualGameweek) &&
@@ -647,7 +653,6 @@ export async function POST(request: Request) {
       : allReminders;
 
     const reminders = filteredReminders.slice(0, limit);
-
     const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
     const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
 
