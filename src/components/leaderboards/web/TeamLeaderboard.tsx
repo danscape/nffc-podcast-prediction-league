@@ -8,7 +8,6 @@ import {
 import type { TeamLeaderboardLike } from "@/lib/leaderboards/leaderboardFormatters";
 import LeaderboardMiniStat from "./LeaderboardMiniStat";
 import {
-  LeaderboardValuePill,
   getBlankTone,
   getSweepTone,
   getWeeklyPointsTone,

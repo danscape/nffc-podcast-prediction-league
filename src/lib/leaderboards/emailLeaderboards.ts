@@ -17,15 +17,280 @@ import type {
   TeamLeaderboardLike,
 } from "./leaderboardFormatters";
 
+type IndividualEmailRow = IndividualLeaderboardLike & {
+  player_id?: string | null;
+};
+
+type TeamEmailRow = TeamLeaderboardLike & {
+  team_id?: string | null;
+  team_name: string;
+  display_name?: string | null;
+};
+
 const emailTableHeading =
-  "padding: 9px 8px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; background: #111111; color: #ffffff;";
+  "padding: 8px 8px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; background: #111111; color: #ffffff;";
 
 const emailTableCell =
-  "padding: 10px 8px; border-bottom: 1px solid #e5e0d8; vertical-align: top;";
+  "padding: 8px 8px; border-bottom: 1px solid #E7E2DA; vertical-align: middle;";
 
-const pillBase =
-  "display: inline-block; min-width: 46px; text-align: center; border-radius: 10px; padding: 6px 8px; font-weight: 900;";
+const snapshotWrap =
+  "background: #ffffff; border: 1px solid #D9D6D1; border-radius: 16px; padding: 14px; margin-bottom: 14px;";
 
+function getSnapshotRange(targetIndex: number, totalRows: number) {
+  if (targetIndex < 0) {
+    return {
+      start: 0,
+      end: Math.min(totalRows, 9),
+    };
+  }
+
+  return {
+    start: Math.max(0, targetIndex - 4),
+    end: Math.min(totalRows, targetIndex + 5),
+  };
+}
+
+function isSameTeam(row: TeamEmailRow, targetTeamName: string | null | undefined) {
+  if (!targetTeamName) return false;
+
+  const target = targetTeamName.trim().toLowerCase();
+
+  return (
+    row.team_name?.trim().toLowerCase() === target ||
+    row.display_name?.trim().toLowerCase() === target ||
+    displayTeamName(row).trim().toLowerCase() === target
+  );
+}
+
+export function buildEmailIndividualSnapshotText({
+  rows,
+  targetPlayerId,
+}: {
+  rows: IndividualEmailRow[];
+  targetPlayerId: string;
+}) {
+  const sortedRows = sortIndividualLeaderboard(rows);
+  const targetIndex = sortedRows.findIndex(
+    (row) => row.player_id === targetPlayerId
+  );
+
+  if (!sortedRows.length) return "Individual leaderboard not available yet.";
+
+  const { start, end } = getSnapshotRange(targetIndex, sortedRows.length);
+
+  return sortedRows
+    .slice(start, end)
+    .map((row, localIndex) => {
+      const rank = start + localIndex + 1;
+      const marker = row.player_id === targetPlayerId ? " *" : "";
+
+      return `${rank}. ${displayPlayerName(row)} - ${formatCompactPoints(
+        row.total_points
+      )} pts${marker}`;
+    })
+    .join("\n");
+}
+
+export function buildEmailTeamSnapshotText({
+  rows,
+  targetTeamName,
+}: {
+  rows: TeamEmailRow[];
+  targetTeamName: string;
+}) {
+  const sortedRows = sortTeamLeaderboard(rows);
+  const targetIndex = sortedRows.findIndex((row) =>
+    isSameTeam(row, targetTeamName)
+  );
+
+  if (!sortedRows.length) return "Team leaderboard not available yet.";
+
+  const { start, end } = getSnapshotRange(targetIndex, sortedRows.length);
+
+  return sortedRows
+    .slice(start, end)
+    .map((row, localIndex) => {
+      const rank = start + localIndex + 1;
+      const marker = isSameTeam(row, targetTeamName) ? " *" : "";
+
+      return `${rank}. ${displayTeamName(row)} - ${formatCompactPoints(
+        row.total_team_points
+      )} pts${marker}`;
+    })
+    .join("\n");
+}
+
+export function buildEmailIndividualSnapshotTable({
+  rows,
+  targetPlayerId,
+}: {
+  rows: IndividualEmailRow[];
+  targetPlayerId: string;
+}) {
+  const sortedRows = sortIndividualLeaderboard(rows);
+  const targetIndex = sortedRows.findIndex(
+    (row) => row.player_id === targetPlayerId
+  );
+
+  if (!sortedRows.length) {
+    return `
+      <p style="margin: 0; font-size: 14px; color: #666666;">
+        Individual leaderboard not available yet.
+      </p>
+    `;
+  }
+
+  const { start, end } = getSnapshotRange(targetIndex, sortedRows.length);
+
+  const bodyRows = sortedRows
+    .slice(start, end)
+    .map((row, localIndex) => {
+      const rank = start + localIndex + 1;
+      const highlighted = row.player_id === targetPlayerId;
+
+      return `
+        <tr style="${highlighted ? "background: #FFF1F2;" : "background: #ffffff;"}">
+          <td style="${emailTableCell} width: 48px; font-weight: 900; color: ${
+            highlighted ? "#C8102E" : "#111111"
+          };">
+            ${rank}
+          </td>
+          <td style="${emailTableCell}">
+            <div style="font-weight: 900; font-size: 14px; line-height: 1.25; color: #111111;">
+              ${escapeHtml(displayPlayerName(row))}
+            </div>
+          </td>
+          <td style="${emailTableCell} width: 82px; text-align: right; font-weight: 900; color: ${
+            highlighted ? "#C8102E" : "#111111"
+          };">
+            ${escapeHtml(formatCompactPoints(row.total_points))}
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  return `
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #111111;">
+      <thead>
+        <tr>
+          <th style="${emailTableHeading}; width: 48px;">Rank</th>
+          <th style="${emailTableHeading}">Player</th>
+          <th style="${emailTableHeading}; width: 82px; text-align: right;">Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${bodyRows}
+      </tbody>
+    </table>
+  `;
+}
+
+export function buildEmailTeamSnapshotTable({
+  rows,
+  targetTeamName,
+}: {
+  rows: TeamEmailRow[];
+  targetTeamName: string;
+}) {
+  const sortedRows = sortTeamLeaderboard(rows);
+  const targetIndex = sortedRows.findIndex((row) =>
+    isSameTeam(row, targetTeamName)
+  );
+
+  if (!sortedRows.length) {
+    return `
+      <p style="margin: 0; font-size: 14px; color: #666666;">
+        Team leaderboard not available yet.
+      </p>
+    `;
+  }
+
+  const { start, end } = getSnapshotRange(targetIndex, sortedRows.length);
+
+  const bodyRows = sortedRows
+    .slice(start, end)
+    .map((row, localIndex) => {
+      const rank = start + localIndex + 1;
+      const highlighted = isSameTeam(row, targetTeamName);
+
+      return `
+        <tr style="${highlighted ? "background: #FFF1F2;" : "background: #ffffff;"}">
+          <td style="${emailTableCell} width: 48px; font-weight: 900; color: ${
+            highlighted ? "#C8102E" : "#111111"
+          };">
+            ${rank}
+          </td>
+          <td style="${emailTableCell}">
+            <div style="font-weight: 900; font-size: 14px; line-height: 1.25; color: #111111;">
+              ${escapeHtml(displayTeamName(row))}
+            </div>
+          </td>
+          <td style="${emailTableCell} width: 82px; text-align: right; font-weight: 900; color: ${
+            highlighted ? "#C8102E" : "#111111"
+          };">
+            ${escapeHtml(formatCompactPoints(row.total_team_points))}
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  return `
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #111111;">
+      <thead>
+        <tr>
+          <th style="${emailTableHeading}; width: 48px;">Rank</th>
+          <th style="${emailTableHeading}">Team</th>
+          <th style="${emailTableHeading}; width: 82px; text-align: right;">Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${bodyRows}
+      </tbody>
+    </table>
+  `;
+}
+
+export function buildEmailSnapshotLeaderboardsBlock({
+  individualRows,
+  teamRows,
+  targetPlayerId,
+  targetTeamName,
+}: {
+  individualRows: IndividualEmailRow[];
+  teamRows: TeamEmailRow[];
+  targetPlayerId: string;
+  targetTeamName: string;
+}) {
+  return `
+    <div style="margin: 20px 0 0;">
+      <div style="${snapshotWrap}">
+        <h3 style="margin: 0 0 10px; font-size: 18px; line-height: 1.2; color: #111111;">
+          Your league snapshot
+        </h3>
+        ${buildEmailIndividualSnapshotTable({
+          rows: individualRows,
+          targetPlayerId,
+        })}
+      </div>
+
+      <div style="${snapshotWrap}">
+        <h3 style="margin: 0 0 10px; font-size: 18px; line-height: 1.2; color: #111111;">
+          Your team snapshot
+        </h3>
+        ${buildEmailTeamSnapshotTable({
+          rows: teamRows,
+          targetTeamName,
+        })}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Legacy helpers retained so older imports do not break.
+ */
 export function buildEmailIndividualTopFiveText(
   rows: IndividualLeaderboardLike[],
   limit = 5
@@ -62,130 +327,6 @@ export function buildEmailTeamTopFiveText(
     .join("\n");
 }
 
-export function buildEmailIndividualLeaderboardTable(
-  rows: IndividualLeaderboardLike[],
-  limit = 5
-) {
-  const sortedRows = sortIndividualLeaderboard(rows).slice(0, limit);
-
-  if (!sortedRows.length) {
-    return `
-      <p style="margin: 0; font-size: 14px; color: #666666;">
-        Individual leaderboard not available yet.
-      </p>
-    `;
-  }
-
-  const bodyRows = sortedRows
-    .map((row, index) => {
-      return `
-        <tr>
-          <td style="${emailTableCell} font-weight: 900; color: #C8102E;">${index + 1}</td>
-          <td style="${emailTableCell}">
-            <div style="font-weight: 900; font-size: 15px;">${escapeHtml(
-              displayPlayerName(row)
-            )}</div>
-            <div style="font-size: 12px; color: #666666;">${escapeHtml(
-              displayIndividualTeamName(row)
-            )}</div>
-          </td>
-          <td style="${emailTableCell} text-align: center;">
-            <span style="${pillBase} background: #111111; color: #ffffff;">${escapeHtml(
-              formatCompactPoints(row.total_points)
-            )}</span>
-          </td>
-          <td style="${emailTableCell} text-align: center;">
-            <span style="${pillBase} background: #F7F6F2; color: #111111; border: 1px solid #D9D6D1;">${escapeHtml(
-              formatPercent(getAccuracyWhole(row))
-            )}</span>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  return `
-    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-      <thead>
-        <tr>
-          <th style="${emailTableHeading}">Rank</th>
-          <th style="${emailTableHeading}">Player</th>
-          <th style="${emailTableHeading}; text-align: center;">Score</th>
-          <th style="${emailTableHeading}; text-align: center;">Accuracy</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${bodyRows}
-      </tbody>
-    </table>
-  `;
-}
-
-export function buildEmailTeamLeaderboardTable(
-  rows: TeamLeaderboardLike[],
-  limit = 5
-) {
-  const sortedRows = sortTeamLeaderboard(rows).slice(0, limit);
-
-  if (!sortedRows.length) {
-    return `
-      <p style="margin: 0; font-size: 14px; color: #666666;">
-        Team leaderboard not available yet.
-      </p>
-    `;
-  }
-
-  const bodyRows = sortedRows
-    .map((row, index) => {
-      return `
-        <tr>
-          <td style="${emailTableCell} font-weight: 900; color: #C8102E;">${index + 1}</td>
-          <td style="${emailTableCell}">
-            <div style="font-weight: 900; font-size: 15px;">${escapeHtml(
-              displayTeamName(row)
-            )}</div>
-            <div style="font-size: 12px; color: #666666;">MVP ${escapeHtml(
-              displayMvpName(row)
-            )} / ${escapeHtml(formatPercent(getMvpAccuracy(row)))}</div>
-          </td>
-          <td style="${emailTableCell} text-align: center;">
-            <span style="${pillBase} background: #111111; color: #ffffff;">${escapeHtml(
-              formatCompactPoints(row.total_team_points)
-            )}</span>
-          </td>
-          <td style="${emailTableCell} text-align: center;">
-            <span style="${pillBase} background: #F7F6F2; color: #111111; border: 1px solid #D9D6D1;">${escapeHtml(
-              row.clean_sweeps
-            )}</span>
-          </td>
-          <td style="${emailTableCell} text-align: center;">
-            <span style="${pillBase} background: #FFF1F2; color: #C8102E; border: 1px solid #F5C2CB;">${escapeHtml(
-              row.blanks
-            )}</span>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  return `
-    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-      <thead>
-        <tr>
-          <th style="${emailTableHeading}">Pos</th>
-          <th style="${emailTableHeading}">Team</th>
-          <th style="${emailTableHeading}; text-align: center;">Score</th>
-          <th style="${emailTableHeading}; text-align: center;">Sweeps</th>
-          <th style="${emailTableHeading}; text-align: center;">Blanks</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${bodyRows}
-      </tbody>
-    </table>
-  `;
-}
-
 export function buildEmailLeaderboardsBlock({
   individualRows,
   teamRows,
@@ -204,18 +345,27 @@ export function buildEmailLeaderboardsBlock({
 
   return `
     <div style="margin: 20px 0 0;">
-      <div style="background: #F7F6F2; border: 1px solid #D9D6D1; border-radius: 16px; padding: 16px; margin-bottom: 14px;">
-        <h3 style="margin: 0 0 12px; font-size: 18px; line-height: 1.2; color: #111111;">
+      <div style="${snapshotWrap}">
+        <h3 style="margin: 0 0 10px; font-size: 18px; line-height: 1.2; color: #111111;">
           Individual top ${resolvedIndividualLimit}
         </h3>
-        ${buildEmailIndividualLeaderboardTable(individualRows, resolvedIndividualLimit)}
+        ${buildEmailIndividualSnapshotTable({
+          rows: sortIndividualLeaderboard(individualRows).slice(
+            0,
+            resolvedIndividualLimit
+          ),
+          targetPlayerId: "",
+        })}
       </div>
 
-      <div style="background: #F7F6F2; border: 1px solid #D9D6D1; border-radius: 16px; padding: 16px;">
-        <h3 style="margin: 0 0 12px; font-size: 18px; line-height: 1.2; color: #111111;">
-          Full team leaderboard
+      <div style="${snapshotWrap}">
+        <h3 style="margin: 0 0 10px; font-size: 18px; line-height: 1.2; color: #111111;">
+          Team top ${resolvedTeamLimit}
         </h3>
-        ${buildEmailTeamLeaderboardTable(teamRows, resolvedTeamLimit)}
+        ${buildEmailTeamSnapshotTable({
+          rows: sortTeamLeaderboard(teamRows).slice(0, resolvedTeamLimit),
+          targetTeamName: "",
+        })}
       </div>
     </div>
   `;

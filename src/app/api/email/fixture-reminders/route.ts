@@ -5,9 +5,9 @@ import {
   buildEmailSignoffText,
 } from "@/lib/email/emailSignoff";
 import {
-  buildEmailIndividualTopFiveText,
-  buildEmailLeaderboardsBlock,
-  buildEmailTeamTopFiveText,
+  buildEmailIndividualSnapshotText,
+  buildEmailSnapshotLeaderboardsBlock,
+  buildEmailTeamSnapshotText,
 } from "@/lib/leaderboards/emailLeaderboards";
 
 type DueReminder = {
@@ -222,7 +222,7 @@ function buildPredictionRows(predictions: PlayerPageData["predictions"]) {
   if (!remaining.length) {
     return `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;" colspan="5">
+        <td style="padding: 8px; border-bottom: 1px solid #E7E2DA;" colspan="5">
           No remaining league predictions.
         </td>
       </tr>
@@ -233,19 +233,19 @@ function buildPredictionRows(predictions: PlayerPageData["predictions"]) {
     .map((prediction) => {
       return `
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; font-weight: 700;">
+          <td style="padding: 8px; border-bottom: 1px solid #E7E2DA; font-weight: 900; color: #C8102E;">
             ${escapeHtml(prediction.gameweek_label)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
+          <td style="padding: 8px; border-bottom: 1px solid #E7E2DA; font-weight: 700; color: #111111;">
             ${escapeHtml(prediction.opponent_short)} ${escapeHtml(prediction.venue)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; font-weight: 700;">
+          <td style="padding: 8px; border-bottom: 1px solid #E7E2DA; font-weight: 900; color: #111111;">
             ${escapeHtml(prediction.prediction)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
+          <td style="padding: 8px; border-bottom: 1px solid #E7E2DA; color: #111111;">
             ${escapeHtml(predictionLabel(prediction.prediction))}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
+          <td style="padding: 8px; border-bottom: 1px solid #E7E2DA; color: #111111;">
             ${escapeHtml(formatDateTime(prediction.kickoff_at))}
           </td>
         </tr>
@@ -399,11 +399,14 @@ async function sendReminderEmail({
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const predictionUrl = `${siteUrl}/predict/${reminder.access_token}`;
+  const leaderboardsUrl = `${siteUrl}/#leaderboards`;
+
   const playerName =
     predictionData.player?.short_name ??
     predictionData.player?.player_name ??
     reminder.short_name ??
     reminder.player_name;
+
   const teamName =
     predictionData.player?.team_display_name ??
     predictionData.player?.team_name ??
@@ -419,13 +422,9 @@ async function sendReminderEmail({
   });
 
   const html = `
-    <div style="margin: 0; padding: 0; background: #F7F6F2;">
-      <div style="max-width: 820px; margin: 0 auto; padding: 24px; font-family: Arial, sans-serif; color: #111111;">
-        <div style="background: #ffffff; border: 1px solid #D9D6D1; border-radius: 18px; padding: 24px;">
-          <div style="font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 800; color: #C8102E; border-bottom: 2px solid #C8102E; display: inline-block; padding-bottom: 6px;">
-            NFFC Podcast Prediction League
-          </div>
-
+    <div style="margin: 0; padding: 0; background: #ffffff;">
+      <div style="max-width: 680px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; color: #111111; background: #ffffff;">
+        <div style="background: #ffffff; border: 1px solid #D9D6D1; border-radius: 18px; padding: 22px;">
           ${
             testMode
               ? `<div style="background: #FFF1F2; border: 1px solid #F5C2CB; color: #C8102E; border-radius: 14px; padding: 12px; margin: 0 0 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px;">
@@ -434,30 +433,37 @@ async function sendReminderEmail({
               : ""
           }
 
+          <div style="font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 900; color: #C8102E; border-bottom: 2px solid #C8102E; display: inline-block; padding-bottom: 6px;">
+            NFFC Podcast Prediction League
+          </div>
+
           <h1 style="margin: 16px 0 8px; color: #C8102E; font-size: 28px; line-height: 1.1;">
-            Prediction reminder
+            ${escapeHtml(reminder.gameweek_label)} prediction reminder
           </h1>
 
-          <p style="margin: 0 0 16px; line-height: 1.5;">
-            ${escapeHtml(playerName)}, Forest's next Premier League fixture is coming up. Your current predictions are listed below.
+          <p style="margin: 0 0 16px; line-height: 1.5; color: #111111;">
+            ${escapeHtml(playerName)}, Forest's next Premier League fixture is coming up.
           </p>
 
-          <div style="background: #F7F6F2; border: 1px solid #D9D6D1; border-radius: 14px; padding: 14px; margin: 16px 0;">
-            <p style="margin: 0;"><strong>Player:</strong> ${escapeHtml(playerName)}</p>
-            <p style="margin: 6px 0 0;"><strong>Team:</strong> ${escapeHtml(teamName)}</p>
-            <p style="margin: 6px 0 0;"><strong>Next fixture:</strong> ${escapeHtml(reminder.gameweek_label)} — ${escapeHtml(reminder.opponent_short)} ${escapeHtml(reminder.venue)}</p>
-            <p style="margin: 6px 0 0;"><strong>Kick-off:</strong> ${escapeHtml(formatDateTime(reminder.kickoff_at))}</p>
-            <p style="margin: 6px 0 0;"><strong>Prediction lock:</strong> ${escapeHtml(formatDateTime(reminder.prediction_lock_at))}</p>
+          <div style="background: #ffffff; border: 1px solid #D9D6D1; border-radius: 14px; padding: 14px; margin: 16px 0;">
+            <p style="margin: 0; color: #111111;"><strong>Player:</strong> ${escapeHtml(playerName)}</p>
+            <p style="margin: 6px 0 0; color: #111111;"><strong>Team:</strong> ${escapeHtml(teamName)}</p>
+            <p style="margin: 6px 0 0; color: #111111;"><strong>Next fixture:</strong> ${escapeHtml(reminder.gameweek_label)} — ${escapeHtml(reminder.opponent_short)} ${escapeHtml(reminder.venue)}</p>
+            <p style="margin: 6px 0 0; color: #111111;"><strong>Kick-off:</strong> ${escapeHtml(formatDateTime(reminder.kickoff_at))}</p>
+            <p style="margin: 6px 0 0; color: #111111;"><strong>Prediction lock:</strong> ${escapeHtml(formatDateTime(reminder.prediction_lock_at))}</p>
           </div>
 
           <p style="margin: 18px 0;">
-            <a href="${escapeHtml(predictionUrl)}" style="display: inline-block; background: #111111; color: #ffffff; text-decoration: none; font-weight: 800; padding: 12px 18px; border-radius: 999px;">
+            <a href="${escapeHtml(predictionUrl)}" style="display: inline-block; background: #111111; color: #ffffff; text-decoration: none; font-weight: 900; padding: 12px 18px; border-radius: 999px;">
               Review or update your predictions
             </a>
           </p>
 
-          <h2 style="margin-top: 24px; font-size: 20px;">Current remaining predictions</h2>
-          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <h2 style="margin: 24px 0 10px; font-size: 20px; color: #111111;">
+            Current remaining predictions
+          </h2>
+
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #111111;">
             <thead>
               <tr style="background: #111111; color: #ffffff;">
                 <th style="text-align: left; padding: 8px;">GW</th>
@@ -472,16 +478,15 @@ async function sendReminderEmail({
             </tbody>
           </table>
 
-          <h2 style="margin-top: 24px; font-size: 20px;">Current leaderboards</h2>
-          ${buildEmailLeaderboardsBlock({
+          ${buildEmailSnapshotLeaderboardsBlock({
             individualRows,
             teamRows,
-            individualLimit: 10,
-            teamLimit: teamRows.length,
+            targetPlayerId: reminder.player_id,
+            targetTeamName: teamName,
           })}
 
-          <p style="margin: 22px 0 0;">
-            <a href="${escapeHtml(`${siteUrl}/#leaderboards`)}" style="display: inline-block; background: #C8102E; color: #ffffff; text-decoration: none; font-weight: 800; padding: 12px 18px; border-radius: 999px;">
+          <p style="margin: 20px 0 0;">
+            <a href="${escapeHtml(leaderboardsUrl)}" style="display: inline-block; background: #C8102E; color: #ffffff; text-decoration: none; font-weight: 900; padding: 12px 18px; border-radius: 999px;">
               View full leaderboards
             </a>
           </p>
@@ -495,9 +500,9 @@ async function sendReminderEmail({
   const text = [
     "NFFC Podcast Prediction League",
     "",
-    "Prediction reminder",
+    `${reminder.gameweek_label} prediction reminder`,
     "",
-    `${playerName}, Forest's next Premier League fixture is coming up. Your current predictions are listed below.`,
+    `${playerName}, Forest's next Premier League fixture is coming up.`,
     "",
     `Player: ${playerName}`,
     `Team: ${teamName}`,
@@ -510,13 +515,19 @@ async function sendReminderEmail({
     "Current remaining predictions",
     buildPredictionText(predictionData.predictions),
     "",
-    "Individual top 10",
-    buildEmailIndividualTopFiveText(individualRows, 10),
+    "Your league snapshot",
+    buildEmailIndividualSnapshotText({
+      rows: individualRows,
+      targetPlayerId: reminder.player_id,
+    }),
     "",
-    "Full team leaderboard",
-    buildEmailTeamTopFiveText(teamRows, teamRows.length),
+    "Your team snapshot",
+    buildEmailTeamSnapshotText({
+      rows: teamRows,
+      targetTeamName: teamName,
+    }),
     "",
-    `View full leaderboards: ${siteUrl}/#leaderboards`,
+    `View full leaderboards: ${leaderboardsUrl}`,
     "",
     buildEmailSignoffText(),
   ].join("\n");
@@ -607,6 +618,20 @@ export async function POST(request: Request) {
       );
     }
 
+    if (
+      !manualGameweek &&
+      (reminderResult as { error?: { message: string } }).error
+    ) {
+      return Response.json(
+        {
+          success: false,
+          message: (reminderResult as { error: { message: string } }).error
+            .message,
+        },
+        { status: 500 }
+      );
+    }
+
     const allReminders = manualGameweek
       ? (reminderResult as {
           reminders: DueReminder[];
@@ -622,20 +647,6 @@ export async function POST(request: Request) {
       : allReminders;
 
     const reminders = filteredReminders.slice(0, limit);
-
-    if (
-      !manualGameweek &&
-      (reminderResult as { error?: { message: string } }).error
-    ) {
-      return Response.json(
-        {
-          success: false,
-          message: (reminderResult as { error: { message: string } }).error
-            .message,
-        },
-        { status: 500 }
-      );
-    }
 
     const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
     const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
