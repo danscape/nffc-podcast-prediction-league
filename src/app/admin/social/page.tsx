@@ -372,7 +372,6 @@ function getTeamOutlooks(
       if (!team) return;
 
       const key = team.teamName;
-
       const existing = teamGroups.get(key);
 
       if (existing) {
@@ -672,7 +671,13 @@ export default function AdminSocialPage() {
       mostOptimistic,
       mostPessimistic,
     });
-  }, [mostOptimistic, mostPessimistic, nextFixture, nextFixtureDifficultyRank, nextFixtureStats]);
+  }, [
+    mostOptimistic,
+    mostPessimistic,
+    nextFixture,
+    nextFixtureDifficultyRank,
+    nextFixtureStats,
+  ]);
 
   const individualPost = useMemo(() => {
     const leaderName =
@@ -1077,12 +1082,12 @@ function SocialPreviewGraphic({
       </div>
 
       <div className="overflow-hidden rounded-[2rem] border border-[#111111] bg-[#111111] text-white shadow-sm">
-        <div className="relative aspect-[16/9] min-h-[560px] bg-[radial-gradient(circle_at_top_left,_#C8102E_0,_#7A0719_34%,_#111111_72%)] p-8">
+        <div className="relative min-h-[720px] overflow-hidden bg-[radial-gradient(circle_at_top_left,_#C8102E_0,_#7A0719_34%,_#111111_72%)] p-8">
           <div className="absolute inset-0 opacity-[0.08]">
             <div className="h-full w-full bg-[linear-gradient(135deg,_transparent_0,_transparent_47%,_#ffffff_47%,_#ffffff_53%,_transparent_53%,_transparent_100%)]" />
           </div>
 
-          <div className="relative z-10 flex h-full flex-col justify-between">
+          <div className="relative z-10 flex min-h-[656px] flex-col justify-between gap-6">
             <div>
               <div className="flex items-start justify-between gap-5">
                 <div>
@@ -1151,15 +1156,21 @@ function SocialPreviewGraphic({
               </div>
 
               <div className="overflow-hidden rounded-3xl border border-white/15 bg-white/10 backdrop-blur">
-                <div className="grid h-8 grid-cols-[var(--forest)_var(--draw)_var(--opponent)]">
-                  <div
-                    className="bg-green-500"
-                    style={
-                      {
-                        "--forest": `${Math.max(stats.forestWinPercent, 0)}fr`,
-                      } as React.CSSProperties
-                    }
-                  />
+                <div
+                  className="grid h-8"
+                  style={{
+                    gridTemplateColumns: `${Math.max(
+                      stats.forestWinPercent,
+                      0.01
+                    )}fr ${Math.max(stats.drawPercent, 0.01)}fr ${Math.max(
+                      stats.opponentWinPercent,
+                      0.01
+                    )}fr`,
+                  }}
+                >
+                  <div className="bg-green-500" />
+                  <div className="bg-amber-400" />
+                  <div className="bg-red-600" />
                 </div>
               </div>
 
@@ -1244,15 +1255,15 @@ function ClubLogo({
   logoPath: string | null;
 }) {
   return (
-    <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white shadow-xl">
+    <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white shadow-xl">
       {logoPath ? (
         <img
           src={logoPath}
           alt={`${name} logo`}
-          className="h-[86%] w-[86%] object-contain"
+          className="h-[88%] w-[88%] object-contain"
         />
       ) : (
-        <div className="flex h-[86%] w-[86%] items-center justify-center rounded-full bg-[#C8102E] text-3xl font-black text-white">
+        <div className="flex h-[88%] w-[88%] items-center justify-center rounded-full bg-[#C8102E] text-3xl font-black text-white">
           {getInitials(name)}
         </div>
       )}
