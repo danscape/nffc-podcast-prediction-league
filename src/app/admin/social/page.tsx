@@ -1118,6 +1118,38 @@ function SocialPreviewGraphic({
     topPlayer?.table_display_name ?? topPlayer?.short_name ?? topPlayer?.player_name;
   const topTeamName = topTeam?.display_name ?? topTeam?.team_name;
 
+  const leftOutcome = displayTeams.leftTeam.isForest
+    ? {
+        label: "Forest win",
+        value: stats.forestWinPercent,
+        count: stats.forestWinCount,
+        tone: "green" as const,
+        barClassName: "bg-green-500",
+      }
+    : {
+        label: opponentWinLabel,
+        value: stats.opponentWinPercent,
+        count: stats.opponentWinCount,
+        tone: "red" as const,
+        barClassName: "bg-red-600",
+      };
+
+  const rightOutcome = displayTeams.rightTeam.isForest
+    ? {
+        label: "Forest win",
+        value: stats.forestWinPercent,
+        count: stats.forestWinCount,
+        tone: "green" as const,
+        barClassName: "bg-green-500",
+      }
+    : {
+        label: opponentWinLabel,
+        value: stats.opponentWinPercent,
+        count: stats.opponentWinCount,
+        tone: "red" as const,
+        barClassName: "bg-red-600",
+      };
+
   return (
     <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
       <div className="mb-4">
@@ -1169,11 +1201,11 @@ function SocialPreviewGraphic({
             <div className="grid gap-5">
               <div className="grid grid-cols-3 gap-3">
                 <PredictionSplitCard
-                  label="Forest win"
-                  value={stats.forestWinPercent}
-                  count={stats.forestWinCount}
+                  label={leftOutcome.label}
+                  value={leftOutcome.value}
+                  count={leftOutcome.count}
                   total={stats.total}
-                  tone="green"
+                  tone={leftOutcome.tone}
                 />
                 <PredictionSplitCard
                   label="Draw"
@@ -1183,11 +1215,11 @@ function SocialPreviewGraphic({
                   tone="amber"
                 />
                 <PredictionSplitCard
-                  label={opponentWinLabel}
-                  value={stats.opponentWinPercent}
-                  count={stats.opponentWinCount}
+                  label={rightOutcome.label}
+                  value={rightOutcome.value}
+                  count={rightOutcome.count}
                   total={stats.total}
-                  tone="red"
+                  tone={rightOutcome.tone}
                 />
               </div>
 
@@ -1195,18 +1227,15 @@ function SocialPreviewGraphic({
                 <div
                   className="grid h-8"
                   style={{
-                    gridTemplateColumns: `${Math.max(
-                      stats.forestWinPercent,
+                    gridTemplateColumns: `${Math.max(leftOutcome.value, 0.01)}fr ${Math.max(
+                      stats.drawPercent,
                       0.01
-                    )}fr ${Math.max(stats.drawPercent, 0.01)}fr ${Math.max(
-                      stats.opponentWinPercent,
-                      0.01
-                    )}fr`,
+                    )}fr ${Math.max(rightOutcome.value, 0.01)}fr`,
                   }}
                 >
-                  <div className="bg-green-500" />
+                  <div className={leftOutcome.barClassName} />
                   <div className="bg-amber-400" />
-                  <div className="bg-red-600" />
+                  <div className={rightOutcome.barClassName} />
                 </div>
               </div>
 
@@ -1333,7 +1362,7 @@ function PredictionSplitCard({
 
   return (
     <div className={`rounded-3xl border p-5 shadow-sm ${toneClass}`}>
-      <div className="text-[0.72rem] font-black uppercase tracking-[0.22em] opacity-80">
+      <div className="text-[0.88rem] font-black uppercase tracking-[0.18em] opacity-85">
         {label}
       </div>
       <div className="mt-2 text-6xl font-black leading-none">
