@@ -223,22 +223,55 @@ function getInitials(name: string | null | undefined) {
 }
 
 function getFixtureDisplayTeams(fixture: FixtureRow | null) {
+  const fallbackOpponentName = "Opponent";
+
   if (!fixture) {
+    const forestTeam = {
+      label: "HOME TEAM",
+      name: "Forest",
+      fullName: "Nottingham Forest",
+      logoPath: getClubLogoPath("Nottingham Forest"),
+      isForest: true,
+    };
+
+    const opponentTeam = {
+      label: "AWAY TEAM",
+      name: fallbackOpponentName,
+      fullName: fallbackOpponentName,
+      logoPath: getClubLogoPath(fallbackOpponentName),
+      isForest: false,
+    };
+
     return {
       forestName: "Nottingham Forest",
-      opponentName: "Opponent",
-      forestSideLabel: "Forest",
-      opponentSideLabel: "Opponent",
+      opponentName: fallbackOpponentName,
+      leftTeam: forestTeam,
+      rightTeam: opponentTeam,
     };
   }
 
-  const isForestHome = fixture.venue === "H";
+  const opponentName = fixture.opponent_short || fixture.opponent || fallbackOpponentName;
+  const forestTeam = {
+    label: fixture.venue === "H" ? "HOME TEAM" : "AWAY TEAM",
+    name: "Forest",
+    fullName: "Nottingham Forest",
+    logoPath: getClubLogoPath("Nottingham Forest"),
+    isForest: true,
+  };
+
+  const opponentTeam = {
+    label: fixture.venue === "H" ? "AWAY TEAM" : "HOME TEAM",
+    name: opponentName,
+    fullName: fixture.opponent || opponentName,
+    logoPath: getClubLogoPath(fixture.opponent || opponentName),
+    isForest: false,
+  };
 
   return {
     forestName: "Nottingham Forest",
-    opponentName: fixture.opponent_short || fixture.opponent,
-    forestSideLabel: isForestHome ? fixture.home_team : fixture.away_team,
-    opponentSideLabel: isForestHome ? fixture.away_team : fixture.home_team,
+    opponentName,
+    leftTeam: fixture.venue === "H" ? forestTeam : opponentTeam,
+    rightTeam: fixture.venue === "H" ? opponentTeam : forestTeam,
   };
 }
 
@@ -291,7 +324,7 @@ function getDifficultyRank(
   fixtures: FixtureRow[],
   predictionRows: CurrentPredictionRow[]
 ): DifficultyRank | null {
-  if (!nextFixture) return null;
+  if (!nextFixture || !fixtures.length) return null;
 
   const rankedFixtures = fixtures
     .map((fixture) => {
@@ -303,8 +336,13 @@ function getDifficultyRank(
         predictionTotal: stats.total,
       };
     })
-    .filter((item) => item.predictionTotal > 0)
-    .sort((a, b) => b.lossPercent - a.lossPercent);
+    .sort((a, b) => {
+      if (b.lossPercent !== a.lossPercent) {
+        return b.lossPercent - a.lossPercent;
+      }
+
+      return b.predictionTotal - a.predictionTotal;
+    });
 
   const rankIndex = rankedFixtures.findIndex(
     (item) => item.fixtureId === nextFixture.id
@@ -314,7 +352,7 @@ function getDifficultyRank(
 
   return {
     rank: rankIndex + 1,
-    totalFixtures: rankedFixtures.length,
+    totalFixtures: fixtures.length,
     lossPercent: rankedFixtures[rankIndex].lossPercent,
   };
 }
@@ -861,6 +899,8 @@ export default function AdminSocialPage() {
                 opponentName={nextFixtureTeams.opponentName}
                 mostOptimistic={mostOptimistic}
                 mostPessimistic={mostPessimistic}
+                topPlayer={topPlayer}
+                topTeam={topTeam}
               />
 
               <PostCard
@@ -1059,6 +1099,8 @@ function SocialPreviewGraphic({
   opponentName,
   mostOptimistic,
   mostPessimistic,
+  topPlayer,
+  topTeam,
 }: {
   fixture: FixtureRow | null;
   stats: FixturePredictionStats;
@@ -1067,10 +1109,14 @@ function SocialPreviewGraphic({
   opponentName: string;
   mostOptimistic: TeamOutlook | null;
   mostPessimistic: TeamOutlook | null;
+  topPlayer: IndividualLeaderboardRow | null;
+  topTeam: TeamLeaderboardRow | null;
 }) {
   const opponentWinLabel = `${opponentName} win`;
-  const forestLogo = getClubLogoPath(forestName);
-  const opponentLogo = getClubLogoPath(opponentName);
+  const displayTeams = getFixtureDisplayTeams(fixture);
+  const topPlayerName =
+    topPlayer?.table_display_name ?? topPlayer?.short_name ?? topPlayer?.player_name;
+  const topTeamName = topTeam?.display_name ?? topTeam?.team_name;
 
   return (
     <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
@@ -1110,23 +1156,13 @@ function SocialPreviewGraphic({
               </div>
 
               <div className="mt-8 grid grid-cols-[1fr_auto_1fr] items-center gap-5">
-                <ClubLockup
-                  name="Forest"
-                  fullName={forestName}
-                  logoPath={forestLogo}
-                  align="left"
-                />
+                <ClubLockup team={displayTeams.leftTeam} align="left" />
 
                 <div className="rounded-full border border-white/15 bg-white px-5 py-3 text-2xl font-black uppercase text-[#111111] shadow">
                   v
                 </div>
 
-                <ClubLockup
-                  name={opponentName}
-                  fullName={opponentName}
-                  logoPath={opponentLogo}
-                  align="right"
-                />
+                <ClubLockup team={displayTeams.rightTeam} align="right" />
               </div>
             </div>
 
@@ -1176,10 +1212,6 @@ function SocialPreviewGraphic({
 
               <div className="grid gap-3 md:grid-cols-3">
                 <GraphicInfoPill
-                  label="Predictions counted"
-                  value={stats.total || "N/A"}
-                />
-                <GraphicInfoPill
                   label="Difficulty rank"
                   value={
                     difficultyRank
@@ -1188,14 +1220,26 @@ function SocialPreviewGraphic({
                   }
                 />
                 <GraphicInfoPill
-                  label="Forest positive"
-                  value={formatPercent(stats.forestPositivePercent)}
+                  label="Player leader"
+                  value={
+                    topPlayerName
+                      ? `${topPlayerName} · ${formatPoints(topPlayer?.total_points)} pts`
+                      : "TBC"
+                  }
+                />
+                <GraphicInfoPill
+                  label="Team leader"
+                  value={
+                    topTeamName
+                      ? `${topTeamName} · ${formatPoints(topTeam?.total_team_points)} pts`
+                      : "TBC"
+                  }
                 />
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
                 <TeamMoodCard
-                  label="Most positive team"
+                  label="Most optimistic team"
                   outlook={mostOptimistic}
                   fallback="No team split yet"
                   mode="positive"
@@ -1216,14 +1260,10 @@ function SocialPreviewGraphic({
 }
 
 function ClubLockup({
-  name,
-  fullName,
-  logoPath,
+  team,
   align,
 }: {
-  name: string;
-  fullName: string;
-  logoPath: string | null;
+  team: ReturnType<typeof getFixtureDisplayTeams>["leftTeam"];
   align: "left" | "right";
 }) {
   const isRight = align === "right";
@@ -1234,13 +1274,13 @@ function ClubLockup({
         isRight ? "flex-row-reverse text-right" : "text-left"
       }`}
     >
-      <ClubLogo name={fullName} logoPath={logoPath} />
+      <ClubLogo name={team.fullName} logoPath={team.logoPath} />
       <div>
         <div className="text-[0.72rem] font-black uppercase tracking-[0.25em] text-white/55">
-          {isRight ? "Opponent" : "Home team"}
+          {team.label}
         </div>
         <div className="mt-1 text-4xl font-black uppercase leading-none text-white">
-          {name}
+          {team.name}
         </div>
       </div>
     </div>
@@ -1334,28 +1374,16 @@ function TeamMoodCard({
   fallback: string;
   mode: "positive" | "cautious";
 }) {
-  const mainValue =
-    mode === "positive"
-      ? outlook?.forestWinPercent
-      : outlook?.opponentWinPercent;
+  void mode;
 
   return (
     <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
       <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/55">
         {label}
       </div>
-      {outlook ? (
-        <>
-          <div className="mt-1 text-xl font-black text-white">
-            {outlook.teamName}
-          </div>
-          <div className="mt-1 text-sm font-bold text-white/70">
-            {formatPercent(mainValue)} · {outlook.total} players
-          </div>
-        </>
-      ) : (
-        <div className="mt-1 text-xl font-black text-white/70">{fallback}</div>
-      )}
+      <div className="mt-1 text-xl font-black text-white">
+        {outlook ? outlook.teamName : fallback}
+      </div>
     </div>
   );
 }
