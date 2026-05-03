@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
@@ -48,62 +49,99 @@ type FixtureRow = {
   venue: "H" | "A";
   home_team: string;
   away_team: string;
-  kickoff_at: string | null;
   status: string;
   result_confirmed: boolean;
   home_score: number | null;
   away_score: number | null;
   forest_result: PredictionValue | null;
+  kickoff_at?: string | null;
   updated_at: string | null;
 };
 
 type CurrentPredictionRow = {
-  player_id: string;
   fixture_id: string;
+  player_id: string;
   prediction: PredictionValue;
 };
 
-type PlayerRow = {
+type PlayerTeamRow = {
   id: string;
   team_id: string | null;
-  active: boolean;
-  joined_gameweek: number;
+  teams:
+    | {
+        team_name: string;
+        display_name: string | null;
+        abbreviation: string | null;
+      }
+    | {
+        team_name: string;
+        display_name: string | null;
+        abbreviation: string | null;
+      }[]
+    | null;
 };
 
-type TeamRow = {
-  id: string;
-  team_name: string;
-  display_name: string | null;
-  abbreviation: string | null;
-  x_handle: string | null;
-};
-
-type ForecastSplit = {
+type FixturePredictionStats = {
+  total: number;
   forestWinCount: number;
   drawCount: number;
   opponentWinCount: number;
-  total: number;
-  forestWinPct: number;
-  drawPct: number;
-  opponentWinPct: number;
-  difficultyScore: number;
+  forestWinPercent: number;
+  drawPercent: number;
+  opponentWinPercent: number;
+  forestPositivePercent: number;
 };
 
-type TeamForecast = ForecastSplit & {
-  team_id: string;
-  team_name: string;
-  display_name: string | null;
+type DifficultyRank = {
+  rank: number;
+  totalFixtures: number;
+  lossPercent: number;
+};
+
+type TeamOutlook = {
+  teamName: string;
   abbreviation: string | null;
-  x_handle: string | null;
+  total: number;
+  forestWinPercent: number;
+  drawPercent: number;
+  opponentWinPercent: number;
+  outlookLabel: string;
 };
 
-type NextMatchForecast = {
-  fixture: FixtureRow;
-  split: ForecastSplit;
-  difficultyRank: number | null;
-  difficultyTotal: number;
-  optimisticTeam: TeamForecast | null;
-  pessimisticTeam: TeamForecast | null;
+const clubLogoMap: Record<string, string> = {
+  arsenal: "/club-logos/arsenal.png",
+  "aston villa": "/club-logos/aston-villa.png",
+  "aston-villa": "/club-logos/aston-villa.png",
+  bournemouth: "/club-logos/bournemouth.png",
+  brentford: "/club-logos/brentford.png",
+  brighton: "/club-logos/brighton.png",
+  burnley: "/club-logos/burnley.png",
+  chelsea: "/club-logos/chelsea.png",
+  "crystal palace": "/club-logos/crystal-palace.png",
+  "crystal-palace": "/club-logos/crystal-palace.png",
+  everton: "/club-logos/everton.png",
+  fulham: "/club-logos/fulham.png",
+  leeds: "/club-logos/leeds.png",
+  "leeds united": "/club-logos/leeds.png",
+  liverpool: "/club-logos/liverpool.png",
+  "man city": "/club-logos/man-city.png",
+  "manchester city": "/club-logos/man-city.png",
+  "man united": "/club-logos/man-united.png",
+  "manchester united": "/club-logos/man-united.png",
+  newcastle: "/club-logos/newcastle.png",
+  "newcastle united": "/club-logos/newcastle.png",
+  forest: "/club-logos/nottingham-forest.png",
+  "nottingham forest": "/club-logos/nottingham-forest.png",
+  "nottingham forest fc": "/club-logos/nottingham-forest.png",
+  sunderland: "/club-logos/sunderland.png",
+  spurs: "/club-logos/tottenham.png",
+  tottenham: "/club-logos/tottenham.png",
+  "tottenham hotspur": "/club-logos/tottenham.png",
+  "west ham": "/club-logos/west-ham.png",
+  "west ham united": "/club-logos/west-ham.png",
+  wolves: "/club-logos/wolves.png",
+  wolverhampton: "/club-logos/wolves.png",
+  "wolverhampton wanderers": "/club-logos/wolves.png",
 };
 
 function formatPoints(value: number | null | undefined) {
@@ -118,6 +156,18 @@ function formatPercent(value: number | null | undefined) {
   return `${Math.round(Number(value))}%`;
 }
 
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "Date TBC";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 function resultWord(result: PredictionValue | null) {
   if (result === "W") return "win";
   if (result === "D") return "draw";
@@ -127,6 +177,7 @@ function resultWord(result: PredictionValue | null) {
 
 function scoreText(fixture: FixtureRow | null) {
   if (!fixture) return "No confirmed result yet.";
+
   if (fixture.home_score === null || fixture.away_score === null) {
     return `${fixture.gameweek_label}: ${fixture.opponent_short} ${fixture.venue}`;
   }
@@ -134,148 +185,326 @@ function scoreText(fixture: FixtureRow | null) {
   return `${fixture.gameweek_label}: ${fixture.home_team} ${fixture.home_score}-${fixture.away_score} ${fixture.away_team}`;
 }
 
-function formatKickoff(value: string | null) {
-  if (!value) return "Kickoff TBC";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Kickoff TBC";
-  }
-
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/London",
-  }).format(date);
-}
-
-function formatOrdinal(value: number) {
-  const suffixes = ["th", "st", "nd", "rd"];
-  const lastTwoDigits = value % 100;
-  const suffix =
-    suffixes[(lastTwoDigits - 20) % 10] ??
-    suffixes[lastTwoDigits] ??
-    suffixes[0];
-
-  return `${value}${suffix}`;
-}
-
-function clubLogoSlug(name: string) {
-  return name
+function normaliseClubName(value: string | null | undefined) {
+  return String(value ?? "")
     .toLowerCase()
+    .replace(/\bfc\b/g, "")
+    .replace(/\bafc\b/g, "")
     .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
-function getFixtureTeams(fixture: FixtureRow) {
-  const forestName = "Nottingham Forest";
+function getClubLogoPath(name: string | null | undefined) {
+  const normalisedName = normaliseClubName(name);
 
-  if (fixture.venue === "H") {
+  return (
+    clubLogoMap[normalisedName] ??
+    clubLogoMap[normalisedName.replaceAll(" ", "-")] ??
+    null
+  );
+}
+
+function getInitials(name: string | null | undefined) {
+  const words = String(name ?? "")
+    .replace(/fc$/i, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (!words.length) return "?";
+  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
+
+  return words
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+}
+
+function getFixtureDisplayTeams(fixture: FixtureRow | null) {
+  if (!fixture) {
     return {
-      homeName: forestName,
-      awayName: fixture.opponent,
-      forestLabel: "Forest win",
-      opponentLabel: `${fixture.opponent_short} win`,
+      forestName: "Nottingham Forest",
+      opponentName: "Opponent",
+      forestSideLabel: "Forest",
+      opponentSideLabel: "Opponent",
     };
   }
 
+  const isForestHome = fixture.venue === "H";
+
   return {
-    homeName: fixture.opponent,
-    awayName: forestName,
-    forestLabel: "Forest win",
-    opponentLabel: `${fixture.opponent_short} win`,
+    forestName: "Nottingham Forest",
+    opponentName: fixture.opponent_short || fixture.opponent,
+    forestSideLabel: isForestHome ? fixture.home_team : fixture.away_team,
+    opponentSideLabel: isForestHome ? fixture.away_team : fixture.home_team,
   };
 }
 
-function calculateSplit(predictions: CurrentPredictionRow[]): ForecastSplit {
-  const forestWinCount = predictions.filter(
-    (prediction) => prediction.prediction === "W"
-  ).length;
-  const drawCount = predictions.filter(
-    (prediction) => prediction.prediction === "D"
-  ).length;
-  const opponentWinCount = predictions.filter(
-    (prediction) => prediction.prediction === "L"
-  ).length;
-  const total = predictions.length;
+function calculateFixturePredictionStats(
+  fixture: FixtureRow | null,
+  predictionRows: CurrentPredictionRow[]
+): FixturePredictionStats {
+  if (!fixture) {
+    return {
+      total: 0,
+      forestWinCount: 0,
+      drawCount: 0,
+      opponentWinCount: 0,
+      forestWinPercent: 0,
+      drawPercent: 0,
+      opponentWinPercent: 0,
+      forestPositivePercent: 0,
+    };
+  }
 
-  const forestWinPct = total > 0 ? (forestWinCount / total) * 100 : 0;
-  const drawPct = total > 0 ? (drawCount / total) * 100 : 0;
-  const opponentWinPct = total > 0 ? (opponentWinCount / total) * 100 : 0;
+  const fixturePredictions = predictionRows.filter(
+    (row) => row.fixture_id === fixture.id
+  );
+
+  const total = fixturePredictions.length;
+  const forestWinCount = fixturePredictions.filter(
+    (row) => row.prediction === "W"
+  ).length;
+  const drawCount = fixturePredictions.filter(
+    (row) => row.prediction === "D"
+  ).length;
+  const opponentWinCount = fixturePredictions.filter(
+    (row) => row.prediction === "L"
+  ).length;
 
   return {
+    total,
     forestWinCount,
     drawCount,
     opponentWinCount,
-    total,
-    forestWinPct,
-    drawPct,
-    opponentWinPct,
-    difficultyScore: opponentWinPct + drawPct * 0.5,
+    forestWinPercent: total ? (forestWinCount / total) * 100 : 0,
+    drawPercent: total ? (drawCount / total) * 100 : 0,
+    opponentWinPercent: total ? (opponentWinCount / total) * 100 : 0,
+    forestPositivePercent: total ? ((forestWinCount + drawCount) / total) * 100 : 0,
   };
 }
 
-function buildForecastPost(forecast: NextMatchForecast | null) {
-  if (!forecast) {
+function getDifficultyRank(
+  nextFixture: FixtureRow | null,
+  fixtures: FixtureRow[],
+  predictionRows: CurrentPredictionRow[]
+): DifficultyRank | null {
+  if (!nextFixture) return null;
+
+  const rankedFixtures = fixtures
+    .map((fixture) => {
+      const stats = calculateFixturePredictionStats(fixture, predictionRows);
+
+      return {
+        fixtureId: fixture.id,
+        lossPercent: stats.opponentWinPercent,
+        predictionTotal: stats.total,
+      };
+    })
+    .filter((item) => item.predictionTotal > 0)
+    .sort((a, b) => b.lossPercent - a.lossPercent);
+
+  const rankIndex = rankedFixtures.findIndex(
+    (item) => item.fixtureId === nextFixture.id
+  );
+
+  if (rankIndex === -1) return null;
+
+  return {
+    rank: rankIndex + 1,
+    totalFixtures: rankedFixtures.length,
+    lossPercent: rankedFixtures[rankIndex].lossPercent,
+  };
+}
+
+function getTeamObject(row: PlayerTeamRow) {
+  if (Array.isArray(row.teams)) return row.teams[0] ?? null;
+  return row.teams;
+}
+
+function getTeamOutlooks(
+  nextFixture: FixtureRow | null,
+  predictionRows: CurrentPredictionRow[],
+  playerRows: PlayerTeamRow[]
+) {
+  if (!nextFixture) {
+    return {
+      mostOptimistic: null,
+      mostPessimistic: null,
+    };
+  }
+
+  const playerTeamMap = new Map<
+    string,
+    {
+      teamName: string;
+      abbreviation: string | null;
+    }
+  >();
+
+  playerRows.forEach((player) => {
+    const team = getTeamObject(player);
+
+    if (!team) return;
+
+    playerTeamMap.set(player.id, {
+      teamName: team.display_name ?? team.team_name,
+      abbreviation: team.abbreviation,
+    });
+  });
+
+  const teamGroups = new Map<
+    string,
+    {
+      teamName: string;
+      abbreviation: string | null;
+      predictions: PredictionValue[];
+    }
+  >();
+
+  predictionRows
+    .filter((row) => row.fixture_id === nextFixture.id)
+    .forEach((row) => {
+      const team = playerTeamMap.get(row.player_id);
+
+      if (!team) return;
+
+      const key = team.teamName;
+
+      const existing = teamGroups.get(key);
+
+      if (existing) {
+        existing.predictions.push(row.prediction);
+        return;
+      }
+
+      teamGroups.set(key, {
+        teamName: team.teamName,
+        abbreviation: team.abbreviation,
+        predictions: [row.prediction],
+      });
+    });
+
+  const outlooks: TeamOutlook[] = Array.from(teamGroups.values())
+    .filter((group) => group.predictions.length > 0)
+    .map((group) => {
+      const total = group.predictions.length;
+      const winCount = group.predictions.filter((value) => value === "W").length;
+      const drawCount = group.predictions.filter((value) => value === "D").length;
+      const lossCount = group.predictions.filter((value) => value === "L").length;
+      const forestWinPercent = (winCount / total) * 100;
+      const drawPercent = (drawCount / total) * 100;
+      const opponentWinPercent = (lossCount / total) * 100;
+
+      const outlookLabel =
+        forestWinPercent >= 50
+          ? "strongest Forest outlook"
+          : opponentWinPercent >= 50
+            ? "most cautious outlook"
+            : "split outlook";
+
+      return {
+        teamName: group.teamName,
+        abbreviation: group.abbreviation,
+        total,
+        forestWinPercent,
+        drawPercent,
+        opponentWinPercent,
+        outlookLabel,
+      };
+    });
+
+  const mostOptimistic =
+    [...outlooks].sort((a, b) => {
+      if (b.forestWinPercent !== a.forestWinPercent) {
+        return b.forestWinPercent - a.forestWinPercent;
+      }
+
+      return (
+        b.forestWinPercent +
+        b.drawPercent -
+        (a.forestWinPercent + a.drawPercent)
+      );
+    })[0] ?? null;
+
+  const mostPessimistic =
+    [...outlooks].sort((a, b) => {
+      if (b.opponentWinPercent !== a.opponentWinPercent) {
+        return b.opponentWinPercent - a.opponentWinPercent;
+      }
+
+      return a.forestWinPercent - b.forestWinPercent;
+    })[0] ?? null;
+
+  return {
+    mostOptimistic,
+    mostPessimistic,
+  };
+}
+
+function buildPreviewPost({
+  fixture,
+  stats,
+  difficultyRank,
+  mostOptimistic,
+  mostPessimistic,
+}: {
+  fixture: FixtureRow | null;
+  stats: FixturePredictionStats;
+  difficultyRank: DifficultyRank | null;
+  mostOptimistic: TeamOutlook | null;
+  mostPessimistic: TeamOutlook | null;
+}) {
+  if (!fixture) {
     return [
-      "🔮 NEXT MATCH FORECAST",
+      "🔮 NFFC Podcast Prediction League",
       "",
-      "No upcoming fixture forecast is available yet.",
+      "Next GW preview will appear once an upcoming fixture is available.",
       "",
       "#NFFC",
     ].join("\n");
   }
 
-  const { fixture, split, difficultyRank, difficultyTotal } = forecast;
-  const fixtureTeams = getFixtureTeams(fixture);
-  const matchTitle =
-    fixture.venue === "H"
-      ? `Nottingham Forest vs ${fixture.opponent}`
-      : `${fixture.opponent} vs Nottingham Forest`;
+  const opponentName = fixture.opponent_short || fixture.opponent;
+  const difficultyLine = difficultyRank
+    ? `Difficulty rating: ${difficultyRank.rank}/${difficultyRank.totalFixtures} hardest by prediction sentiment`
+    : "Difficulty rating: TBC";
 
-  const difficultyLine =
-    difficultyRank && difficultyTotal > 0
-      ? `That ranks as the ${formatOrdinal(
-          difficultyRank
-        )} toughest fixture by prediction mood this season.`
-      : "Difficulty ranking will update once more predictions are available.";
+  const optimisticLine = mostOptimistic
+    ? `${mostOptimistic.teamName} are the most positive: ${formatPercent(
+        mostOptimistic.forestWinPercent
+      )} Forest win`
+    : null;
 
-  const optimisticLine = forecast.optimisticTeam
-    ? `Most optimistic team: ${
-        forecast.optimisticTeam.display_name ?? forecast.optimisticTeam.team_name
-      } (${formatPercent(forecast.optimisticTeam.forestWinPct)} Forest win)`
-    : "Most optimistic team: TBC";
-
-  const pessimisticLine = forecast.pessimisticTeam
-    ? `Most cautious team: ${
-        forecast.pessimisticTeam.display_name ?? forecast.pessimisticTeam.team_name
-      } (${formatPercent(forecast.pessimisticTeam.opponentWinPct)} ${
-        fixtureTeams.opponentLabel
-      })`
-    : "Most cautious team: TBC";
+  const pessimisticLine = mostPessimistic
+    ? `${mostPessimistic.teamName} are most cautious: ${formatPercent(
+        mostPessimistic.opponentWinPercent
+      )} ${opponentName} win`
+    : null;
 
   return [
-    "🔮 NEXT MATCH FORECAST",
+    "🔮 NFFC Podcast Prediction League",
     "",
-    `${fixture.gameweek_label}: ${matchTitle}`,
-    `${formatKickoff(fixture.kickoff_at)}`,
+    `${fixture.gameweek_label} preview: Forest ${
+      fixture.venue === "H" ? "v" : "at"
+    } ${opponentName}`,
+    `${formatDateTime(fixture.kickoff_at)}`,
     "",
-    `${formatPercent(split.forestWinPct)} predict a Forest win`,
-    `${formatPercent(split.drawPct)} predict a draw`,
-    `${formatPercent(split.opponentWinPct)} predict a ${fixture.opponent_short} win`,
+    `Prediction split from ${stats.total} players:`,
+    `🟢 Forest win: ${formatPercent(stats.forestWinPercent)} (${stats.forestWinCount})`,
+    `🟠 Draw: ${formatPercent(stats.drawPercent)} (${stats.drawCount})`,
+    `🔴 ${opponentName} win: ${formatPercent(stats.opponentWinPercent)} (${stats.opponentWinCount})`,
     "",
     difficultyLine,
-    "",
     optimisticLine,
     pessimisticLine,
     "",
     "#NFFC",
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export default function AdminSocialPage() {
@@ -284,11 +513,8 @@ export default function AdminSocialPage() {
   );
   const [teamRows, setTeamRows] = useState<TeamLeaderboardRow[]>([]);
   const [fixtures, setFixtures] = useState<FixtureRow[]>([]);
-  const [currentPredictions, setCurrentPredictions] = useState<
-    CurrentPredictionRow[]
-  >([]);
-  const [players, setPlayers] = useState<PlayerRow[]>([]);
-  const [teams, setTeams] = useState<TeamRow[]>([]);
+  const [predictionRows, setPredictionRows] = useState<CurrentPredictionRow[]>([]);
+  const [playerRows, setPlayerRows] = useState<PlayerTeamRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -305,9 +531,7 @@ export default function AdminSocialPage() {
       { data: individualData, error: individualError },
       { data: teamData, error: teamError },
       { data: fixtureData, error: fixtureError },
-      { data: currentPredictionData, error: currentPredictionError },
       { data: playerData, error: playerError },
-      { data: teamLookupData, error: teamLookupError },
     ] = await Promise.all([
       supabase
         .from("individual_leaderboard")
@@ -327,225 +551,80 @@ export default function AdminSocialPage() {
       supabase
         .from("fixtures")
         .select(
-          "id, gameweek, gameweek_label, opponent_short, opponent, venue, home_team, away_team, kickoff_at, status, result_confirmed, home_score, away_score, forest_result, updated_at"
+          "id, gameweek, gameweek_label, opponent_short, opponent, venue, home_team, away_team, status, result_confirmed, home_score, away_score, forest_result, kickoff_at, updated_at"
         )
         .order("gameweek", { ascending: true })
         .range(0, 100),
       supabase
-        .from("current_predictions")
-        .select("player_id, fixture_id, prediction")
-        .range(0, 5000),
-      supabase
         .from("players")
-        .select("id, team_id, active, joined_gameweek")
+        .select("id, team_id, teams(team_name, display_name, abbreviation)")
         .eq("active", true)
-        .range(0, 1000),
-      supabase
-        .from("teams")
-        .select("id, team_name, display_name, abbreviation, x_handle")
         .range(0, 1000),
     ]);
 
-    if (
-      individualError ||
-      teamError ||
-      fixtureError ||
-      currentPredictionError ||
-      playerError ||
-      teamLookupError
-    ) {
+    const loadedFixtures = (fixtureData ?? []) as FixtureRow[];
+    const fixtureIds = loadedFixtures.map((fixture) => fixture.id);
+
+    let loadedPredictionRows: CurrentPredictionRow[] = [];
+
+    if (fixtureIds.length) {
+      const { data: predictionData, error: predictionError } = await supabase
+        .from("current_predictions")
+        .select("fixture_id, player_id, prediction")
+        .in("fixture_id", fixtureIds)
+        .range(0, 5000);
+
+      if (predictionError) {
+        setMessage(predictionError.message);
+      }
+
+      loadedPredictionRows = (predictionData ?? []) as CurrentPredictionRow[];
+    }
+
+    if (individualError || teamError || fixtureError || playerError) {
       setMessage(
         individualError?.message ??
           teamError?.message ??
           fixtureError?.message ??
-          currentPredictionError?.message ??
           playerError?.message ??
-          teamLookupError?.message ??
           "Could not load social output data."
       );
     }
 
     setIndividualRows((individualData ?? []) as IndividualLeaderboardRow[]);
     setTeamRows((teamData ?? []) as TeamLeaderboardRow[]);
-    setFixtures((fixtureData ?? []) as FixtureRow[]);
-    setCurrentPredictions(
-      (currentPredictionData ?? []) as CurrentPredictionRow[]
-    );
-    setPlayers((playerData ?? []) as PlayerRow[]);
-    setTeams((teamLookupData ?? []) as TeamRow[]);
+    setFixtures(loadedFixtures);
+    setPredictionRows(loadedPredictionRows);
+    setPlayerRows((playerData ?? []) as PlayerTeamRow[]);
     setLoading(false);
   }
-
-  const playerById = useMemo(() => {
-    return new Map(players.map((player) => [player.id, player]));
-  }, [players]);
-
-  const teamById = useMemo(() => {
-    return new Map(teams.map((team) => [team.id, team]));
-  }, [teams]);
 
   const completedFixtures = fixtures.filter((fixture) => fixture.result_confirmed);
   const lastConfirmedFixture = completedFixtures[completedFixtures.length - 1] ?? null;
 
   const nextFixture = useMemo(() => {
-    const now = Date.now();
-
-    const futureFixture = fixtures.find((fixture) => {
-      if (fixture.result_confirmed) return false;
-      if (!fixture.kickoff_at) return false;
-
-      return new Date(fixture.kickoff_at).getTime() >= now;
-    });
-
-    return (
-      futureFixture ??
-      fixtures.find((fixture) => !fixture.result_confirmed) ??
-      null
-    );
+    return fixtures.find((fixture) => !fixture.result_confirmed) ?? null;
   }, [fixtures]);
-
-  const nextMatchForecast = useMemo<NextMatchForecast | null>(() => {
-    if (!nextFixture) return null;
-
-    const fixturePredictions = currentPredictions.filter((prediction) => {
-      const player = playerById.get(prediction.player_id);
-
-      return (
-        prediction.fixture_id === nextFixture.id &&
-        player?.active === true &&
-        Number(player.joined_gameweek ?? 1) <= Number(nextFixture.gameweek)
-      );
-    });
-
-    const split = calculateSplit(fixturePredictions);
-
-    const difficultyRows = fixtures
-      .map((fixture) => {
-        const predictionsForFixture = currentPredictions.filter((prediction) => {
-          const player = playerById.get(prediction.player_id);
-
-          return (
-            prediction.fixture_id === fixture.id &&
-            player?.active === true &&
-            Number(player.joined_gameweek ?? 1) <= Number(fixture.gameweek)
-          );
-        });
-
-        const fixtureSplit = calculateSplit(predictionsForFixture);
-
-        return {
-          fixtureId: fixture.id,
-          split: fixtureSplit,
-        };
-      })
-      .filter((row) => row.split.total > 0)
-      .sort((a, b) => b.split.difficultyScore - a.split.difficultyScore);
-
-    const difficultyIndex = difficultyRows.findIndex(
-      (row) => row.fixtureId === nextFixture.id
-    );
-
-    const teamForecasts = fixturePredictions.reduce<Record<string, TeamForecast>>(
-      (state, prediction) => {
-        const player = playerById.get(prediction.player_id);
-        const teamId = player?.team_id;
-
-        if (!teamId) return state;
-
-        const team = teamById.get(teamId);
-
-        if (!team) return state;
-
-        const existing = state[teamId] ?? {
-          team_id: team.id,
-          team_name: team.team_name,
-          display_name: team.display_name,
-          abbreviation: team.abbreviation,
-          x_handle: team.x_handle,
-          forestWinCount: 0,
-          drawCount: 0,
-          opponentWinCount: 0,
-          total: 0,
-          forestWinPct: 0,
-          drawPct: 0,
-          opponentWinPct: 0,
-          difficultyScore: 0,
-        };
-
-        const nextCounts = {
-          ...existing,
-          forestWinCount:
-            existing.forestWinCount + (prediction.prediction === "W" ? 1 : 0),
-          drawCount: existing.drawCount + (prediction.prediction === "D" ? 1 : 0),
-          opponentWinCount:
-            existing.opponentWinCount + (prediction.prediction === "L" ? 1 : 0),
-          total: existing.total + 1,
-        };
-
-        return {
-          ...state,
-          [teamId]: {
-            ...nextCounts,
-            forestWinPct:
-              nextCounts.total > 0
-                ? (nextCounts.forestWinCount / nextCounts.total) * 100
-                : 0,
-            drawPct:
-              nextCounts.total > 0
-                ? (nextCounts.drawCount / nextCounts.total) * 100
-                : 0,
-            opponentWinPct:
-              nextCounts.total > 0
-                ? (nextCounts.opponentWinCount / nextCounts.total) * 100
-                : 0,
-            difficultyScore:
-              nextCounts.total > 0
-                ? (nextCounts.opponentWinCount / nextCounts.total) * 100 +
-                  ((nextCounts.drawCount / nextCounts.total) * 100) * 0.5
-                : 0,
-          },
-        };
-      },
-      {}
-    );
-
-    const teamForecastList = Object.values(teamForecasts).filter(
-      (team) => team.total > 0
-    );
-
-    const optimisticTeam =
-      [...teamForecastList].sort((a, b) => {
-        if (b.forestWinPct !== a.forestWinPct) {
-          return b.forestWinPct - a.forestWinPct;
-        }
-
-        return b.total - a.total;
-      })[0] ?? null;
-
-    const pessimisticTeam =
-      [...teamForecastList].sort((a, b) => {
-        if (b.opponentWinPct !== a.opponentWinPct) {
-          return b.opponentWinPct - a.opponentWinPct;
-        }
-
-        return b.difficultyScore - a.difficultyScore;
-      })[0] ?? null;
-
-    return {
-      fixture: nextFixture,
-      split,
-      difficultyRank: difficultyIndex >= 0 ? difficultyIndex + 1 : null,
-      difficultyTotal: difficultyRows.length,
-      optimisticTeam,
-      pessimisticTeam,
-    };
-  }, [currentPredictions, fixtures, nextFixture, playerById, teamById]);
 
   const topIndividualRows = individualRows.slice(0, 10);
   const topTeamRows = teamRows.slice(0, 12);
 
   const topPlayer = individualRows[0] ?? null;
   const topTeam = teamRows[0] ?? null;
+
+  const nextFixtureStats = useMemo(() => {
+    return calculateFixturePredictionStats(nextFixture, predictionRows);
+  }, [nextFixture, predictionRows]);
+
+  const nextFixtureDifficultyRank = useMemo(() => {
+    return getDifficultyRank(nextFixture, fixtures, predictionRows);
+  }, [fixtures, nextFixture, predictionRows]);
+
+  const { mostOptimistic, mostPessimistic } = useMemo(() => {
+    return getTeamOutlooks(nextFixture, predictionRows, playerRows);
+  }, [nextFixture, playerRows, predictionRows]);
+
+  const nextFixtureTeams = getFixtureDisplayTeams(nextFixture);
 
   const bestAccuracyPlayer = useMemo(() => {
     return [...individualRows]
@@ -585,9 +664,15 @@ export default function AdminSocialPage() {
       .join(" ");
   }, [teamRows]);
 
-  const forecastPost = useMemo(() => {
-    return buildForecastPost(nextMatchForecast);
-  }, [nextMatchForecast]);
+  const previewPost = useMemo(() => {
+    return buildPreviewPost({
+      fixture: nextFixture,
+      stats: nextFixtureStats,
+      difficultyRank: nextFixtureDifficultyRank,
+      mostOptimistic,
+      mostPessimistic,
+    });
+  }, [mostOptimistic, mostPessimistic, nextFixture, nextFixtureDifficultyRank, nextFixtureStats]);
 
   const individualPost = useMemo(() => {
     const leaderName =
@@ -702,8 +787,7 @@ export default function AdminSocialPage() {
                 Social output
               </h1>
               <p className="mt-3 text-sm font-semibold text-neutral-600">
-                Generate weekly post copy, preview social graphics and check
-                leaderboard data for X output.
+                Generate weekly post copy and preview graphics for X output.
               </p>
             </div>
 
@@ -735,13 +819,10 @@ export default function AdminSocialPage() {
           <AdminStat label="Completed GWs" value={completedFixtures.length} />
           <AdminStat label="Players" value={individualRows.length} />
           <AdminStat label="Teams" value={teamRows.length} />
+          <AdminStat label="Prediction rows" value={predictionRows.length} />
           <AdminStat
             label="Team handles"
             value={teamRows.filter((team) => team.x_handle).length}
-          />
-          <AdminStat
-            label="Forecast picks"
-            value={nextMatchForecast?.split.total ?? 0}
           />
         </section>
 
@@ -766,14 +847,22 @@ export default function AdminSocialPage() {
           </div>
         ) : (
           <div className="grid gap-6">
-            <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-              <NextMatchForecastGraphic forecast={nextMatchForecast} />
+            <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+              <SocialPreviewGraphic
+                fixture={nextFixture}
+                stats={nextFixtureStats}
+                difficultyRank={nextFixtureDifficultyRank}
+                forestName={nextFixtureTeams.forestName}
+                opponentName={nextFixtureTeams.opponentName}
+                mostOptimistic={mostOptimistic}
+                mostPessimistic={mostPessimistic}
+              />
+
               <PostCard
-                title="Next match forecast post"
-                text={forecastPost}
-                copied={copied === "forecast"}
-                onCopy={() => copyText("forecast", forecastPost)}
-                compact
+                title="Next gameweek preview post"
+                text={previewPost}
+                copied={copied === "preview"}
+                onCopy={() => copyText("preview", previewPost)}
               />
             </section>
 
@@ -957,227 +1046,305 @@ export default function AdminSocialPage() {
   );
 }
 
-function NextMatchForecastGraphic({
-  forecast,
+function SocialPreviewGraphic({
+  fixture,
+  stats,
+  difficultyRank,
+  forestName,
+  opponentName,
+  mostOptimistic,
+  mostPessimistic,
 }: {
-  forecast: NextMatchForecast | null;
+  fixture: FixtureRow | null;
+  stats: FixturePredictionStats;
+  difficultyRank: DifficultyRank | null;
+  forestName: string;
+  opponentName: string;
+  mostOptimistic: TeamOutlook | null;
+  mostPessimistic: TeamOutlook | null;
 }) {
-  if (!forecast) {
-    return (
-      <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
-        <div className="rounded-[2rem] border border-[#111111] bg-[#111111] p-8 text-white">
-          <div className="text-xs font-black uppercase tracking-[0.25em] text-[#F7F6F2]">
-            Next Match Forecast
-          </div>
-          <div className="mt-4 text-4xl font-black uppercase text-[#C8102E]">
-            No upcoming fixture
-          </div>
-          <p className="mt-3 max-w-xl text-sm font-semibold text-neutral-300">
-            Forecast data will appear once an upcoming fixture and stored
-            predictions are available.
-          </p>
-        </div>
-      </section>
-    );
-  }
-
-  const { fixture, split, difficultyRank, difficultyTotal } = forecast;
-  const fixtureTeams = getFixtureTeams(fixture);
-  const difficultyText =
-    difficultyRank && difficultyTotal > 0
-      ? `${formatOrdinal(difficultyRank)} toughest of ${difficultyTotal}`
-      : "Ranking TBC";
+  const opponentWinLabel = `${opponentName} win`;
+  const forestLogo = getClubLogoPath(forestName);
+  const opponentLogo = getClubLogoPath(opponentName);
 
   return (
     <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
-      <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h2 className="text-2xl font-black uppercase">Next Match Forecast</h2>
-          <p className="text-sm text-neutral-600">
-            Auto-updating graphic preview for the next fixture.
-          </p>
-        </div>
-        <div className="rounded-full border border-[#D9D6D1] px-4 py-2 text-xs font-black uppercase tracking-wide text-neutral-600">
-          {split.total} predictions counted
-        </div>
+      <div className="mb-4">
+        <h2 className="text-2xl font-black uppercase">Next GW preview graphic</h2>
+        <p className="text-sm text-neutral-600">
+          Auto-updating layout for the upcoming fixture prediction split.
+        </p>
       </div>
 
       <div className="overflow-hidden rounded-[2rem] border border-[#111111] bg-[#111111] text-white shadow-sm">
-        <div className="bg-[radial-gradient(circle_at_top_left,_#C8102E_0,_#111111_38%,_#111111_100%)] p-5 md:p-8">
-          <div className="flex items-center justify-between gap-4">
-            <div className="text-[0.68rem] font-black uppercase tracking-[0.28em] text-white/75">
-              🔮 NFFC Podcast Prediction League
-            </div>
-            <div className="rounded-full bg-white px-3 py-1 text-[0.68rem] font-black uppercase tracking-wide text-[#111111]">
-              {fixture.gameweek_label}
-            </div>
+        <div className="relative aspect-[16/9] min-h-[560px] bg-[radial-gradient(circle_at_top_left,_#C8102E_0,_#7A0719_34%,_#111111_72%)] p-8">
+          <div className="absolute inset-0 opacity-[0.08]">
+            <div className="h-full w-full bg-[linear-gradient(135deg,_transparent_0,_transparent_47%,_#ffffff_47%,_#ffffff_53%,_transparent_53%,_transparent_100%)]" />
           </div>
 
-          <div className="mt-8 grid grid-cols-[1fr_auto_1fr] items-center gap-4 md:gap-8">
-            <ClubLogo name={fixtureTeams.homeName} />
-            <div className="text-center text-3xl font-black uppercase text-white/80">
-              v
-            </div>
-            <ClubLogo name={fixtureTeams.awayName} />
-          </div>
+          <div className="relative z-10 flex h-full flex-col justify-between">
+            <div>
+              <div className="flex items-start justify-between gap-5">
+                <div>
+                  <div className="text-lg font-black uppercase tracking-[0.26em] text-white/80">
+                    🔮 NFFC Podcast Prediction League
+                  </div>
+                  <h3 className="mt-2 text-6xl font-black uppercase leading-none tracking-tight text-white">
+                    {fixture?.gameweek_label ?? "GW"}
+                  </h3>
+                </div>
 
-          <div className="mt-7 text-center">
-            <div className="text-3xl font-black uppercase leading-none md:text-5xl">
-              {fixtureTeams.homeName}
-            </div>
-            <div className="mt-2 text-lg font-black uppercase tracking-[0.3em] text-[#C8102E]">
-              versus
-            </div>
-            <div className="mt-2 text-3xl font-black uppercase leading-none md:text-5xl">
-              {fixtureTeams.awayName}
-            </div>
-            <div className="mt-4 text-sm font-black uppercase tracking-[0.2em] text-white/70">
-              {formatKickoff(fixture.kickoff_at)}
-            </div>
-          </div>
+                <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-right backdrop-blur">
+                  <div className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/60">
+                    Kick-off
+                  </div>
+                  <div className="mt-1 text-lg font-black">
+                    {formatDateTime(fixture?.kickoff_at)}
+                  </div>
+                </div>
+              </div>
 
-          <div className="mt-8 grid gap-3 md:grid-cols-3">
-            <ForecastPercentCard
-              label={fixtureTeams.forestLabel}
-              value={split.forestWinPct}
-              count={split.forestWinCount}
-            />
-            <ForecastPercentCard
-              label="Draw"
-              value={split.drawPct}
-              count={split.drawCount}
-            />
-            <ForecastPercentCard
-              label={fixtureTeams.opponentLabel}
-              value={split.opponentWinPct}
-              count={split.opponentWinCount}
-            />
-          </div>
+              <div className="mt-8 grid grid-cols-[1fr_auto_1fr] items-center gap-5">
+                <ClubLockup
+                  name="Forest"
+                  fullName={forestName}
+                  logoPath={forestLogo}
+                  align="left"
+                />
 
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            <ForecastInsight
-              label="Difficulty rank"
-              value={difficultyText}
-              helper="By prediction mood"
-            />
-            <ForecastInsight
-              label="Most optimistic"
-              value={
-                forecast.optimisticTeam
-                  ? forecast.optimisticTeam.display_name ??
-                    forecast.optimisticTeam.team_name
-                  : "TBC"
-              }
-              helper={
-                forecast.optimisticTeam
-                  ? `${formatPercent(
-                      forecast.optimisticTeam.forestWinPct
-                    )} Forest win`
-                  : "Waiting for team data"
-              }
-            />
-            <ForecastInsight
-              label="Most cautious"
-              value={
-                forecast.pessimisticTeam
-                  ? forecast.pessimisticTeam.display_name ??
-                    forecast.pessimisticTeam.team_name
-                  : "TBC"
-              }
-              helper={
-                forecast.pessimisticTeam
-                  ? `${formatPercent(
-                      forecast.pessimisticTeam.opponentWinPct
-                    )} ${fixture.opponent_short} win`
-                  : "Waiting for team data"
-              }
-            />
+                <div className="rounded-full border border-white/15 bg-white px-5 py-3 text-2xl font-black uppercase text-[#111111] shadow">
+                  v
+                </div>
+
+                <ClubLockup
+                  name={opponentName}
+                  fullName={opponentName}
+                  logoPath={opponentLogo}
+                  align="right"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-5">
+              <div className="grid grid-cols-3 gap-3">
+                <PredictionSplitCard
+                  label="Forest win"
+                  value={stats.forestWinPercent}
+                  count={stats.forestWinCount}
+                  total={stats.total}
+                  tone="green"
+                />
+                <PredictionSplitCard
+                  label="Draw"
+                  value={stats.drawPercent}
+                  count={stats.drawCount}
+                  total={stats.total}
+                  tone="amber"
+                />
+                <PredictionSplitCard
+                  label={opponentWinLabel}
+                  value={stats.opponentWinPercent}
+                  count={stats.opponentWinCount}
+                  total={stats.total}
+                  tone="red"
+                />
+              </div>
+
+              <div className="overflow-hidden rounded-3xl border border-white/15 bg-white/10 backdrop-blur">
+                <div className="grid h-8 grid-cols-[var(--forest)_var(--draw)_var(--opponent)]">
+                  <div
+                    className="bg-green-500"
+                    style={
+                      {
+                        "--forest": `${Math.max(stats.forestWinPercent, 0)}fr`,
+                      } as React.CSSProperties
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <GraphicInfoPill
+                  label="Predictions counted"
+                  value={stats.total || "N/A"}
+                />
+                <GraphicInfoPill
+                  label="Difficulty rank"
+                  value={
+                    difficultyRank
+                      ? `${difficultyRank.rank}/${difficultyRank.totalFixtures} hardest`
+                      : "TBC"
+                  }
+                />
+                <GraphicInfoPill
+                  label="Forest positive"
+                  value={formatPercent(stats.forestPositivePercent)}
+                />
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <TeamMoodCard
+                  label="Most positive team"
+                  outlook={mostOptimistic}
+                  fallback="No team split yet"
+                  mode="positive"
+                />
+                <TeamMoodCard
+                  label="Most cautious team"
+                  outlook={mostPessimistic}
+                  fallback="No team split yet"
+                  mode="cautious"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      <p className="mt-3 text-xs font-semibold text-neutral-500">
-        Logo files are read from public/club-logos. Missing logos fall back to
-        text badges.
-      </p>
     </section>
   );
 }
 
-function ClubLogo({ name }: { name: string }) {
-  const [failed, setFailed] = useState(false);
-  const isForest = name.toLowerCase().includes("nottingham forest");
-  const src = isForest
-    ? "/club-logos/nottingham-forest.png"
-    : `/club-logos/${clubLogoSlug(name)}.png`;
+function ClubLockup({
+  name,
+  fullName,
+  logoPath,
+  align,
+}: {
+  name: string;
+  fullName: string;
+  logoPath: string | null;
+  align: "left" | "right";
+}) {
+  const isRight = align === "right";
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="flex h-28 w-28 items-center justify-center rounded-full border border-white/20 bg-white p-4 shadow-sm md:h-36 md:w-36">
-        {failed ? (
-          <div className="text-center text-xl font-black uppercase leading-none text-[#111111]">
-            {name
-              .split(" ")
-              .map((part) => part[0])
-              .join("")
-              .slice(0, 3)}
-          </div>
-        ) : (
-          <img
-            src={src}
-            alt={`${name} logo`}
-            className="max-h-full max-w-full object-contain"
-            onError={() => setFailed(true)}
-          />
-        )}
-      </div>
-      <div className="max-w-[12rem] text-center text-xs font-black uppercase tracking-wide text-white/75">
-        {name}
+    <div
+      className={`flex items-center gap-5 ${
+        isRight ? "flex-row-reverse text-right" : "text-left"
+      }`}
+    >
+      <ClubLogo name={fullName} logoPath={logoPath} />
+      <div>
+        <div className="text-[0.72rem] font-black uppercase tracking-[0.25em] text-white/55">
+          {isRight ? "Opponent" : "Home team"}
+        </div>
+        <div className="mt-1 text-4xl font-black uppercase leading-none text-white">
+          {name}
+        </div>
       </div>
     </div>
   );
 }
 
-function ForecastPercentCard({
+function ClubLogo({
+  name,
+  logoPath,
+}: {
+  name: string;
+  logoPath: string | null;
+}) {
+  return (
+    <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white shadow-xl">
+      {logoPath ? (
+        <img
+          src={logoPath}
+          alt={`${name} logo`}
+          className="h-[86%] w-[86%] object-contain"
+        />
+      ) : (
+        <div className="flex h-[86%] w-[86%] items-center justify-center rounded-full bg-[#C8102E] text-3xl font-black text-white">
+          {getInitials(name)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PredictionSplitCard({
   label,
   value,
   count,
+  total,
+  tone,
 }: {
   label: string;
   value: number;
   count: number;
+  total: number;
+  tone: "green" | "amber" | "red";
 }) {
+  const toneClass =
+    tone === "green"
+      ? "border-green-300 bg-green-500 text-white"
+      : tone === "amber"
+        ? "border-amber-300 bg-amber-400 text-[#111111]"
+        : "border-red-300 bg-red-600 text-white";
+
   return (
-    <div className="rounded-3xl border border-white/15 bg-white p-4 text-[#111111]">
-      <div className="text-[0.68rem] font-black uppercase tracking-wide text-neutral-500">
+    <div className={`rounded-3xl border p-5 shadow-sm ${toneClass}`}>
+      <div className="text-[0.72rem] font-black uppercase tracking-[0.22em] opacity-80">
         {label}
       </div>
-      <div className="mt-1 text-5xl font-black text-[#C8102E]">
+      <div className="mt-2 text-6xl font-black leading-none">
         {formatPercent(value)}
       </div>
-      <div className="mt-1 text-xs font-black uppercase tracking-wide text-neutral-500">
-        {count} picks
+      <div className="mt-2 text-sm font-black uppercase tracking-wide opacity-80">
+        {count}/{total || 0} players
       </div>
     </div>
   );
 }
 
-function ForecastInsight({
+function GraphicInfoPill({
   label,
   value,
-  helper,
 }: {
   label: string;
-  value: string;
-  helper: string;
+  value: string | number;
 }) {
   return (
-    <div className="rounded-2xl border border-white/15 bg-black/25 p-4">
-      <div className="text-[0.68rem] font-black uppercase tracking-wide text-white/50">
+    <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+      <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/55">
         {label}
       </div>
-      <div className="mt-1 text-lg font-black uppercase text-white">{value}</div>
-      <div className="mt-1 text-xs font-bold text-white/55">{helper}</div>
+      <div className="mt-1 text-2xl font-black text-white">{value}</div>
+    </div>
+  );
+}
+
+function TeamMoodCard({
+  label,
+  outlook,
+  fallback,
+  mode,
+}: {
+  label: string;
+  outlook: TeamOutlook | null;
+  fallback: string;
+  mode: "positive" | "cautious";
+}) {
+  const mainValue =
+    mode === "positive"
+      ? outlook?.forestWinPercent
+      : outlook?.opponentWinPercent;
+
+  return (
+    <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+      <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/55">
+        {label}
+      </div>
+      {outlook ? (
+        <>
+          <div className="mt-1 text-xl font-black text-white">
+            {outlook.teamName}
+          </div>
+          <div className="mt-1 text-sm font-bold text-white/70">
+            {formatPercent(mainValue)} · {outlook.total} players
+          </div>
+        </>
+      ) : (
+        <div className="mt-1 text-xl font-black text-white/70">{fallback}</div>
+      )}
     </div>
   );
 }
@@ -1198,13 +1365,11 @@ function PostCard({
   text,
   copied,
   onCopy,
-  compact = false,
 }: {
   title: string;
   text: string;
   copied: boolean;
   onCopy: () => void;
-  compact?: boolean;
 }) {
   return (
     <div className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
@@ -1219,11 +1384,7 @@ function PostCard({
         </button>
       </div>
 
-      <pre
-        className={`whitespace-pre-wrap rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold leading-6 text-[#111111] ${
-          compact ? "min-h-[360px]" : "min-h-[260px]"
-        }`}
-      >
+      <pre className="min-h-[260px] whitespace-pre-wrap rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold leading-6 text-[#111111]">
         {text}
       </pre>
     </div>
@@ -1237,7 +1398,7 @@ function LeaderboardPreview({
 }: {
   title: string;
   description: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">

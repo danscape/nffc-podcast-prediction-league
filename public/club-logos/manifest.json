@@ -1,22 +1,2842 @@
-{
-  "arsenal": "/club-logos/arsenal.png",
-  "aston-villa": "/club-logos/aston-villa.png",
-  "bournemouth": "/club-logos/bournemouth.png",
-  "brentford": "/club-logos/brentford.png",
-  "brighton": "/club-logos/brighton.png",
-  "burnley": "/club-logos/burnley.png",
-  "chelsea": "/club-logos/chelsea.png",
-  "crystal-palace": "/club-logos/crystal-palace.png",
-  "everton": "/club-logos/everton.png",
-  "fulham": "/club-logos/fulham.png",
-  "leeds": "/club-logos/leeds.png",
-  "liverpool": "/club-logos/liverpool.png",
-  "man-city": "/club-logos/man-city.png",
-  "man-united": "/club-logos/man-united.png",
-  "newcastle": "/club-logos/newcastle.png",
-  "nottingham-forest": "/club-logos/nottingham-forest.png",
-  "sunderland": "/club-logos/sunderland.png",
-  "tottenham": "/club-logos/tottenham.png",
-  "west-ham": "/club-logos/west-ham.png",
-  "wolves": "/club-logos/wolves.png"
-}
+[
+  {
+    "team_id": 44,
+    "name": "1. FC Heidenheim 1846",
+    "short_name": "Heidenheim",
+    "tla": "HEI",
+    "area": "Germany",
+    "website": "http://www.fc-heidenheim.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/heidenheim.png"
+      }
+    ]
+  },
+  {
+    "team_id": 1,
+    "name": "1. FC Köln",
+    "short_name": "1. FC Köln",
+    "tla": "KOE",
+    "area": "Germany",
+    "website": "http://www.fc-koeln.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/1-fc-koln.png"
+      }
+    ]
+  },
+  {
+    "team_id": 28,
+    "name": "1. FC Union Berlin",
+    "short_name": "Union Berlin",
+    "tla": "UNB",
+    "area": "Germany",
+    "website": "http://www.fc-union-berlin.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/union-berlin.png"
+      }
+    ]
+  },
+  {
+    "team_id": 15,
+    "name": "1. FSV Mainz 05",
+    "short_name": "Mainz",
+    "tla": "M05",
+    "area": "Germany",
+    "website": "http://www.mainz05.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/mainz.png"
+      }
+    ]
+  },
+  {
+    "team_id": 98,
+    "name": "AC Milan",
+    "short_name": "Milan",
+    "tla": "MIL",
+    "area": "Italy",
+    "website": "http://www.acmilan.com",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/milan.png"
+      }
+    ]
+  },
+  {
+    "team_id": 487,
+    "name": "AC Pisa 1909",
+    "short_name": "AC Pisa",
+    "tla": "PIS",
+    "area": "Italy",
+    "website": "http://www.pisachannel.tv",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/ac-pisa.png"
+      }
+    ]
+  },
+  {
+    "team_id": 99,
+    "name": "ACF Fiorentina",
+    "short_name": "Fiorentina",
+    "tla": "FIO",
+    "area": "Italy",
+    "website": "http://www.acffiorentina.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/fiorentina.png"
+      }
+    ]
+  },
+  {
+    "team_id": 1044,
+    "name": "AFC Bournemouth",
+    "short_name": "Bournemouth",
+    "tla": "BOU",
+    "area": "England",
+    "website": "http://www.afcb.co.uk",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/bournemouth.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/bournemouth.png"
+      }
+    ]
+  },
+  {
+    "team_id": 519,
+    "name": "AJ Auxerre",
+    "short_name": "Auxerre",
+    "tla": "AJA",
+    "area": "France",
+    "website": "http://www.aja.fr",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/auxerre.png"
+      }
+    ]
+  },
+  {
+    "team_id": 532,
+    "name": "Angers SCO",
+    "short_name": "Angers SCO",
+    "tla": "ANG",
+    "area": "France",
+    "website": "http://www.angers-sco.fr",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/angers-sco.png"
+      }
+    ]
+  },
+  {
+    "team_id": 57,
+    "name": "Arsenal FC",
+    "short_name": "Arsenal",
+    "tla": "ARS",
+    "area": "England",
+    "website": "http://www.arsenal.com",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/arsenal.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/arsenal.png"
+      }
+    ]
+  },
+  {
+    "team_id": 548,
+    "name": "AS Monaco FC",
+    "short_name": "Monaco",
+    "tla": "ASM",
+    "area": "Monaco",
+    "website": "http://www.asmonaco.com",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/monaco.png"
+      }
+    ]
+  },
+  {
+    "team_id": 100,
+    "name": "AS Roma",
+    "short_name": "Roma",
+    "tla": "ROM",
+    "area": "Italy",
+    "website": "http://www.asroma.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/roma.png"
+      }
+    ]
+  },
+  {
+    "team_id": 58,
+    "name": "Aston Villa FC",
+    "short_name": "Aston Villa",
+    "tla": "AVL",
+    "area": "England",
+    "website": "http://www.avfc.co.uk",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/aston-villa.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/aston-villa.png"
+      }
+    ]
+  },
+  {
+    "team_id": 102,
+    "name": "Atalanta BC",
+    "short_name": "Atalanta",
+    "tla": "ATA",
+    "area": "Italy",
+    "website": "http://www.atalanta.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/atalanta.png"
+      }
+    ]
+  },
+  {
+    "team_id": 77,
+    "name": "Athletic Club",
+    "short_name": "Athletic",
+    "tla": "ATH",
+    "area": "Spain",
+    "website": "http://www.athletic-club.eus",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/athletic.png"
+      }
+    ]
+  },
+  {
+    "team_id": 3,
+    "name": "Bayer 04 Leverkusen",
+    "short_name": "Leverkusen",
+    "tla": "B04",
+    "area": "Germany",
+    "website": "http://www.bayer04.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/leverkusen.png"
+      }
+    ]
+  },
+  {
+    "team_id": 332,
+    "name": "Birmingham City FC",
+    "short_name": "Birmingham",
+    "tla": "BIR",
+    "area": "England",
+    "website": "http://www.bcfc.com",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/birmingham.png"
+      }
+    ]
+  },
+  {
+    "team_id": 59,
+    "name": "Blackburn Rovers FC",
+    "short_name": "Blackburn",
+    "tla": "BLA",
+    "area": "England",
+    "website": "http://www.rovers.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/blackburn.png"
+      }
+    ]
+  },
+  {
+    "team_id": 103,
+    "name": "Bologna FC 1909",
+    "short_name": "Bologna",
+    "tla": "BOL",
+    "area": "Italy",
+    "website": "http://www.bolognafc.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/bologna.png"
+      }
+    ]
+  },
+  {
+    "team_id": 4,
+    "name": "Borussia Dortmund",
+    "short_name": "Dortmund",
+    "tla": "BVB",
+    "area": "Germany",
+    "website": "http://www.bvb.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/dortmund.png"
+      }
+    ]
+  },
+  {
+    "team_id": 18,
+    "name": "Borussia Mönchengladbach",
+    "short_name": "M'gladbach",
+    "tla": "BMG",
+    "area": "Germany",
+    "website": "http://www.borussia.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/m-gladbach.png"
+      }
+    ]
+  },
+  {
+    "team_id": 402,
+    "name": "Brentford FC",
+    "short_name": "Brentford",
+    "tla": "BRE",
+    "area": "England",
+    "website": "http://www.brentfordfc.co.uk",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/brentford.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/brentford.png"
+      }
+    ]
+  },
+  {
+    "team_id": 397,
+    "name": "Brighton & Hove Albion FC",
+    "short_name": "Brighton Hove",
+    "tla": "BHA",
+    "area": "England",
+    "website": "http://www.seagulls.co.uk",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/brighton-hove.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/brighton-hove.png"
+      }
+    ]
+  },
+  {
+    "team_id": 387,
+    "name": "Bristol City FC",
+    "short_name": "Bristol City",
+    "tla": "BRI",
+    "area": "England",
+    "website": "http://www.bcfc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/bristol-city.png"
+      }
+    ]
+  },
+  {
+    "team_id": 328,
+    "name": "Burnley FC",
+    "short_name": "Burnley",
+    "tla": "BUR",
+    "area": "England",
+    "website": "http://www.burnleyfootballclub.com",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/burnley.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/burnley.png"
+      }
+    ]
+  },
+  {
+    "team_id": 79,
+    "name": "CA Osasuna",
+    "short_name": "Osasuna",
+    "tla": "OSA",
+    "area": "Spain",
+    "website": "http://www.osasuna.es",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/osasuna.png"
+      }
+    ]
+  },
+  {
+    "team_id": 104,
+    "name": "Cagliari Calcio",
+    "short_name": "Cagliari",
+    "tla": "CAG",
+    "area": "Italy",
+    "website": "http://www.cagliaricalcio.net",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/cagliari.png"
+      }
+    ]
+  },
+  {
+    "team_id": 348,
+    "name": "Charlton Athletic FC",
+    "short_name": "Charlton",
+    "tla": "CHA",
+    "area": "England",
+    "website": "http://www.cafc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/charlton.png"
+      }
+    ]
+  },
+  {
+    "team_id": 61,
+    "name": "Chelsea FC",
+    "short_name": "Chelsea",
+    "tla": "CHE",
+    "area": "England",
+    "website": "http://www.chelseafc.com",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/chelsea.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/chelsea.png"
+      }
+    ]
+  },
+  {
+    "team_id": 78,
+    "name": "Club Atlético de Madrid",
+    "short_name": "Atleti",
+    "tla": "ATL",
+    "area": "Spain",
+    "website": "http://www.clubatleticodemadrid.com",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/atleti.png"
+      }
+    ]
+  },
+  {
+    "team_id": 7397,
+    "name": "Como 1907",
+    "short_name": "Como 1907",
+    "tla": "COM",
+    "area": "Italy",
+    "website": "http://www.como1907.net/",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/como-1907.png"
+      }
+    ]
+  },
+  {
+    "team_id": 1076,
+    "name": "Coventry City FC",
+    "short_name": "Coventry City",
+    "tla": "COV",
+    "area": "England",
+    "website": "http://www.ccfc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/coventry-city.png"
+      }
+    ]
+  },
+  {
+    "team_id": 354,
+    "name": "Crystal Palace FC",
+    "short_name": "Crystal Palace",
+    "tla": "CRY",
+    "area": "England",
+    "website": "http://www.cpfc.co.uk",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/crystal-palace.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/crystal-palace.png"
+      }
+    ]
+  },
+  {
+    "team_id": 263,
+    "name": "Deportivo Alavés",
+    "short_name": "Alavés",
+    "tla": "ALA",
+    "area": "Spain",
+    "website": "http://www.alaves.com",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/alaves.png"
+      }
+    ]
+  },
+  {
+    "team_id": 342,
+    "name": "Derby County FC",
+    "short_name": "Derby County",
+    "tla": "DER",
+    "area": "England",
+    "website": "http://www.dcfc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/derby-county.png"
+      }
+    ]
+  },
+  {
+    "team_id": 19,
+    "name": "Eintracht Frankfurt",
+    "short_name": "Frankfurt",
+    "tla": "SGE",
+    "area": "Germany",
+    "website": "http://www.eintracht.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/frankfurt.png"
+      }
+    ]
+  },
+  {
+    "team_id": 285,
+    "name": "Elche CF",
+    "short_name": "Elche",
+    "tla": "ELC",
+    "area": "Spain",
+    "website": "http://www.elchecf.es",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/elche.png"
+      }
+    ]
+  },
+  {
+    "team_id": 62,
+    "name": "Everton FC",
+    "short_name": "Everton",
+    "tla": "EVE",
+    "area": "England",
+    "website": "http://www.evertonfc.com",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/everton.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/everton.png"
+      }
+    ]
+  },
+  {
+    "team_id": 16,
+    "name": "FC Augsburg",
+    "short_name": "Augsburg",
+    "tla": "FCA",
+    "area": "Germany",
+    "website": "http://www.fcaugsburg.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/augsburg.png"
+      }
+    ]
+  },
+  {
+    "team_id": 81,
+    "name": "FC Barcelona",
+    "short_name": "Barça",
+    "tla": "FCB",
+    "area": "Spain",
+    "website": "http://www.fcbarcelona.com",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/barca.png"
+      }
+    ]
+  },
+  {
+    "team_id": 5,
+    "name": "FC Bayern München",
+    "short_name": "Bayern",
+    "tla": "FCB",
+    "area": "Germany",
+    "website": "http://www.fcbayern.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/bayern.png"
+      }
+    ]
+  },
+  {
+    "team_id": 108,
+    "name": "FC Internazionale Milano",
+    "short_name": "Inter",
+    "tla": "INT",
+    "area": "Italy",
+    "website": "http://www.inter.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/inter.png"
+      }
+    ]
+  },
+  {
+    "team_id": 525,
+    "name": "FC Lorient",
+    "short_name": "Lorient",
+    "tla": "FCL",
+    "area": "France",
+    "website": "http://www.fclweb.fr",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/lorient.png"
+      }
+    ]
+  },
+  {
+    "team_id": 545,
+    "name": "FC Metz",
+    "short_name": "FC Metz",
+    "tla": "FCM",
+    "area": "France",
+    "website": "http://www.fcmetz.com",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/fc-metz.png"
+      }
+    ]
+  },
+  {
+    "team_id": 543,
+    "name": "FC Nantes",
+    "short_name": "Nantes",
+    "tla": "NAN",
+    "area": "France",
+    "website": "http://www.fcnantes.com",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/nantes.png"
+      }
+    ]
+  },
+  {
+    "team_id": 20,
+    "name": "FC St. Pauli 1910",
+    "short_name": "St. Pauli",
+    "tla": "STP",
+    "area": "Germany",
+    "website": "http://www.fcstpauli.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/st-pauli.png"
+      }
+    ]
+  },
+  {
+    "team_id": 63,
+    "name": "Fulham FC",
+    "short_name": "Fulham",
+    "tla": "FUL",
+    "area": "England",
+    "website": "http://www.fulhamfc.com",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/fulham.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/fulham.png"
+      }
+    ]
+  },
+  {
+    "team_id": 107,
+    "name": "Genoa CFC",
+    "short_name": "Genoa",
+    "tla": "GEN",
+    "area": "Italy",
+    "website": "http://www.genoacfc.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/genoa.png"
+      }
+    ]
+  },
+  {
+    "team_id": 82,
+    "name": "Getafe CF",
+    "short_name": "Getafe",
+    "tla": "GET",
+    "area": "Spain",
+    "website": "http://www.getafecf.com",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/getafe.png"
+      }
+    ]
+  },
+  {
+    "team_id": 298,
+    "name": "Girona FC",
+    "short_name": "Girona",
+    "tla": "GIR",
+    "area": "Spain",
+    "website": "http://www.gironafc.cat",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/girona.png"
+      }
+    ]
+  },
+  {
+    "team_id": 7,
+    "name": "Hamburger SV",
+    "short_name": "HSV",
+    "tla": "HSV",
+    "area": "Germany",
+    "website": "http://www.hsv.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/hsv.png"
+      }
+    ]
+  },
+  {
+    "team_id": 450,
+    "name": "Hellas Verona FC",
+    "short_name": "Verona",
+    "tla": "HVE",
+    "area": "Italy",
+    "website": "http://www.hellasverona.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/verona.png"
+      }
+    ]
+  },
+  {
+    "team_id": 322,
+    "name": "Hull City AFC",
+    "short_name": "Hull City",
+    "tla": "HUL",
+    "area": "England",
+    "website": "http://www.hullcitytigers.com",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/hull-city.png"
+      }
+    ]
+  },
+  {
+    "team_id": 349,
+    "name": "Ipswich Town FC",
+    "short_name": "Ipswich Town",
+    "tla": "IPS",
+    "area": "England",
+    "website": "http://www.itfc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/ipswich-town.png"
+      }
+    ]
+  },
+  {
+    "team_id": 109,
+    "name": "Juventus FC",
+    "short_name": "Juventus",
+    "tla": "JUV",
+    "area": "Italy",
+    "website": "http://www.juventus.com",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/juventus.png"
+      }
+    ]
+  },
+  {
+    "team_id": 533,
+    "name": "Le Havre AC",
+    "short_name": "Le Havre",
+    "tla": "HAC",
+    "area": "France",
+    "website": "http://www.hac-foot.com",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/le-havre.png"
+      }
+    ]
+  },
+  {
+    "team_id": 341,
+    "name": "Leeds United FC",
+    "short_name": "Leeds United",
+    "tla": "LEE",
+    "area": "England",
+    "website": "http://www.leedsunited.com",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/leeds-united.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/leeds-united.png"
+      }
+    ]
+  },
+  {
+    "team_id": 338,
+    "name": "Leicester City FC",
+    "short_name": "Leicester City",
+    "tla": "LEI",
+    "area": "England",
+    "website": "http://www.lcfc.com",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/leicester-city.png"
+      }
+    ]
+  },
+  {
+    "team_id": 88,
+    "name": "Levante UD",
+    "short_name": "Levante",
+    "tla": "LEV",
+    "area": "Spain",
+    "website": "http://www.levanteud.com",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/levante.png"
+      }
+    ]
+  },
+  {
+    "team_id": 521,
+    "name": "Lille OSC",
+    "short_name": "Lille",
+    "tla": "LIL",
+    "area": "France",
+    "website": "http://www.losc.fr",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/lille.png"
+      }
+    ]
+  },
+  {
+    "team_id": 64,
+    "name": "Liverpool FC",
+    "short_name": "Liverpool",
+    "tla": "LIV",
+    "area": "England",
+    "website": "http://www.liverpoolfc.tv",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/liverpool.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/liverpool.png"
+      }
+    ]
+  },
+  {
+    "team_id": 65,
+    "name": "Manchester City FC",
+    "short_name": "Man City",
+    "tla": "MCI",
+    "area": "England",
+    "website": "https://www.mancity.com",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/man-city.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/man-city.png"
+      }
+    ]
+  },
+  {
+    "team_id": 66,
+    "name": "Manchester United FC",
+    "short_name": "Man United",
+    "tla": "MUN",
+    "area": "England",
+    "website": "http://www.manutd.com",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/man-united.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/man-united.png"
+      }
+    ]
+  },
+  {
+    "team_id": 343,
+    "name": "Middlesbrough FC",
+    "short_name": "Middlesbrough",
+    "tla": "MID",
+    "area": "England",
+    "website": "http://www.mfc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/middlesbrough.png"
+      }
+    ]
+  },
+  {
+    "team_id": 384,
+    "name": "Millwall FC",
+    "short_name": "Millwall",
+    "tla": "MIL",
+    "area": "England",
+    "website": "http://www.millwallfc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/millwall.png"
+      }
+    ]
+  },
+  {
+    "team_id": 67,
+    "name": "Newcastle United FC",
+    "short_name": "Newcastle",
+    "tla": "NEW",
+    "area": "England",
+    "website": "http://www.nufc.co.uk",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/newcastle.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/newcastle.png"
+      }
+    ]
+  },
+  {
+    "team_id": 68,
+    "name": "Norwich City FC",
+    "short_name": "Norwich",
+    "tla": "NOR",
+    "area": "England",
+    "website": "http://www.canaries.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/norwich.png"
+      }
+    ]
+  },
+  {
+    "team_id": 351,
+    "name": "Nottingham Forest FC",
+    "short_name": "Nottingham",
+    "tla": "NOT",
+    "area": "England",
+    "website": "http://www.nottinghamforest.co.uk",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/nottingham.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/nottingham.png"
+      }
+    ]
+  },
+  {
+    "team_id": 522,
+    "name": "OGC Nice",
+    "short_name": "Nice",
+    "tla": "NIC",
+    "area": "France",
+    "website": "http://www.ogcnice.com",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/nice.png"
+      }
+    ]
+  },
+  {
+    "team_id": 516,
+    "name": "Olympique de Marseille",
+    "short_name": "Marseille",
+    "tla": "MAR",
+    "area": "France",
+    "website": "http://www.om.net",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/marseille.png"
+      }
+    ]
+  },
+  {
+    "team_id": 523,
+    "name": "Olympique Lyonnais",
+    "short_name": "Olympique Lyon",
+    "tla": "LYO",
+    "area": "France",
+    "website": "http://www.olweb.fr",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/olympique-lyon.png"
+      }
+    ]
+  },
+  {
+    "team_id": 1082,
+    "name": "Oxford United FC",
+    "short_name": "Oxford United",
+    "tla": "OXF",
+    "area": "England",
+    "website": "http://www.oufc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/oxford-united.png"
+      }
+    ]
+  },
+  {
+    "team_id": 1045,
+    "name": "Paris FC",
+    "short_name": "Paris FC",
+    "tla": "PFC",
+    "area": "France",
+    "website": "http://www.parisfootballclub.com",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/paris-fc.png"
+      }
+    ]
+  },
+  {
+    "team_id": 524,
+    "name": "Paris Saint-Germain FC",
+    "short_name": "PSG",
+    "tla": "PSG",
+    "area": "France",
+    "website": "http://www.psg.fr",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/psg.png"
+      }
+    ]
+  },
+  {
+    "team_id": 112,
+    "name": "Parma Calcio 1913",
+    "short_name": "Parma",
+    "tla": "PAR",
+    "area": "Italy",
+    "website": "http://www.parmacalcio1913.com",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/parma.png"
+      }
+    ]
+  },
+  {
+    "team_id": 325,
+    "name": "Portsmouth FC",
+    "short_name": "Portsmouth",
+    "tla": "POR",
+    "area": "England",
+    "website": "http://www.portsmouthfc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/portsmouth.png"
+      }
+    ]
+  },
+  {
+    "team_id": 1081,
+    "name": "Preston North End FC",
+    "short_name": "Preston NE",
+    "tla": "PNE",
+    "area": "England",
+    "website": "http://www.pnefc.net",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/preston-ne.png"
+      }
+    ]
+  },
+  {
+    "team_id": 69,
+    "name": "Queens Park Rangers FC",
+    "short_name": "QPR",
+    "tla": "QPR",
+    "area": "England",
+    "website": "http://www.qpr.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/qpr.png"
+      }
+    ]
+  },
+  {
+    "team_id": 546,
+    "name": "Racing Club de Lens",
+    "short_name": "RC Lens",
+    "tla": "RCL",
+    "area": "France",
+    "website": "http://www.rclens.fr",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/rc-lens.png"
+      }
+    ]
+  },
+  {
+    "team_id": 87,
+    "name": "Rayo Vallecano de Madrid",
+    "short_name": "Rayo Vallecano",
+    "tla": "RAY",
+    "area": "Spain",
+    "website": "http://www.rayovallecano.es",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/rayo-vallecano.png"
+      }
+    ]
+  },
+  {
+    "team_id": 721,
+    "name": "RB Leipzig",
+    "short_name": "RB Leipzig",
+    "tla": "RBL",
+    "area": "Germany",
+    "website": "http://www.dierotenbullen.com",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/rb-leipzig.png"
+      }
+    ]
+  },
+  {
+    "team_id": 558,
+    "name": "RC Celta de Vigo",
+    "short_name": "Celta",
+    "tla": "CEL",
+    "area": "Spain",
+    "website": "http://www.celtavigo.net",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/celta.png"
+      }
+    ]
+  },
+  {
+    "team_id": 576,
+    "name": "RC Strasbourg Alsace",
+    "short_name": "Strasbourg",
+    "tla": "RC ",
+    "area": "France",
+    "website": "http://www.rcstrasbourgalsace.fr",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/strasbourg.png"
+      }
+    ]
+  },
+  {
+    "team_id": 80,
+    "name": "RCD Espanyol de Barcelona",
+    "short_name": "Espanyol",
+    "tla": "ESP",
+    "area": "Spain",
+    "website": "http://www.rcdespanyol.com",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/espanyol.png"
+      }
+    ]
+  },
+  {
+    "team_id": 89,
+    "name": "RCD Mallorca",
+    "short_name": "Mallorca",
+    "tla": "MAL",
+    "area": "Spain",
+    "website": "http://www.rcdmallorca.es",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/mallorca.png"
+      }
+    ]
+  },
+  {
+    "team_id": 90,
+    "name": "Real Betis Balompié",
+    "short_name": "Real Betis",
+    "tla": "BET",
+    "area": "Spain",
+    "website": "http://www.realbetisbalompie.es",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/real-betis.png"
+      }
+    ]
+  },
+  {
+    "team_id": 86,
+    "name": "Real Madrid CF",
+    "short_name": "Real Madrid",
+    "tla": "RMA",
+    "area": "Spain",
+    "website": "http://www.realmadrid.com",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/real-madrid.png"
+      }
+    ]
+  },
+  {
+    "team_id": 1048,
+    "name": "Real Oviedo",
+    "short_name": "Real Oviedo",
+    "tla": "OVI",
+    "area": "Spain",
+    "website": "http://www.realoviedo.es",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/real-oviedo.png"
+      }
+    ]
+  },
+  {
+    "team_id": 92,
+    "name": "Real Sociedad de Fútbol",
+    "short_name": "Real Sociedad",
+    "tla": "RSO",
+    "area": "Spain",
+    "website": "http://www.realsociedad.com",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/real-sociedad.png"
+      }
+    ]
+  },
+  {
+    "team_id": 17,
+    "name": "SC Freiburg",
+    "short_name": "Freiburg",
+    "tla": "SCF",
+    "area": "Germany",
+    "website": "http://www.scfreiburg.com",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/freiburg.png"
+      }
+    ]
+  },
+  {
+    "team_id": 559,
+    "name": "Sevilla FC",
+    "short_name": "Sevilla FC",
+    "tla": "SEV",
+    "area": "Spain",
+    "website": "http://www.sevillafc.es",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/sevilla-fc.png"
+      }
+    ]
+  },
+  {
+    "team_id": 356,
+    "name": "Sheffield United FC",
+    "short_name": "Sheffield Utd",
+    "tla": "SHE",
+    "area": "England",
+    "website": "http://www.sufc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/sheffield-utd.png"
+      }
+    ]
+  },
+  {
+    "team_id": 345,
+    "name": "Sheffield Wednesday FC",
+    "short_name": "Sheffield Wed",
+    "tla": "SHE",
+    "area": "England",
+    "website": "http://www.swfc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/sheffield-wed.png"
+      }
+    ]
+  },
+  {
+    "team_id": 340,
+    "name": "Southampton FC",
+    "short_name": "Southampton",
+    "tla": "SOU",
+    "area": "England",
+    "website": "http://www.saintsfc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/southampton.png"
+      }
+    ]
+  },
+  {
+    "team_id": 110,
+    "name": "SS Lazio",
+    "short_name": "Lazio",
+    "tla": "LAZ",
+    "area": "Italy",
+    "website": "http://www.sslazio.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/lazio.png"
+      }
+    ]
+  },
+  {
+    "team_id": 113,
+    "name": "SSC Napoli",
+    "short_name": "Napoli",
+    "tla": "NAP",
+    "area": "Italy",
+    "website": "http://www.sscnapoli.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/napoli.png"
+      }
+    ]
+  },
+  {
+    "team_id": 512,
+    "name": "Stade Brestois 29",
+    "short_name": "Brest",
+    "tla": "BRE",
+    "area": "France",
+    "website": "http://www.stade-brestois.com",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/brest.png"
+      }
+    ]
+  },
+  {
+    "team_id": 529,
+    "name": "Stade Rennais FC 1901",
+    "short_name": "Stade Rennais",
+    "tla": "REN",
+    "area": "France",
+    "website": "http://www.staderennais.com",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/stade-rennais.png"
+      }
+    ]
+  },
+  {
+    "team_id": 70,
+    "name": "Stoke City FC",
+    "short_name": "Stoke",
+    "tla": "STK",
+    "area": "England",
+    "website": "http://www.stokecityfc.com",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/stoke.png"
+      }
+    ]
+  },
+  {
+    "team_id": 71,
+    "name": "Sunderland AFC",
+    "short_name": "Sunderland",
+    "tla": "SUN",
+    "area": "England",
+    "website": "http://www.safc.com",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/sunderland.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/sunderland.png"
+      }
+    ]
+  },
+  {
+    "team_id": 12,
+    "name": "SV Werder Bremen",
+    "short_name": "Bremen",
+    "tla": "SVW",
+    "area": "Germany",
+    "website": "http://www.werder.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/bremen.png"
+      }
+    ]
+  },
+  {
+    "team_id": 72,
+    "name": "Swansea City AFC",
+    "short_name": "Swansea",
+    "tla": "SWA",
+    "area": "Wales",
+    "website": "http://www.swanseacity.net",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/swansea.png"
+      }
+    ]
+  },
+  {
+    "team_id": 586,
+    "name": "Torino FC",
+    "short_name": "Torino",
+    "tla": "TOR",
+    "area": "Italy",
+    "website": "http://www.torinofc.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/torino.png"
+      }
+    ]
+  },
+  {
+    "team_id": 73,
+    "name": "Tottenham Hotspur FC",
+    "short_name": "Tottenham",
+    "tla": "TOT",
+    "area": "England",
+    "website": "http://www.tottenhamhotspur.com",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/tottenham.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/tottenham.png"
+      }
+    ]
+  },
+  {
+    "team_id": 511,
+    "name": "Toulouse FC",
+    "short_name": "Toulouse",
+    "tla": "TOU",
+    "area": "France",
+    "website": "http://www.tfc.info",
+    "competitions": [
+      {
+        "code": "FL1",
+        "label": "Ligue 1",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "FL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/ligue-1/toulouse.png"
+      }
+    ]
+  },
+  {
+    "team_id": 2,
+    "name": "TSG 1899 Hoffenheim",
+    "short_name": "Hoffenheim",
+    "tla": "TSG",
+    "area": "Germany",
+    "website": "http://www.achtzehn99.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/hoffenheim.png"
+      }
+    ]
+  },
+  {
+    "team_id": 115,
+    "name": "Udinese Calcio",
+    "short_name": "Udinese",
+    "tla": "UDI",
+    "area": "Italy",
+    "website": "http://www.udinese.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/udinese.png"
+      }
+    ]
+  },
+  {
+    "team_id": 457,
+    "name": "US Cremonese",
+    "short_name": "Cremonese",
+    "tla": "CRE",
+    "area": "Italy",
+    "website": "http://www.uscremonese.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/cremonese.png"
+      }
+    ]
+  },
+  {
+    "team_id": 5890,
+    "name": "US Lecce",
+    "short_name": "Lecce",
+    "tla": "USL",
+    "area": "Italy",
+    "website": "http://www.uslecce.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/lecce.png"
+      }
+    ]
+  },
+  {
+    "team_id": 471,
+    "name": "US Sassuolo Calcio",
+    "short_name": "Sassuolo",
+    "tla": "SAS",
+    "area": "Italy",
+    "website": "http://www.sassuolocalcio.it",
+    "competitions": [
+      {
+        "code": "SA",
+        "label": "Serie A",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "SA",
+        "group": "big-5",
+        "path": "/club-logos/big-5/serie-a/sassuolo.png"
+      }
+    ]
+  },
+  {
+    "team_id": 95,
+    "name": "Valencia CF",
+    "short_name": "Valencia",
+    "tla": "VAL",
+    "area": "Spain",
+    "website": "http://www.valenciacf.com",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/valencia.png"
+      }
+    ]
+  },
+  {
+    "team_id": 10,
+    "name": "VfB Stuttgart",
+    "short_name": "Stuttgart",
+    "tla": "VFB",
+    "area": "Germany",
+    "website": "http://www.vfb.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/stuttgart.png"
+      }
+    ]
+  },
+  {
+    "team_id": 11,
+    "name": "VfL Wolfsburg",
+    "short_name": "Wolfsburg",
+    "tla": "WOB",
+    "area": "Germany",
+    "website": "http://www.vfl-wolfsburg.de",
+    "competitions": [
+      {
+        "code": "BL1",
+        "label": "Bundesliga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "BL1",
+        "group": "big-5",
+        "path": "/club-logos/big-5/bundesliga/wolfsburg.png"
+      }
+    ]
+  },
+  {
+    "team_id": 94,
+    "name": "Villarreal CF",
+    "short_name": "Villarreal",
+    "tla": "VIL",
+    "area": "Spain",
+    "website": "http://www.villarrealcf.es",
+    "competitions": [
+      {
+        "code": "PD",
+        "label": "La Liga",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PD",
+        "group": "big-5",
+        "path": "/club-logos/big-5/la-liga/villarreal.png"
+      }
+    ]
+  },
+  {
+    "team_id": 346,
+    "name": "Watford FC",
+    "short_name": "Watford",
+    "tla": "WAT",
+    "area": "England",
+    "website": "http://www.watfordfc.com",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/watford.png"
+      }
+    ]
+  },
+  {
+    "team_id": 74,
+    "name": "West Bromwich Albion FC",
+    "short_name": "West Brom",
+    "tla": "WBA",
+    "area": "England",
+    "website": "http://www.wba.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/west-brom.png"
+      }
+    ]
+  },
+  {
+    "team_id": 563,
+    "name": "West Ham United FC",
+    "short_name": "West Ham",
+    "tla": "WHU",
+    "area": "England",
+    "website": "http://www.whufc.com",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/west-ham.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/west-ham.png"
+      }
+    ]
+  },
+  {
+    "team_id": 76,
+    "name": "Wolverhampton Wanderers FC",
+    "short_name": "Wolverhampton",
+    "tla": "WOL",
+    "area": "England",
+    "website": "http://www.wolves.co.uk",
+    "competitions": [
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "england"
+      },
+      {
+        "code": "PL",
+        "label": "Premier League",
+        "group": "big-5"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "PL",
+        "group": "england",
+        "path": "/club-logos/england/premier-league/wolverhampton.png"
+      },
+      {
+        "competition_code": "PL",
+        "group": "big-5",
+        "path": "/club-logos/big-5/premier-league/wolverhampton.png"
+      }
+    ]
+  },
+  {
+    "team_id": 404,
+    "name": "Wrexham AFC",
+    "short_name": "Wrexham",
+    "tla": "WRE",
+    "area": "Wales",
+    "website": "http://www.wrexhamafc.co.uk",
+    "competitions": [
+      {
+        "code": "ELC",
+        "label": "Championship",
+        "group": "england"
+      }
+    ],
+    "paths": [
+      {
+        "competition_code": "ELC",
+        "group": "england",
+        "path": "/club-logos/england/championship/wrexham.png"
+      }
+    ]
+  }
+]
