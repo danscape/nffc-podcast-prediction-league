@@ -9,6 +9,7 @@ type AppSetting = {
 
 type IndividualLeaderboardRow = {
   player_id: string;
+  player_slug?: string | null;
   player_name: string;
   short_name: string | null;
   table_display_name?: string | null;
@@ -137,49 +138,60 @@ function calculateAverageAccuracy(rows: IndividualLeaderboardRow[]) {
 }
 
 function getLongestStreaker(rows: IndividualLeaderboardRow[]) {
-  return [...rows]
-    .filter((row) => Number(row.best_streak ?? 0) > 0)
-    .sort((a, b) => {
-      const streakDifference = Number(b.best_streak ?? 0) - Number(a.best_streak ?? 0);
-      if (streakDifference !== 0) return streakDifference;
+  return (
+    [...rows]
+      .filter((row) => Number(row.best_streak ?? 0) > 0)
+      .sort((a, b) => {
+        const streakDifference =
+          Number(b.best_streak ?? 0) - Number(a.best_streak ?? 0);
+        if (streakDifference !== 0) return streakDifference;
 
-      const pointsDifference = Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
-      if (pointsDifference !== 0) return pointsDifference;
+        const pointsDifference =
+          Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
+        if (pointsDifference !== 0) return pointsDifference;
 
-      return displayPlayerName(a).localeCompare(displayPlayerName(b));
-    })[0] ?? null;
+        return displayPlayerName(a).localeCompare(displayPlayerName(b));
+      })[0] ?? null
+  );
 }
 
 function getMostAccuratePlayer(rows: IndividualLeaderboardRow[]) {
-  return [...rows]
-    .filter((row) => Number(row.fixtures_scored ?? 0) > 0)
-    .sort((a, b) => {
-      const accuracyDifference = getAccuracyWhole(b) - getAccuracyWhole(a);
-      if (accuracyDifference !== 0) return accuracyDifference;
+  return (
+    [...rows]
+      .filter((row) => Number(row.fixtures_scored ?? 0) > 0)
+      .sort((a, b) => {
+        const accuracyDifference = getAccuracyWhole(b) - getAccuracyWhole(a);
+        if (accuracyDifference !== 0) return accuracyDifference;
 
-      const correctDifference =
-        Number(b.correct_predictions ?? 0) - Number(a.correct_predictions ?? 0);
-      if (correctDifference !== 0) return correctDifference;
+        const correctDifference =
+          Number(b.correct_predictions ?? 0) -
+          Number(a.correct_predictions ?? 0);
+        if (correctDifference !== 0) return correctDifference;
 
-      const pointsDifference = Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
-      if (pointsDifference !== 0) return pointsDifference;
+        const pointsDifference =
+          Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
+        if (pointsDifference !== 0) return pointsDifference;
 
-      return displayPlayerName(a).localeCompare(displayPlayerName(b));
-    })[0] ?? null;
+        return displayPlayerName(a).localeCompare(displayPlayerName(b));
+      })[0] ?? null
+  );
 }
 
 function getBonusKing(rows: IndividualLeaderboardRow[]) {
-  return [...rows]
-    .filter((row) => getBonusPoints(row) > 0)
-    .sort((a, b) => {
-      const bonusDifference = getBonusPoints(b) - getBonusPoints(a);
-      if (bonusDifference !== 0) return bonusDifference;
+  return (
+    [...rows]
+      .filter((row) => getBonusPoints(row) > 0)
+      .sort((a, b) => {
+        const bonusDifference = getBonusPoints(b) - getBonusPoints(a);
+        if (bonusDifference !== 0) return bonusDifference;
 
-      const pointsDifference = Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
-      if (pointsDifference !== 0) return pointsDifference;
+        const pointsDifference =
+          Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
+        if (pointsDifference !== 0) return pointsDifference;
 
-      return displayPlayerName(a).localeCompare(displayPlayerName(b));
-    })[0] ?? null;
+        return displayPlayerName(a).localeCompare(displayPlayerName(b));
+      })[0] ?? null
+  );
 }
 
 export default async function HomePage() {
@@ -195,7 +207,10 @@ export default async function HomePage() {
     { data: nextFixtureData },
     { data: completedFixturesData },
   ] = await Promise.all([
-    supabase.from("teams").select("*", { count: "exact", head: true }).eq("active", true),
+    supabase
+      .from("teams")
+      .select("*", { count: "exact", head: true })
+      .eq("active", true),
     supabase
       .from("players")
       .select("*", { count: "exact", head: true })
@@ -259,44 +274,38 @@ export default async function HomePage() {
   const bonusKing = getBonusKing(individualRows);
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[#F7F6F2] px-4 py-4 text-[#111111] sm:px-6 lg:px-8 lg:py-6">
       <section className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
-          <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-end">
+        <header className="mb-4 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+          <div className="grid gap-5 lg:grid-cols-[1fr_330px] lg:items-center">
             <div>
-              <div className="mb-4 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-1.5 text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#C8102E] md:text-xs">
                 🔮 NFFC Podcast Prediction League
               </div>
 
-              <h1 className="max-w-4xl text-5xl font-black uppercase leading-[0.92] tracking-tight text-[#C8102E] md:text-7xl">
+              <h1 className="max-w-4xl text-4xl font-black uppercase leading-[0.92] tracking-tight text-[#C8102E] md:text-6xl">
                 NFFC Podcast
                 <span className="block text-[#111111]">Prediction League</span>
               </h1>
 
-              <p className="mt-6 max-w-2xl text-base font-semibold leading-7 text-neutral-700 md:text-lg">
+              <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-neutral-700 md:text-base">
                 Individual and team score prediction game for the Forest podcast
                 community. Track the tables, follow the season mood, and see who
                 called it right.
               </p>
 
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link
-                  href="/admin/login"
-                  className="rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
-                >
-                  Admin login
-                </Link>
+              <div className="mt-5 flex flex-wrap gap-3">
                 <a
                   href="#leaderboards"
-                  className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+                  className="rounded-full bg-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
                 >
                   View leaderboards
                 </a>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-[#D9D6D1] bg-[#F7F6F2] p-5 shadow-sm">
-              <div className="mb-4 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+            <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 shadow-sm">
+              <div className="mb-2 text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#C8102E]">
                 Current setup
               </div>
 
@@ -309,13 +318,13 @@ export default async function HomePage() {
           </div>
         </header>
 
-        <section className="mb-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl border border-[#111111] bg-[#111111] p-5 text-white shadow-sm md:p-6">
-            <div className="text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+        <section className="mb-4 grid gap-3 xl:grid-cols-[1fr_0.75fr]">
+          <div className="rounded-3xl border border-[#111111] bg-[#111111] p-4 text-white shadow-sm md:p-5">
+            <div className="text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#C8102E] md:text-xs">
               Season pulse
             </div>
 
-            <h2 className="mt-3 text-3xl font-black uppercase tracking-tight md:text-4xl">
+            <h2 className="mt-2 text-2xl font-black uppercase tracking-tight md:text-3xl">
               {nextFixture
                 ? `${nextFixture.gameweek_label}: Forest ${
                     nextFixture.venue === "H" ? "v" : "at"
@@ -323,7 +332,7 @@ export default async function HomePage() {
                 : "Next fixture TBC"}
             </h2>
 
-            <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-neutral-300">
+            <p className="mt-2 max-w-3xl text-xs font-semibold leading-5 text-neutral-300 md:text-sm">
               {nextFixture
                 ? `Kick-off: ${formatDateTime(
                     nextFixture.kickoff_at
@@ -331,7 +340,55 @@ export default async function HomePage() {
                 : "Fixture information will update from the league sync."}
             </p>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="mt-4 grid gap-2 md:hidden">
+              <MobilePulseRow
+                label="Longest streaker"
+                value={displayPlayerName(longestStreaker)}
+                subValue={
+                  longestStreaker
+                    ? `${longestStreaker.best_streak ?? 0} correct in a row`
+                    : undefined
+                }
+              />
+              <MobilePulseRow
+                label="Current leader"
+                value={displayPlayerName(currentLeader)}
+                subValue={
+                  currentLeader
+                    ? `${formatPoints(currentLeader.total_points)} pts`
+                    : undefined
+                }
+              />
+              <MobilePulseRow
+                label="Leading team"
+                value={displayTeamName(leadingTeam)}
+                subValue={
+                  leadingTeam
+                    ? `${formatTeamPoints(leadingTeam.total_team_points)} pts`
+                    : undefined
+                }
+              />
+              <MobilePulseRow
+                label="Most accurate"
+                value={displayPlayerName(mostAccuratePlayer)}
+                subValue={
+                  mostAccuratePlayer
+                    ? `${formatPercent(getAccuracyWhole(mostAccuratePlayer))} accuracy`
+                    : undefined
+                }
+              />
+              <MobilePulseRow
+                label="Bonus king"
+                value={displayPlayerName(bonusKing)}
+                subValue={
+                  bonusKing
+                    ? `${formatPoints(getBonusPoints(bonusKing))} bonus pts`
+                    : undefined
+                }
+              />
+            </div>
+
+            <div className="mt-4 hidden gap-2 md:grid md:grid-cols-5">
               <DarkPulseStat
                 label="Longest streaker"
                 value={displayPlayerName(longestStreaker)}
@@ -375,7 +432,11 @@ export default async function HomePage() {
               <DarkPulseStat
                 label="Bonus king"
                 value={displayPlayerName(bonusKing)}
-                subValue={bonusKing ? `${formatPoints(getBonusPoints(bonusKing))} bonus pts` : undefined}
+                subValue={
+                  bonusKing
+                    ? `${formatPoints(getBonusPoints(bonusKing))} bonus pts`
+                    : undefined
+                }
               />
             </div>
           </div>
@@ -396,6 +457,15 @@ export default async function HomePage() {
           individualRows={individualRows}
           teamRows={teamRows}
         />
+
+        <footer className="mt-6 flex justify-center border-t border-[#D9D6D1] pt-4">
+          <Link
+            href="/admin/login"
+            className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400 transition hover:text-[#C8102E]"
+          >
+            Admin login
+          </Link>
+        </footer>
       </section>
     </main>
   );
@@ -409,9 +479,40 @@ function SetupRow({
   value: string | number;
 }) {
   return (
-    <div className="flex items-center justify-between border-b border-[#D9D6D1] py-3 last:border-b-0">
-      <span className="text-sm font-semibold text-neutral-500">{label}</span>
-      <span className="text-lg font-black text-[#111111]">{value}</span>
+    <div className="flex items-center justify-between border-b border-[#D9D6D1] py-2 last:border-b-0">
+      <span className="text-xs font-semibold text-neutral-500 md:text-sm">
+        {label}
+      </span>
+      <span className="text-base font-black text-[#111111] md:text-lg">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function MobilePulseRow({
+  label,
+  value,
+  subValue,
+}: {
+  label: string;
+  value: string | number;
+  subValue?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-neutral-800 bg-neutral-950 px-4 py-3">
+      <div className="min-w-0">
+        <div className="text-[0.68rem] font-black uppercase tracking-wide text-neutral-400">
+          {label}
+        </div>
+        <div className="mt-1 truncate text-lg font-black text-white">{value}</div>
+      </div>
+
+      {subValue && (
+        <div className="shrink-0 text-right text-xs font-black uppercase tracking-wide text-[#C8102E]">
+          {subValue}
+        </div>
+      )}
     </div>
   );
 }
@@ -426,13 +527,15 @@ function DarkPulseStat({
   subValue?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
-      <div className="text-xs font-black uppercase tracking-wide text-neutral-400">
+    <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-3">
+      <div className="text-[0.68rem] font-black uppercase leading-tight tracking-wide text-neutral-400">
         {label}
       </div>
-      <div className="mt-1 text-xl font-black leading-tight text-white">{value}</div>
+      <div className="mt-1 text-lg font-black leading-tight text-white">
+        {value}
+      </div>
       {subValue && (
-        <div className="mt-2 text-xs font-bold uppercase tracking-wide text-[#C8102E]">
+        <div className="mt-2 text-[0.68rem] font-bold uppercase tracking-wide text-[#C8102E]">
           {subValue}
         </div>
       )}
@@ -451,7 +554,7 @@ function LightPulseStat({
 }) {
   return (
     <div
-      className={`rounded-3xl border p-5 shadow-sm ${
+      className={`rounded-3xl border p-4 shadow-sm ${
         highlight
           ? "border-[#C8102E] bg-[#C8102E] text-white"
           : "border-[#D9D6D1] bg-white text-[#111111]"
@@ -464,7 +567,7 @@ function LightPulseStat({
       >
         {label}
       </div>
-      <div className="mt-2 text-4xl font-black">{value}</div>
+      <div className="mt-1 text-3xl font-black">{value}</div>
     </div>
   );
 }

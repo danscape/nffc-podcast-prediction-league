@@ -1,70 +1,22 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
-import IndividualLeaderboard from "@/components/leaderboards/web/IndividualLeaderboard";
-import TeamLeaderboard from "@/components/leaderboards/web/TeamLeaderboard";
 
-type AppSetting = {
-  key: string;
-  value: string;
-};
-
-type IndividualLeaderboardRow = {
-  player_id: string;
-  player_name: string;
-  short_name: string | null;
-  table_display_name?: string | null;
-  team_name: string;
-  team_display_name?: string | null;
-  team_abbreviation?: string | null;
-  base_points: number;
-  streak_bonus: number;
-  maverick_bonus: number;
-  rogue_bonus: number;
-  cup_bonus: number;
-  total_points: number;
-  correct_predictions: number;
-  fixtures_scored: number;
-  accuracy_percentage: number;
-  bonus_points: number | null;
-  accuracy_whole_percentage: number | null;
-  best_streak: number | null;
-  current_streak: number | null;
-  team_logo_url?: string | null;
-  team_logo_alt?: string | null;
-  team_brand_colour?: string | null;
-};
-
-type TeamLeaderboardRow = {
-  team_id: string;
-  team_name: string;
-  display_name: string | null;
-  x_handle: string | null;
-  total_team_points: number;
-  clean_sweeps: number;
-  blanks: number;
-  best_player_accuracy_percentage: number;
-  logo_url: string | null;
-  logo_alt: string | null;
-  brand_colour: string | null;
-  mvp_player_id?: string | null;
-  mvp_player_name?: string | null;
-  mvp_short_name?: string | null;
-  mvp_accuracy_percentage?: number | null;
-  latest_gameweek?: number | null;
-  latest_gameweek_label?: string | null;
-  latest_opponent_short?: string | null;
-  points_this_week?: number | null;
-};
+export const dynamic = "force-dynamic";
 
 type FixtureRow = {
+  id: string;
   gameweek: number;
   gameweek_label: string;
   opponent: string;
   opponent_short: string;
   venue: "H" | "A";
   kickoff_at: string | null;
+  prediction_lock_at?: string | null;
   status: string;
   result_confirmed: boolean;
+  home_score: number | null;
+  away_score: number | null;
+  forest_result: "W" | "D" | "L" | null;
 };
 
 function getSupabaseClient() {
@@ -78,7 +30,7 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseAnonKey);
 }
 
-function formatDateTime(value: string | null) {
+function formatDateTime(value: string | null | undefined) {
   if (!value) return "TBC";
 
   return new Intl.DateTimeFormat("en-GB", {
@@ -88,82 +40,85 @@ function formatDateTime(value: string | null) {
   }).format(new Date(value));
 }
 
-export default async function HomePage() {
+function formatScore(fixture: FixtureRow | null) {
+  if (!fixture) return "—";
+
+  if (fixture.home_score === null || fixture.away_score === null) {
+    return "Not entered";
+  }
+
+  return `${fixture.home_score}-${fixture.away_score}`;
+}
+
+export default async function AdminPage() {
   const supabase = getSupabaseClient();
 
   const [
-    { count: teamCount },
-    { count: playerCount },
-    { count: fixtureCount },
-    { count: predictionCount },
-    { data: settingsData },
-    { data: individualData },
-    { data: teamData },
-    { data: nextFixtureData },
-    { data: completedFixturesData },
+    { count: teamCount, error: teamError },
+    { count: playerCount, error: playerError },
+    { count: fixtureCount, error: fixtureError },
+    { count: predictionCount, error: predictionError },
+    { data: completedFixturesData, error: completedError },
+    { data: nextFixtureData, error: nextFixtureError },
+    { data: latestFixtureData, error: latestFixtureError },
+    { count: cupCompetitionCount, error: cupCompetitionError },
   ] = await Promise.all([
-    supabase.from("teams").select("*", { count: "exact", head: true }),
+    supabase
+      .from("teams")
+      .select("*", { count: "exact", head: true })
+      .eq("active", true),
     supabase
       .from("players")
       .select("*", { count: "exact", head: true })
       .eq("active", true),
     supabase.from("fixtures").select("*", { count: "exact", head: true }),
-    supabase.from("current_predictions").select("*", {
-      count: "exact",
-      head: true,
-    }),
     supabase
-      .from("app_settings")
-      .select("key, value")
-      .in("key", ["current_season", "season_label"]),
+      .from("current_predictions")
+      .select("*", { count: "exact", head: true }),
     supabase
-      .from("individual_leaderboard")
-      .select("*")
-      .order("total_points", { ascending: false })
-      .order("accuracy_whole_percentage", { ascending: false })
-      .order("player_name", { ascending: true })
-      .range(0, 1000),
-    supabase
-      .from("team_leaderboard")
-      .select("*")
-      .order("total_team_points", { ascending: false })
-      .order("clean_sweeps", { ascending: false })
-      .order("blanks", { ascending: true })
-      .order("best_player_accuracy_percentage", { ascending: false })
-      .order("team_name", { ascending: true })
-      .range(0, 1000),
+      .from("fixtures")
+      .select("id")
+      .eq("result_confirmed", true)
+      .order("gameweek", { ascending: true }),
     supabase
       .from("fixtures")
       .select(
-        "gameweek, gameweek_label, opponent, opponent_short, venue, kickoff_at, status, result_confirmed"
+        "id, gameweek, gameweek_label, opponent, opponent_short, venue, kickoff_at, prediction_lock_at, status, result_confirmed, home_score, away_score, forest_result"
       )
       .neq("status", "finished")
       .order("gameweek", { ascending: true })
       .limit(1),
     supabase
       .from("fixtures")
-      .select("gameweek")
-      .eq("status", "finished")
-      .eq("result_confirmed", true),
+      .select(
+        "id, gameweek, gameweek_label, opponent, opponent_short, venue, kickoff_at, prediction_lock_at, status, result_confirmed, home_score, away_score, forest_result"
+      )
+      .eq("result_confirmed", true)
+      .order("gameweek", { ascending: false })
+      .limit(1),
+    supabase
+      .from("cup_competitions")
+      .select("*", { count: "exact", head: true })
+      .eq("active", true),
   ]);
 
-  const settings = new Map(
-    ((settingsData ?? []) as AppSetting[]).map((setting) => [
-      setting.key,
-      setting.value,
-    ])
-  );
+  const errors = [
+    teamError?.message,
+    playerError?.message,
+    fixtureError?.message,
+    predictionError?.message,
+    completedError?.message,
+    nextFixtureError?.message,
+    latestFixtureError?.message,
+    cupCompetitionError?.message,
+  ].filter(Boolean);
 
-  const season =
-    settings.get("season_label") ?? settings.get("current_season") ?? "2025/26";
-
-  const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
-  const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
-  const nextFixture = (nextFixtureData?.[0] ?? null) as FixtureRow | null;
   const completedFixtureCount = completedFixturesData?.length ?? 0;
+  const nextFixture = (nextFixtureData?.[0] ?? null) as FixtureRow | null;
+  const latestFixture = (latestFixtureData?.[0] ?? null) as FixtureRow | null;
 
   const totalPossiblePredictions = (playerCount ?? 0) * (fixtureCount ?? 0);
-  const predictionCompletion =
+  const predictionCoverage =
     totalPossiblePredictions > 0
       ? Math.round(((predictionCount ?? 0) / totalPossiblePredictions) * 100)
       : 0;
@@ -172,146 +127,302 @@ export default async function HomePage() {
     <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
-          <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-end">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-4 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
-                🔮 NFFC Podcast Prediction League
+              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+                🔮 Admin
               </div>
 
-              <h1 className="max-w-4xl text-5xl font-black uppercase leading-[0.92] tracking-tight text-[#C8102E] md:text-7xl">
-                NFFC Podcast
-                <span className="block text-[#111111]">Prediction League</span>
+              <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-6xl">
+                Control Centre
               </h1>
 
-              <p className="mt-6 max-w-2xl text-base font-semibold leading-7 text-neutral-700 md:text-lg">
-                Individual and team score prediction game for the Forest podcast
-                community. Track the tables, follow the season mood, and see who
-                called it right.
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-neutral-600 md:text-base">
+                Manage fixtures, predictions, players, teams, cup outcomes,
+                reminders, social posts and leaderboard checks for the NFFC
+                Podcast Prediction League.
               </p>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link
-                  href="/admin/login"
-                  className="rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
-                >
-                  Admin login
-                </Link>
-                <a
-                  href="#leaderboards"
-                  className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
-                >
-                  View leaderboards
-                </a>
-              </div>
             </div>
 
-            <div className="rounded-3xl border border-[#D9D6D1] bg-[#F7F6F2] p-5 shadow-sm">
-              <div className="mb-4 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
-                Current setup
-              </div>
-
-              <SetupRow label="Season" value={season} />
-              <SetupRow label="Teams" value={teamCount ?? 0} />
-              <SetupRow label="Players" value={playerCount ?? 0} />
-              <SetupRow label="Fixtures" value={fixtureCount ?? 0} />
-              <SetupRow label="Completed GWs" value={completedFixtureCount} />
-              <SetupRow label="Timezone" value="Europe/London" />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Link
+                href="/"
+                className="rounded-full border border-[#111111] px-5 py-3 text-center text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+              >
+                Public homepage
+              </Link>
+              <Link
+                href="/admin/leaderboards"
+                className="rounded-full bg-[#111111] px-5 py-3 text-center text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+              >
+                Leaderboards
+              </Link>
             </div>
           </div>
         </header>
 
-        <section className="mb-6 grid gap-3 md:grid-cols-4">
-          <StatCard label="Current season" value={season} />
-          <StatCard label="Predictions stored" value={predictionCount ?? 0} />
-          <StatCard label="Prediction coverage" value={`${predictionCompletion}%`} />
-          <StatCard
-            label="Next fixture"
-            value={
-              nextFixture
-                ? `${nextFixture.gameweek_label} ${nextFixture.opponent_short} ${nextFixture.venue}`
-                : "TBC"
-            }
-            subValue={
-              nextFixture ? formatDateTime(nextFixture.kickoff_at) : undefined
-            }
-          />
-        </section>
-
-        <section className="mb-6 rounded-3xl border border-[#D9D6D1] bg-[#111111] p-5 text-white shadow-sm md:p-6">
-          <div className="text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
-            Season pulse
+        {errors.length > 0 && (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+            Some dashboard data could not be loaded: {errors.join(" · ")}
           </div>
-          <h2 className="mt-3 text-3xl font-black uppercase">
-            {nextFixture
-              ? `${nextFixture.gameweek_label}: Forest ${
-                  nextFixture.venue === "H" ? "v" : "at"
-                } ${nextFixture.opponent_short}`
-              : "Next fixture TBC"}
-          </h2>
-          <p className="mt-3 text-sm font-semibold leading-6 text-neutral-300">
-            {nextFixture
-              ? `Kick-off: ${formatDateTime(
-                  nextFixture.kickoff_at
-                )}. Predictions lock 5 minutes before kick-off.`
-              : "Fixture information will update from the API sync."}
-          </p>
+        )}
+
+        <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <AdminStat label="Teams" value={teamCount ?? 0} />
+          <AdminStat label="Players" value={playerCount ?? 0} />
+          <AdminStat label="Fixtures" value={fixtureCount ?? 0} />
+          <AdminStat label="Completed GWs" value={completedFixtureCount} />
+          <AdminStat
+            label="Prediction coverage"
+            value={`${predictionCoverage}%`}
+            highlight
+          />
         </section>
 
-        <section id="leaderboards" className="grid gap-6">
-          <IndividualLeaderboard
-            rows={individualRows}
-            title="Individual leaderboard"
-            subtitle="All players ranked by total score, then accuracy."
-            countLabel={`${individualRows.length} players`}
+        <section className="mb-6 grid gap-4 lg:grid-cols-2">
+          <FixturePanel
+            eyebrow="Next fixture"
+            title={
+              nextFixture
+                ? `${nextFixture.gameweek_label}: Forest ${
+                    nextFixture.venue === "H" ? "v" : "at"
+                  } ${nextFixture.opponent_short}`
+                : "Next fixture TBC"
+            }
+            rows={[
+              ["Kick-off", formatDateTime(nextFixture?.kickoff_at)],
+              ["Prediction lock", formatDateTime(nextFixture?.prediction_lock_at)],
+              ["Status", nextFixture?.status ?? "TBC"],
+            ]}
           />
 
-          <TeamLeaderboard
-            rows={teamRows}
-            title="Team leaderboard"
-            subtitle="Podcast team standings ranked by total score, clean sweeps, blanks and MVP accuracy."
-            countLabel={`${teamRows.length} teams`}
+          <FixturePanel
+            eyebrow="Latest confirmed"
+            title={
+              latestFixture
+                ? `${latestFixture.gameweek_label}: ${latestFixture.opponent_short} ${latestFixture.venue}`
+                : "No confirmed results yet"
+            }
+            rows={[
+              ["Score", formatScore(latestFixture)],
+              ["Forest result", latestFixture?.forest_result ?? "—"],
+              ["Status", latestFixture?.status ?? "—"],
+            ]}
           />
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <AdminCard
+            title="Leaderboards"
+            description="Review individual and team tables after confirmed results."
+            href="/admin/leaderboards"
+            cta="Open leaderboards"
+            accent
+          />
+
+          <AdminCard
+            title="Fixtures"
+            description="Manage league fixtures, kick-off times, result status and confirmed scores."
+            href="/admin/fixtures"
+            cta="Open fixtures"
+          />
+
+          <AdminCard
+            title="Predictions"
+            description="Review or manage player fixture predictions and access links."
+            href="/admin/predictions"
+            cta="Open predictions"
+          />
+
+          <AdminCard
+            title="Players"
+            description="Review player records, tokens, team links and active status."
+            href="/admin/players"
+            cta="Open players"
+          />
+
+          <AdminCard
+            title="Teams"
+            description="Manage podcast teams, parent podcasts, logos and display names."
+            href="/admin/teams"
+            cta="Open teams"
+          />
+
+          <AdminCard
+            title="Cups"
+            description={`Manage cup competitions, actual rounds and bonuses. ${
+              cupCompetitionCount ?? 0
+            } active competitions.`}
+            href="/admin/cups"
+            cta="Open cups"
+          />
+
+          <AdminCard
+            title="Reminders"
+            description="Check and trigger fixture reminder emails before each gameweek."
+            href="/admin/reminders"
+            cta="Open reminders"
+          />
+
+          <AdminCard
+            title="Season"
+            description="Review season settings, current season config and wider game controls."
+            href="/admin/season"
+            cta="Open season"
+          />
+
+          <AdminCard
+            title="Social"
+            description="Prepare leaderboard copy, weekly updates and social-output checks."
+            href="/admin/social"
+            cta="Open social"
+          />
+
+          <AdminCard
+            title="Login"
+            description="Return to the admin login screen or check admin access."
+            href="/admin/login"
+            cta="Open login"
+          />
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-2xl font-black uppercase">Reminder emails</h2>
+              <p className="mt-1 text-sm font-semibold leading-6 text-neutral-600">
+                Fixture reminders are currently sent through the API route after
+                a dry-run check. Test mode should be used before sending to all
+                players.
+              </p>
+            </div>
+
+            <Link
+              href="/admin/reminders"
+              className="rounded-full bg-[#111111] px-5 py-3 text-center text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+            >
+              Open reminders
+            </Link>
+          </div>
         </section>
       </section>
     </main>
   );
 }
 
-function SetupRow({
+function AdminStat({
   label,
   value,
+  highlight = false,
 }: {
   label: string;
   value: string | number;
+  highlight?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between border-b border-[#D9D6D1] py-3 last:border-b-0">
-      <span className="text-sm font-semibold text-neutral-500">{label}</span>
-      <span className="text-lg font-black text-[#111111]">{value}</span>
+    <div
+      className={`rounded-2xl border p-4 shadow-sm ${
+        highlight
+          ? "border-[#C8102E] bg-[#C8102E] text-white"
+          : "border-[#D9D6D1] bg-white text-[#111111]"
+      }`}
+    >
+      <div
+        className={`text-xs font-black uppercase tracking-wide ${
+          highlight ? "text-white/75" : "text-neutral-500"
+        }`}
+      >
+        {label}
+      </div>
+      <div className="mt-1 text-3xl font-black">{value}</div>
     </div>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  subValue,
+function FixturePanel({
+  eyebrow,
+  title,
+  rows,
 }: {
-  label: string;
-  value: string | number;
-  subValue?: string;
+  eyebrow: string;
+  title: string;
+  rows: [string, string][];
 }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
-      <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
-        {label}
+    <div className="rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-6">
+      <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+        {eyebrow}
       </div>
-      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
-      {subValue && (
-        <div className="mt-2 text-xs font-semibold text-neutral-500">
-          {subValue}
-        </div>
-      )}
+      <h2 className="mt-2 text-2xl font-black uppercase tracking-tight text-[#111111]">
+        {title}
+      </h2>
+
+      <div className="mt-4 grid gap-2">
+        {rows.map(([label, value]) => (
+          <div
+            key={label}
+            className="flex items-center justify-between gap-4 rounded-2xl border border-[#E7E2DA] bg-[#F7F6F2] px-4 py-3"
+          >
+            <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+              {label}
+            </div>
+            <div className="text-right text-sm font-black text-[#111111]">
+              {value}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
+  );
+}
+
+function AdminCard({
+  title,
+  description,
+  href,
+  cta,
+  accent = false,
+}: {
+  title: string;
+  description: string;
+  href: string;
+  cta: string;
+  accent?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`rounded-3xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+        accent
+          ? "border-[#111111] bg-[#111111] text-white"
+          : "border-[#D9D6D1] bg-white text-[#111111]"
+      }`}
+    >
+      <div className="text-xs font-black uppercase tracking-[0.22em] text-[#C8102E]">
+        Admin area
+      </div>
+
+      <h2 className="mt-3 text-2xl font-black uppercase tracking-tight">
+        {title}
+      </h2>
+
+      <p
+        className={`mt-3 text-sm font-semibold leading-6 ${
+          accent ? "text-neutral-300" : "text-neutral-600"
+        }`}
+      >
+        {description}
+      </p>
+
+      <div
+        className={`mt-5 inline-flex rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${
+          accent
+            ? "bg-white text-[#111111]"
+            : "border border-[#111111] text-[#111111]"
+        }`}
+      >
+        {cta}
+      </div>
+    </Link>
   );
 }

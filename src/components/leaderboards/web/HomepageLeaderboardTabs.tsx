@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import CompactIndividualLeaderboard from "@/components/leaderboards/web/CompactIndividualLeaderboard";
+import CompactTeamLeaderboard from "@/components/leaderboards/web/CompactTeamLeaderboard";
 import IndividualLeaderboard from "@/components/leaderboards/web/IndividualLeaderboard";
 import TeamLeaderboard from "@/components/leaderboards/web/TeamLeaderboard";
 
@@ -60,6 +62,12 @@ export default function HomepageLeaderboardTabs({
   teamRows: TeamLeaderboardRow[];
 }) {
   const [activeTab, setActiveTab] = useState<"teams" | "individuals">("teams");
+  const [showFullMobileStats, setShowFullMobileStats] = useState(false);
+
+  function changeTab(nextTab: "teams" | "individuals") {
+    setActiveTab(nextTab);
+    setShowFullMobileStats(false);
+  }
 
   return (
     <section id="leaderboards" className="scroll-mt-6">
@@ -73,14 +81,15 @@ export default function HomepageLeaderboardTabs({
               Tables
             </h2>
             <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-neutral-600">
-              Switch between the podcast team standings and individual player table.
+              Teams first for the headline table. Switch to individuals for the
+              full player race.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:w-fit">
             <button
               type="button"
-              onClick={() => setActiveTab("teams")}
+              onClick={() => changeTab("teams")}
               className={`rounded-full px-5 py-3 text-xs font-black uppercase tracking-wide transition ${
                 activeTab === "teams"
                   ? "bg-[#111111] text-white"
@@ -91,7 +100,7 @@ export default function HomepageLeaderboardTabs({
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab("individuals")}
+              onClick={() => changeTab("individuals")}
               className={`rounded-full px-5 py-3 text-xs font-black uppercase tracking-wide transition ${
                 activeTab === "individuals"
                   ? "bg-[#111111] text-white"
@@ -104,11 +113,39 @@ export default function HomepageLeaderboardTabs({
         </div>
       </div>
 
-      {activeTab === "teams" ? (
-        <TeamLeaderboard rows={teamRows} />
-      ) : (
-        <IndividualLeaderboard rows={individualRows} />
-      )}
+      <div className="2xl:hidden">
+        {activeTab === "teams" ? (
+          <CompactTeamLeaderboard rows={teamRows} />
+        ) : (
+          <CompactIndividualLeaderboard rows={individualRows} />
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowFullMobileStats((current) => !current)}
+          className="mt-3 w-full rounded-full border border-[#111111] bg-white px-5 py-3 text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+        >
+          {showFullMobileStats ? "Hide full stats" : "Show full stats"}
+        </button>
+
+        {showFullMobileStats && (
+          <div className="mt-4">
+            {activeTab === "teams" ? (
+              <TeamLeaderboard rows={teamRows} />
+            ) : (
+              <IndividualLeaderboard rows={individualRows} />
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="hidden 2xl:block">
+        {activeTab === "teams" ? (
+          <TeamLeaderboard rows={teamRows} />
+        ) : (
+          <IndividualLeaderboard rows={individualRows} />
+        )}
+      </div>
     </section>
   );
 }
