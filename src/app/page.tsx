@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
-import IndividualLeaderboard from "@/components/leaderboards/web/IndividualLeaderboard";
-import TeamLeaderboard from "@/components/leaderboards/web/TeamLeaderboard";
+import HomepageLeaderboardTabs from "@/components/leaderboards/web/HomepageLeaderboardTabs";
 
 type AppSetting = {
   key: string;
@@ -88,6 +87,101 @@ function formatDateTime(value: string | null) {
   }).format(new Date(value));
 }
 
+function formatPoints(value: number | null | undefined) {
+  return Number(value ?? 0).toFixed(1).replace(".0", "");
+}
+
+function formatTeamPoints(value: number | null | undefined) {
+  return Number(value ?? 0).toFixed(2);
+}
+
+function formatPercent(value: number | null | undefined) {
+  if (value === null || value === undefined) return "0%";
+  return `${Math.round(Number(value))}%`;
+}
+
+function displayPlayerName(row: IndividualLeaderboardRow | null) {
+  if (!row) return "TBC";
+  return row.table_display_name ?? row.short_name ?? row.player_name;
+}
+
+function displayTeamName(row: TeamLeaderboardRow | null) {
+  if (!row) return "TBC";
+  return row.display_name ?? row.team_name;
+}
+
+function getAccuracyWhole(row: IndividualLeaderboardRow) {
+  return (
+    row.accuracy_whole_percentage ??
+    Math.round(Number(row.accuracy_percentage ?? 0))
+  );
+}
+
+function getBonusPoints(row: IndividualLeaderboardRow) {
+  return (
+    row.bonus_points ??
+    row.streak_bonus + row.maverick_bonus + row.rogue_bonus + row.cup_bonus
+  );
+}
+
+function calculateAverageAccuracy(rows: IndividualLeaderboardRow[]) {
+  const scoredRows = rows.filter((row) => Number(row.fixtures_scored ?? 0) > 0);
+
+  if (!scoredRows.length) return 0;
+
+  const totalAccuracy = scoredRows.reduce((total, row) => {
+    return total + getAccuracyWhole(row);
+  }, 0);
+
+  return Math.round(totalAccuracy / scoredRows.length);
+}
+
+function getLongestStreaker(rows: IndividualLeaderboardRow[]) {
+  return [...rows]
+    .filter((row) => Number(row.best_streak ?? 0) > 0)
+    .sort((a, b) => {
+      const streakDifference = Number(b.best_streak ?? 0) - Number(a.best_streak ?? 0);
+      if (streakDifference !== 0) return streakDifference;
+
+      const pointsDifference = Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
+      if (pointsDifference !== 0) return pointsDifference;
+
+      return displayPlayerName(a).localeCompare(displayPlayerName(b));
+    })[0] ?? null;
+}
+
+function getMostAccuratePlayer(rows: IndividualLeaderboardRow[]) {
+  return [...rows]
+    .filter((row) => Number(row.fixtures_scored ?? 0) > 0)
+    .sort((a, b) => {
+      const accuracyDifference = getAccuracyWhole(b) - getAccuracyWhole(a);
+      if (accuracyDifference !== 0) return accuracyDifference;
+
+      const correctDifference =
+        Number(b.correct_predictions ?? 0) - Number(a.correct_predictions ?? 0);
+      if (correctDifference !== 0) return correctDifference;
+
+      const pointsDifference = Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
+      if (pointsDifference !== 0) return pointsDifference;
+
+      return displayPlayerName(a).localeCompare(displayPlayerName(b));
+    })[0] ?? null;
+}
+
+function getBonusKing(rows: IndividualLeaderboardRow[]) {
+  return [...rows]
+    .filter((row) => getBonusPoints(row) > 0)
+    .sort((a, b) => {
+      const bonusDifference = getBonusPoints(b) - getBonusPoints(a);
+      if (bonusDifference !== 0) return bonusDifference;
+
+      const pointsDifference = Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
+      if (pointsDifference !== 0) return pointsDifference;
+
+      return displayPlayerName(a).localeCompare(displayPlayerName(b));
+    })[0] ?? null;
+}
+
 export default async function HomePage() {
   const supabase = getSupabaseClient();
 
@@ -95,23 +189,18 @@ export default async function HomePage() {
     { count: teamCount },
     { count: playerCount },
     { count: fixtureCount },
-    { count: predictionCount },
     { data: settingsData },
     { data: individualData },
     { data: teamData },
     { data: nextFixtureData },
     { data: completedFixturesData },
   ] = await Promise.all([
-    supabase.from("teams").select("*", { count: "exact", head: true }),
+    supabase.from("teams").select("*", { count: "exact", head: true }).eq("active", true),
     supabase
       .from("players")
       .select("*", { count: "exact", head: true })
       .eq("active", true),
     supabase.from("fixtures").select("*", { count: "exact", head: true }),
-    supabase.from("current_predictions").select("*", {
-      count: "exact",
-      head: true,
-    }),
     supabase
       .from("app_settings")
       .select("key, value")
@@ -162,11 +251,12 @@ export default async function HomePage() {
   const nextFixture = (nextFixtureData?.[0] ?? null) as FixtureRow | null;
   const completedFixtureCount = completedFixturesData?.length ?? 0;
 
-  const totalPossiblePredictions = (playerCount ?? 0) * (fixtureCount ?? 0);
-  const predictionCompletion =
-    totalPossiblePredictions > 0
-      ? Math.round(((predictionCount ?? 0) / totalPossiblePredictions) * 100)
-      : 0;
+  const currentLeader = individualRows[0] ?? null;
+  const leadingTeam = teamRows[0] ?? null;
+  const averageAccuracy = calculateAverageAccuracy(individualRows);
+  const longestStreaker = getLongestStreaker(individualRows);
+  const mostAccuratePlayer = getMostAccuratePlayer(individualRows);
+  const bonusKing = getBonusKing(individualRows);
 
   return (
     <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
@@ -215,63 +305,97 @@ export default async function HomePage() {
               <SetupRow label="Players" value={playerCount ?? 0} />
               <SetupRow label="Fixtures" value={fixtureCount ?? 0} />
               <SetupRow label="Completed GWs" value={completedFixtureCount} />
-              <SetupRow label="Timezone" value="Europe/London" />
             </div>
           </div>
         </header>
 
-        <section className="mb-6 grid gap-3 md:grid-cols-4">
-          <StatCard label="Current season" value={season} />
-          <StatCard label="Predictions stored" value={predictionCount ?? 0} />
-          <StatCard label="Prediction coverage" value={`${predictionCompletion}%`} />
-          <StatCard
-            label="Next fixture"
-            value={
-              nextFixture
-                ? `${nextFixture.gameweek_label} ${nextFixture.opponent_short} ${nextFixture.venue}`
-                : "TBC"
-            }
-            subValue={
-              nextFixture ? formatDateTime(nextFixture.kickoff_at) : undefined
-            }
-          />
-        </section>
+        <section className="mb-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-3xl border border-[#111111] bg-[#111111] p-5 text-white shadow-sm md:p-6">
+            <div className="text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+              Season pulse
+            </div>
 
-        <section className="mb-6 rounded-3xl border border-[#D9D6D1] bg-[#111111] p-5 text-white shadow-sm md:p-6">
-          <div className="text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
-            Season pulse
+            <h2 className="mt-3 text-3xl font-black uppercase tracking-tight md:text-4xl">
+              {nextFixture
+                ? `${nextFixture.gameweek_label}: Forest ${
+                    nextFixture.venue === "H" ? "v" : "at"
+                  } ${nextFixture.opponent_short}`
+                : "Next fixture TBC"}
+            </h2>
+
+            <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-neutral-300">
+              {nextFixture
+                ? `Kick-off: ${formatDateTime(
+                    nextFixture.kickoff_at
+                  )}. Predictions lock 5 minutes before kick-off.`
+                : "Fixture information will update from the league sync."}
+            </p>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <DarkPulseStat
+                label="Longest streaker"
+                value={displayPlayerName(longestStreaker)}
+                subValue={
+                  longestStreaker
+                    ? `${longestStreaker.best_streak ?? 0} correct in a row`
+                    : undefined
+                }
+              />
+
+              <DarkPulseStat
+                label="Current leader"
+                value={displayPlayerName(currentLeader)}
+                subValue={
+                  currentLeader
+                    ? `${formatPoints(currentLeader.total_points)} pts`
+                    : undefined
+                }
+              />
+
+              <DarkPulseStat
+                label="Leading team"
+                value={displayTeamName(leadingTeam)}
+                subValue={
+                  leadingTeam
+                    ? `${formatTeamPoints(leadingTeam.total_team_points)} pts`
+                    : undefined
+                }
+              />
+
+              <DarkPulseStat
+                label="Most accurate"
+                value={displayPlayerName(mostAccuratePlayer)}
+                subValue={
+                  mostAccuratePlayer
+                    ? `${formatPercent(getAccuracyWhole(mostAccuratePlayer))} accuracy`
+                    : undefined
+                }
+              />
+
+              <DarkPulseStat
+                label="Bonus king"
+                value={displayPlayerName(bonusKing)}
+                subValue={bonusKing ? `${formatPoints(getBonusPoints(bonusKing))} bonus pts` : undefined}
+              />
+            </div>
           </div>
-          <h2 className="mt-3 text-3xl font-black uppercase">
-            {nextFixture
-              ? `${nextFixture.gameweek_label}: Forest ${
-                  nextFixture.venue === "H" ? "v" : "at"
-                } ${nextFixture.opponent_short}`
-              : "Next fixture TBC"}
-          </h2>
-          <p className="mt-3 text-sm font-semibold leading-6 text-neutral-300">
-            {nextFixture
-              ? `Kick-off: ${formatDateTime(
-                  nextFixture.kickoff_at
-                )}. Predictions lock 5 minutes before kick-off.`
-              : "Fixture information will update from the API sync."}
-          </p>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <LightPulseStat label="Completed GWs" value={completedFixtureCount} />
+            <LightPulseStat label="Players" value={playerCount ?? 0} />
+            <LightPulseStat label="Teams" value={teamCount ?? 0} />
+            <LightPulseStat
+              label="Average accuracy"
+              value={formatPercent(averageAccuracy)}
+              highlight
+            />
+          </div>
         </section>
 
-        <section id="leaderboards" className="grid gap-6">
-          <IndividualLeaderboard
-            rows={individualRows}
-            title="Individual leaderboard"
-            subtitle="All players ranked by total score, then accuracy."
-            countLabel={`${individualRows.length} players`}
-          />
-
-          <TeamLeaderboard
-            rows={teamRows}
-            title="Team leaderboard"
-            subtitle="Podcast team standings ranked by total score, clean sweeps, blanks and MVP accuracy."
-            countLabel={`${teamRows.length} teams`}
-          />
-        </section>
+        <HomepageLeaderboardTabs
+          individualRows={individualRows}
+          teamRows={teamRows}
+        />
       </section>
     </main>
   );
@@ -292,7 +416,7 @@ function SetupRow({
   );
 }
 
-function StatCard({
+function DarkPulseStat({
   label,
   value,
   subValue,
@@ -302,16 +426,45 @@ function StatCard({
   subValue?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
-      <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+    <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
+      <div className="text-xs font-black uppercase tracking-wide text-neutral-400">
         {label}
       </div>
-      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
+      <div className="mt-1 text-xl font-black leading-tight text-white">{value}</div>
       {subValue && (
-        <div className="mt-2 text-xs font-semibold text-neutral-500">
+        <div className="mt-2 text-xs font-bold uppercase tracking-wide text-[#C8102E]">
           {subValue}
         </div>
       )}
+    </div>
+  );
+}
+
+function LightPulseStat({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: string | number;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-3xl border p-5 shadow-sm ${
+        highlight
+          ? "border-[#C8102E] bg-[#C8102E] text-white"
+          : "border-[#D9D6D1] bg-white text-[#111111]"
+      }`}
+    >
+      <div
+        className={`text-xs font-black uppercase tracking-wide ${
+          highlight ? "text-white/75" : "text-neutral-500"
+        }`}
+      >
+        {label}
+      </div>
+      <div className="mt-2 text-4xl font-black">{value}</div>
     </div>
   );
 }
