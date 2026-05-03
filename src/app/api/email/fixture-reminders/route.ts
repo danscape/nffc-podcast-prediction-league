@@ -1,5 +1,14 @@
 import nodemailer from "nodemailer";
 import { createClient } from "@supabase/supabase-js";
+import {
+  buildEmailSignoffHtml,
+  buildEmailSignoffText,
+} from "@/lib/email/emailSignoff";
+import {
+  buildEmailIndividualTopFiveText,
+  buildEmailLeaderboardsBlock,
+  buildEmailTeamTopFiveText,
+} from "@/lib/leaderboards/emailLeaderboards";
 
 type DueReminder = {
   fixture_id: string;
@@ -18,6 +27,35 @@ type DueReminder = {
   access_token: string;
   team_name: string;
   team_display_name: string | null;
+};
+
+type FixtureReminderRow = {
+  id: string;
+  gameweek: number;
+  gameweek_label: string;
+  opponent: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  kickoff_at: string | null;
+  prediction_lock_at: string | null;
+  status: string;
+  result_confirmed: boolean;
+};
+
+type JoinedTeam = {
+  team_name: string;
+  display_name: string | null;
+};
+
+type PlayerReminderRow = {
+  id: string;
+  legacy_code: string;
+  player_name: string;
+  short_name: string | null;
+  email: string | null;
+  access_token: string | null;
+  joined_gameweek: number;
+  teams: JoinedTeam[] | JoinedTeam | null;
 };
 
 type PlayerPageData = {
@@ -46,20 +84,45 @@ type IndividualLeaderboardRow = {
   player_id: string;
   player_name: string;
   short_name: string | null;
-  table_display_name: string | null;
+  table_display_name?: string | null;
   team_name: string;
-  team_display_name: string | null;
+  team_display_name?: string | null;
+  team_abbreviation?: string | null;
   total_points: number;
-  accuracy_percentage: number;
+  base_points?: number | null;
+  streak_bonus?: number | null;
+  maverick_bonus?: number | null;
+  rogue_bonus?: number | null;
+  cup_bonus?: number | null;
+  bonus_points?: number | null;
+  correct_predictions?: number | null;
+  fixtures_scored?: number | null;
+  accuracy_percentage?: number | null;
+  accuracy_whole_percentage?: number | null;
+  best_streak?: number | null;
+  current_streak?: number | null;
 };
 
 type TeamLeaderboardRow = {
   team_id: string;
   team_name: string;
   display_name: string | null;
+  x_handle?: string | null;
   total_team_points: number;
   clean_sweeps: number;
   blanks: number;
+  best_player_accuracy_percentage: number;
+  logo_url?: string | null;
+  logo_alt?: string | null;
+  brand_colour?: string | null;
+  mvp_player_id?: string | null;
+  mvp_player_name?: string | null;
+  mvp_short_name?: string | null;
+  mvp_accuracy_percentage?: number | null;
+  latest_gameweek?: number | null;
+  latest_gameweek_label?: string | null;
+  latest_opponent_short?: string | null;
+  points_this_week?: number | null;
 };
 
 function getSupabaseClient() {
@@ -142,13 +205,18 @@ function predictionLabel(value: "W" | "D" | "L" | null | undefined) {
   return "Not set";
 }
 
-function formatPoints(value: number | null | undefined) {
-  return Number(value ?? 0).toFixed(1).replace(".0", "");
+function firstItem<T>(value: T[] | T | null | undefined): T | null {
+  if (!value) return null;
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value;
 }
 
 function buildPredictionRows(predictions: PlayerPageData["predictions"]) {
   const remaining = predictions
-    .filter((prediction) => !(prediction.status === "finished" && prediction.forest_result))
+    .filter(
+      (prediction) =>
+        !(prediction.status === "finished" && prediction.forest_result)
+    )
     .sort((a, b) => a.gameweek - b.gameweek);
 
   if (!remaining.length) {
@@ -188,90 +256,128 @@ function buildPredictionRows(predictions: PlayerPageData["predictions"]) {
 
 function buildPredictionText(predictions: PlayerPageData["predictions"]) {
   const remaining = predictions
-    .filter((prediction) => !(prediction.status === "finished" && prediction.forest_result))
+    .filter(
+      (prediction) =>
+        !(prediction.status === "finished" && prediction.forest_result)
+    )
     .sort((a, b) => a.gameweek - b.gameweek);
 
   if (!remaining.length) return "No remaining league predictions.";
 
   return remaining
     .map((prediction) => {
-      return `${prediction.gameweek_label} | ${prediction.opponent_short} ${prediction.venue} | ${prediction.prediction} (${predictionLabel(
+      return `${prediction.gameweek_label} | ${prediction.opponent_short} ${
+        prediction.venue
+      } | ${prediction.prediction} (${predictionLabel(
         prediction.prediction
       )}) | ${formatDateTime(prediction.kickoff_at)}`;
     })
     .join("\n");
 }
 
-function buildIndividualTopFive(rows: IndividualLeaderboardRow[]) {
-  if (!rows.length) return "Leaderboard not available yet.";
+async function getManualGameweekReminders({
+  supabase,
+  manualGameweek,
+}: {
+  supabase: ReturnType<typeof getSupabaseClient>;
+  manualGameweek: number;
+}) {
+  const { data: fixtureData, error: fixtureError } = await supabase
+    .from("fixtures")
+    .select(
+      "id, gameweek, gameweek_label, opponent, opponent_short, venue, kickoff_at, prediction_lock_at, status, result_confirmed"
+    )
+    .eq("gameweek", manualGameweek)
+    .limit(1)
+    .maybeSingle();
 
-  return rows
-    .slice(0, 5)
-    .map((row, index) => {
-      const name = row.table_display_name ?? row.short_name ?? row.player_name;
-      return `${index + 1}. ${name} — ${formatPoints(row.total_points)} pts`;
-    })
-    .join("\n");
-}
+  if (fixtureError) {
+    throw new Error(fixtureError.message);
+  }
 
-function buildTeamTopFive(rows: TeamLeaderboardRow[]) {
-  if (!rows.length) return "Team leaderboard not available yet.";
+  if (!fixtureData) {
+    throw new Error(`No fixture found for GW${manualGameweek}.`);
+  }
 
-  return rows
-    .slice(0, 5)
-    .map((row, index) => {
-      const name = row.display_name ?? row.team_name;
-      return `${index + 1}. ${name} — ${formatPoints(row.total_team_points)} pts`;
-    })
-    .join("\n");
-}
+  const fixture = fixtureData as FixtureReminderRow;
 
-function buildLeaderboardHtml(
-  individualRows: IndividualLeaderboardRow[],
-  teamRows: TeamLeaderboardRow[]
-) {
-  const individualItems = individualRows
-    .slice(0, 5)
-    .map((row, index) => {
-      const name = row.table_display_name ?? row.short_name ?? row.player_name;
+  if (fixture.result_confirmed || fixture.status === "finished") {
+    throw new Error(`${fixture.gameweek_label} is already finished/confirmed.`);
+  }
 
-      return `
-        <li style="margin-bottom: 6px;">
-          <strong>${index + 1}. ${escapeHtml(name)}</strong> — ${escapeHtml(formatPoints(row.total_points))} pts
-        </li>
-      `;
-    })
-    .join("");
+  const { data: loggedData, error: loggedError } = await supabase
+    .from("email_reminder_log")
+    .select("player_id")
+    .eq("fixture_id", fixture.id)
+    .eq("reminder_type", "fixture_prediction_reminder");
 
-  const teamItems = teamRows
-    .slice(0, 5)
-    .map((row, index) => {
-      const name = row.display_name ?? row.team_name;
+  if (loggedError) {
+    throw new Error(loggedError.message);
+  }
 
-      return `
-        <li style="margin-bottom: 6px;">
-          <strong>${index + 1}. ${escapeHtml(name)}</strong> — ${escapeHtml(formatPoints(row.total_team_points))} pts
-        </li>
-      `;
-    })
-    .join("");
+  const alreadyLoggedPlayerIds = new Set(
+    ((loggedData ?? []) as { player_id: string }[]).map((row) => row.player_id)
+  );
 
-  return `
-    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 16px 0;">
-      <div style="background: #F7F6F2; border: 1px solid #D9D6D1; border-radius: 14px; padding: 14px;">
-        <h3 style="margin: 0 0 10px; font-size: 16px;">Individual top 5</h3>
-        <ol style="margin: 0; padding-left: 22px;">
-          ${individualItems || "<li>Leaderboard not available yet.</li>"}
-        </ol>
-      </div>
-      <div style="background: #F7F6F2; border: 1px solid #D9D6D1; border-radius: 14px; padding: 14px;">
-        <h3 style="margin: 0 0 10px; font-size: 16px;">Team top 5</h3>
-        <ol style="margin: 0; padding-left: 22px;">
-          ${teamItems || "<li>Team leaderboard not available yet.</li>"}
-        </ol>
-      </div>
-    </div>
-  `;
+  const { data: playerData, error: playerError } = await supabase
+    .from("players")
+    .select(
+      `
+      id,
+      legacy_code,
+      player_name,
+      short_name,
+      email,
+      access_token,
+      joined_gameweek,
+      teams (
+        team_name,
+        display_name
+      )
+    `
+    )
+    .eq("active", true)
+    .lte("joined_gameweek", manualGameweek)
+    .not("email", "is", null)
+    .neq("email", "")
+    .not("access_token", "is", null)
+    .neq("access_token", "")
+    .order("player_name", { ascending: true });
+
+  if (playerError) {
+    throw new Error(playerError.message);
+  }
+
+  const reminders = ((playerData ?? []) as unknown as PlayerReminderRow[])
+    .filter((player) => !alreadyLoggedPlayerIds.has(player.id))
+    .map((player) => {
+      const team = firstItem(player.teams);
+
+      return {
+        fixture_id: fixture.id,
+        gameweek: fixture.gameweek,
+        gameweek_label: fixture.gameweek_label,
+        opponent: fixture.opponent,
+        opponent_short: fixture.opponent_short,
+        venue: fixture.venue,
+        kickoff_at: fixture.kickoff_at,
+        prediction_lock_at: fixture.prediction_lock_at,
+        player_id: player.id,
+        legacy_code: player.legacy_code,
+        player_name: player.player_name,
+        short_name: player.short_name,
+        email: player.email ?? "",
+        access_token: player.access_token ?? "",
+        team_name: team?.team_name ?? "No team",
+        team_display_name: team?.display_name ?? null,
+      };
+    });
+
+  return {
+    fixture,
+    reminders,
+    alreadyLoggedCount: alreadyLoggedPlayerIds.size,
+  };
 }
 
 async function sendReminderEmail({
@@ -279,11 +385,13 @@ async function sendReminderEmail({
   predictionData,
   individualRows,
   teamRows,
+  testMode = false,
 }: {
   reminder: DueReminder;
   predictionData: PlayerPageData;
   individualRows: IndividualLeaderboardRow[];
   teamRows: TeamLeaderboardRow[];
+  testMode?: boolean;
 }) {
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
     throw new Error("Missing Gmail email settings.");
@@ -318,12 +426,20 @@ async function sendReminderEmail({
             NFFC Podcast Prediction League
           </div>
 
+          ${
+            testMode
+              ? `<div style="background: #FFF1F2; border: 1px solid #F5C2CB; color: #C8102E; border-radius: 14px; padding: 12px; margin: 0 0 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px;">
+                  Test send only — this email has not been logged as the real fixture reminder.
+                </div>`
+              : ""
+          }
+
           <h1 style="margin: 16px 0 8px; color: #C8102E; font-size: 28px; line-height: 1.1;">
             Prediction reminder
           </h1>
 
           <p style="margin: 0 0 16px; line-height: 1.5;">
-            ${escapeHtml(playerName)}, Forest's next Premier League fixture is coming up in around 2 days. Your current predictions are listed below.
+            ${escapeHtml(playerName)}, Forest's next Premier League fixture is coming up. Your current predictions are listed below.
           </p>
 
           <div style="background: #F7F6F2; border: 1px solid #D9D6D1; border-radius: 14px; padding: 14px; margin: 16px 0;">
@@ -357,7 +473,20 @@ async function sendReminderEmail({
           </table>
 
           <h2 style="margin-top: 24px; font-size: 20px;">Current leaderboards</h2>
-          ${buildLeaderboardHtml(individualRows, teamRows)}
+          ${buildEmailLeaderboardsBlock({
+            individualRows,
+            teamRows,
+            individualLimit: 10,
+            teamLimit: teamRows.length,
+          })}
+
+          <p style="margin: 22px 0 0;">
+            <a href="${escapeHtml(`${siteUrl}/#leaderboards`)}" style="display: inline-block; background: #C8102E; color: #ffffff; text-decoration: none; font-weight: 800; padding: 12px 18px; border-radius: 999px;">
+              View full leaderboards
+            </a>
+          </p>
+
+          ${buildEmailSignoffHtml()}
         </div>
       </div>
     </div>
@@ -368,7 +497,7 @@ async function sendReminderEmail({
     "",
     "Prediction reminder",
     "",
-    `${playerName}, Forest's next Premier League fixture is coming up in around 2 days. Your current predictions are listed below.`,
+    `${playerName}, Forest's next Premier League fixture is coming up. Your current predictions are listed below.`,
     "",
     `Player: ${playerName}`,
     `Team: ${teamName}`,
@@ -381,18 +510,22 @@ async function sendReminderEmail({
     "Current remaining predictions",
     buildPredictionText(predictionData.predictions),
     "",
-    "Individual top 5",
-    buildIndividualTopFive(individualRows),
+    "Individual top 10",
+    buildEmailIndividualTopFiveText(individualRows, 10),
     "",
-    "Team top 5",
-    buildTeamTopFive(teamRows),
+    "Full team leaderboard",
+    buildEmailTeamTopFiveText(teamRows, teamRows.length),
+    "",
+    `View full leaderboards: ${siteUrl}/#leaderboards`,
+    "",
+    buildEmailSignoffText(),
   ].join("\n");
 
   const info = await transporter.sendMail({
     from: process.env.EMAIL_FROM ?? `NFFC Stats <${process.env.GMAIL_USER}>`,
     to: reminder.email,
     replyTo: process.env.EMAIL_REPLY_TO ?? process.env.GMAIL_USER,
-    subject: `${reminder.gameweek_label} prediction reminder: Forest ${
+    subject: `${testMode ? "[TEST] " : ""}${reminder.gameweek_label} prediction reminder: Forest ${
       reminder.venue === "H" ? "v" : "at"
     } ${reminder.opponent_short}`,
     html,
@@ -407,6 +540,20 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const dryRun = body?.dryRun === true;
     const limit = typeof body?.limit === "number" ? body.limit : 1000;
+    const manualGameweek =
+      typeof body?.manualGameweek === "number" &&
+      Number.isInteger(body.manualGameweek) &&
+      body.manualGameweek > 0
+        ? body.manualGameweek
+        : null;
+
+    const testMode = body?.testMode === true;
+
+    const targetLegacyCode =
+      typeof body?.targetLegacyCode === "string" &&
+      body.targetLegacyCode.trim().length > 0
+        ? body.targetLegacyCode.trim().toLowerCase()
+        : null;
 
     const supabase = getSupabaseClient();
 
@@ -425,16 +572,18 @@ export async function POST(request: Request) {
     }
 
     const [
-      { data: remindersData, error: remindersError },
+      reminderResult,
       { data: individualData, error: individualError },
       { data: teamData, error: teamError },
     ] = await Promise.all([
-      supabase.rpc("get_due_fixture_reminders"),
+      manualGameweek
+        ? getManualGameweekReminders({ supabase, manualGameweek })
+        : supabase.rpc("get_due_fixture_reminders"),
       supabase
         .from("individual_leaderboard")
         .select("*")
         .order("total_points", { ascending: false })
-        .order("accuracy_percentage", { ascending: false })
+        .order("accuracy_whole_percentage", { ascending: false })
         .order("player_name", { ascending: true })
         .range(0, 1000),
       supabase
@@ -443,19 +592,10 @@ export async function POST(request: Request) {
         .order("total_team_points", { ascending: false })
         .order("clean_sweeps", { ascending: false })
         .order("blanks", { ascending: true })
+        .order("best_player_accuracy_percentage", { ascending: false })
         .order("team_name", { ascending: true })
         .range(0, 1000),
     ]);
-
-    if (remindersError) {
-      return Response.json(
-        {
-          success: false,
-          message: remindersError.message,
-        },
-        { status: 500 }
-      );
-    }
 
     if (individualError || teamError) {
       return Response.json(
@@ -467,7 +607,36 @@ export async function POST(request: Request) {
       );
     }
 
-    const reminders = ((remindersData ?? []) as DueReminder[]).slice(0, limit);
+    const allReminders = manualGameweek
+      ? (reminderResult as {
+          reminders: DueReminder[];
+          alreadyLoggedCount: number;
+        }).reminders
+      : ((reminderResult as { data?: DueReminder[]; error?: { message: string } })
+          .data ?? []);
+
+    const filteredReminders = targetLegacyCode
+      ? allReminders.filter(
+          (reminder) => reminder.legacy_code.toLowerCase() === targetLegacyCode
+        )
+      : allReminders;
+
+    const reminders = filteredReminders.slice(0, limit);
+
+    if (
+      !manualGameweek &&
+      (reminderResult as { error?: { message: string } }).error
+    ) {
+      return Response.json(
+        {
+          success: false,
+          message: (reminderResult as { error: { message: string } }).error
+            .message,
+        },
+        { status: 500 }
+      );
+    }
+
     const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
     const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
 
@@ -475,7 +644,13 @@ export async function POST(request: Request) {
       return Response.json({
         success: true,
         dryRun: true,
+        manualGameweek,
+        testMode,
+        targetLegacyCode,
         dueCount: reminders.length,
+        alreadyLoggedCount: manualGameweek
+          ? (reminderResult as { alreadyLoggedCount: number }).alreadyLoggedCount
+          : undefined,
         reminders,
       });
     }
@@ -518,19 +693,24 @@ export async function POST(request: Request) {
           predictionData,
           individualRows,
           teamRows,
+          testMode,
         });
 
-        const { error: logError } = await supabase
-          .from("email_reminder_log")
-          .insert({
-            fixture_id: reminder.fixture_id,
-            player_id: reminder.player_id,
-            email: reminder.email,
-            reminder_type: "fixture_prediction_reminder",
-          });
+        if (!testMode) {
+          const { error: logError } = await supabase
+            .from("email_reminder_log")
+            .insert({
+              fixture_id: reminder.fixture_id,
+              player_id: reminder.player_id,
+              email: reminder.email,
+              reminder_type: "fixture_prediction_reminder",
+            });
 
-        if (logError) {
-          throw new Error(`Email sent but reminder log failed: ${logError.message}`);
+          if (logError) {
+            throw new Error(
+              `Email sent but reminder log failed: ${logError.message}`
+            );
+          }
         }
 
         sent.push({
@@ -551,6 +731,9 @@ export async function POST(request: Request) {
 
     return Response.json({
       success: failed.length === 0,
+      manualGameweek,
+      testMode,
+      targetLegacyCode,
       dueCount: reminders.length,
       sentCount: sent.length,
       failedCount: failed.length,

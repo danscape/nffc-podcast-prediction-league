@@ -1,5 +1,9 @@
 import nodemailer from "nodemailer";
 import { createClient } from "@supabase/supabase-js";
+import {
+  buildEmailSignoffHtml,
+  buildEmailSignoffText,
+} from "@/lib/email/emailSignoff";
 
 type PredictionValue = "W" | "D" | "L";
 
@@ -698,6 +702,8 @@ export async function POST(request: Request) {
                 Open your prediction page
               </a>
             </p>
+
+            ${buildEmailSignoffHtml()}
           </div>
         </div>
       </div>
@@ -733,6 +739,8 @@ export async function POST(request: Request) {
       buildCustomText(typedExtraData),
       "",
       `Open your prediction page: ${predictionUrl}`,
+      "",
+      buildEmailSignoffText(),
     ].join("\n");
 
     const info = await transporter.sendMail({

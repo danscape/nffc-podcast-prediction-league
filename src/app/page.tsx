@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
+import IndividualLeaderboard from "@/components/leaderboards/web/IndividualLeaderboard";
+import TeamLeaderboard from "@/components/leaderboards/web/TeamLeaderboard";
 
 type AppSetting = {
   key: string;
@@ -10,7 +12,10 @@ type IndividualLeaderboardRow = {
   player_id: string;
   player_name: string;
   short_name: string | null;
+  table_display_name?: string | null;
   team_name: string;
+  team_display_name?: string | null;
+  team_abbreviation?: string | null;
   base_points: number;
   streak_bonus: number;
   maverick_bonus: number;
@@ -24,6 +29,9 @@ type IndividualLeaderboardRow = {
   accuracy_whole_percentage: number | null;
   best_streak: number | null;
   current_streak: number | null;
+  team_logo_url?: string | null;
+  team_logo_alt?: string | null;
+  team_brand_colour?: string | null;
 };
 
 type TeamLeaderboardRow = {
@@ -42,6 +50,10 @@ type TeamLeaderboardRow = {
   mvp_player_name?: string | null;
   mvp_short_name?: string | null;
   mvp_accuracy_percentage?: number | null;
+  latest_gameweek?: number | null;
+  latest_gameweek_label?: string | null;
+  latest_opponent_short?: string | null;
+  points_this_week?: number | null;
 };
 
 type FixtureRow = {
@@ -66,10 +78,6 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseAnonKey);
 }
 
-function formatPoints(value: number | null | undefined) {
-  return Number(value ?? 0).toFixed(1).replace(".0", "");
-}
-
 function formatDateTime(value: string | null) {
   if (!value) return "TBC";
 
@@ -78,30 +86,6 @@ function formatDateTime(value: string | null) {
     timeStyle: "short",
     timeZone: "Europe/London",
   }).format(new Date(value));
-}
-
-function displayPlayerName(row: IndividualLeaderboardRow) {
-  return row.short_name ?? row.player_name;
-}
-
-function getBonusPoints(row: IndividualLeaderboardRow) {
-  return (
-    row.bonus_points ??
-    row.streak_bonus + row.maverick_bonus + row.rogue_bonus + row.cup_bonus
-  );
-}
-
-function getAccuracyWhole(row: IndividualLeaderboardRow) {
-  return row.accuracy_whole_percentage ?? Math.round(Number(row.accuracy_percentage ?? 0));
-}
-
-function displayMvpName(row: TeamLeaderboardRow) {
-  return row.mvp_short_name ?? row.mvp_player_name ?? "—";
-}
-
-function formatPercent(value: number | null | undefined) {
-  if (value === null || value === undefined) return "0%";
-  return `${Math.round(Number(value))}%`;
 }
 
 export default async function HomePage() {
@@ -124,7 +108,10 @@ export default async function HomePage() {
       .select("*", { count: "exact", head: true })
       .eq("active", true),
     supabase.from("fixtures").select("*", { count: "exact", head: true }),
-    supabase.from("current_predictions").select("*", { count: "exact", head: true }),
+    supabase.from("current_predictions").select("*", {
+      count: "exact",
+      head: true,
+    }),
     supabase
       .from("app_settings")
       .select("key, value")
@@ -142,6 +129,7 @@ export default async function HomePage() {
       .order("total_team_points", { ascending: false })
       .order("clean_sweeps", { ascending: false })
       .order("blanks", { ascending: true })
+      .order("best_player_accuracy_percentage", { ascending: false })
       .order("team_name", { ascending: true })
       .range(0, 1000),
     supabase
@@ -168,6 +156,7 @@ export default async function HomePage() {
 
   const season =
     settings.get("season_label") ?? settings.get("current_season") ?? "2025/26";
+
   const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
   const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
   const nextFixture = (nextFixtureData?.[0] ?? null) as FixtureRow | null;
@@ -242,247 +231,46 @@ export default async function HomePage() {
                 ? `${nextFixture.gameweek_label} ${nextFixture.opponent_short} ${nextFixture.venue}`
                 : "TBC"
             }
-            subValue={nextFixture ? formatDateTime(nextFixture.kickoff_at) : undefined}
+            subValue={
+              nextFixture ? formatDateTime(nextFixture.kickoff_at) : undefined
+            }
           />
         </section>
 
+        <section className="mb-6 rounded-3xl border border-[#D9D6D1] bg-[#111111] p-5 text-white shadow-sm md:p-6">
+          <div className="text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+            Season pulse
+          </div>
+          <h2 className="mt-3 text-3xl font-black uppercase">
+            {nextFixture
+              ? `${nextFixture.gameweek_label}: Forest ${
+                  nextFixture.venue === "H" ? "v" : "at"
+                } ${nextFixture.opponent_short}`
+              : "Next fixture TBC"}
+          </h2>
+          <p className="mt-3 text-sm font-semibold leading-6 text-neutral-300">
+            {nextFixture
+              ? `Kick-off: ${formatDateTime(
+                  nextFixture.kickoff_at
+                )}. Predictions lock 5 minutes before kick-off.`
+              : "Fixture information will update from the API sync."}
+          </p>
+        </section>
+
         <section id="leaderboards" className="grid gap-6">
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
-            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-3xl font-black uppercase text-[#111111]">
-                  Individual leaderboard
-                </h2>
-                <p className="mt-1 text-sm font-semibold text-neutral-600">
-                  All players ranked by total score, then accuracy.
-                </p>
-              </div>
-              <div className="text-sm font-black uppercase tracking-wide text-[#C8102E]">
-                {individualRows.length} players
-              </div>
-            </div>
+          <IndividualLeaderboard
+            rows={individualRows}
+            title="Individual leaderboard"
+            subtitle="All players ranked by total score, then accuracy."
+            countLabel={`${individualRows.length} players`}
+          />
 
-            <div className="hidden overflow-hidden rounded-2xl border border-[#D9D6D1] 2xl:block">
-              <table className="w-full border-collapse text-left text-sm">
-                <thead className="bg-[#111111] text-white">
-                  <tr>
-                    <th className="px-4 py-3">Rank</th>
-                    <th className="px-4 py-3">Player</th>
-                    <th className="px-4 py-3">Team</th>
-                    <th className="px-4 py-3 text-right">Total Score</th>
-                    <th className="px-4 py-3 text-right">Points</th>
-                    <th className="px-4 py-3 text-right">Bonus Pts</th>
-                    <th className="px-4 py-3 text-right">Correct</th>
-                    <th className="px-4 py-3 text-right">Accuracy</th>
-                    <th className="px-4 py-3 text-right">Best Streak</th>
-                    <th className="px-4 py-3 text-right">Current Streak</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {individualRows.length ? (
-                    individualRows.map((row, index) => (
-                      <tr
-                        key={row.player_id}
-                        className="border-b border-[#E7E2DA] last:border-b-0"
-                      >
-                        <td className="px-4 py-3 text-xl font-black text-[#C8102E]">
-                          {index + 1}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="font-black">{displayPlayerName(row)}</div>
-                          {row.short_name && row.short_name !== row.player_name && (
-                            <div className="text-xs text-neutral-500">
-                              {row.player_name}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 font-bold">{row.team_name}</td>
-                        <td className="px-4 py-3 text-right text-2xl font-black">
-                          {formatPoints(row.total_points)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold">
-                          {formatPoints(row.base_points)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold">
-                          {formatPoints(getBonusPoints(row))}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold">
-                          {row.correct_predictions}/{row.fixtures_scored}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold">
-                          {getAccuracyWhole(row)}%
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold">
-                          {row.best_streak ?? 0}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold">
-                          {row.current_streak ?? 0}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td className="px-4 py-6 text-neutral-600" colSpan={10}>
-                        Individual leaderboard not available yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="grid gap-3 2xl:hidden">
-              {individualRows.length ? (
-                individualRows.map((row, index) => (
-                  <div
-                    key={row.player_id}
-                    className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
-                          Rank {index + 1}
-                        </div>
-                        <div className="mt-1 text-xl font-black">
-                          {displayPlayerName(row)}
-                        </div>
-                        <div className="text-sm font-semibold text-neutral-600">
-                          {row.team_name}
-                        </div>
-                      </div>
-                      <div className="text-3xl font-black text-[#C8102E]">
-                        {formatPoints(row.total_points)}
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-2 text-sm font-bold md:grid-cols-4">
-                      <MiniStat label="Points" value={formatPoints(row.base_points)} />
-                      <MiniStat
-                        label="Bonus Pts"
-                        value={formatPoints(getBonusPoints(row))}
-                      />
-                      <MiniStat
-                        label="Correct"
-                        value={`${row.correct_predictions}/${row.fixtures_scored}`}
-                      />
-                      <MiniStat label="Accuracy" value={`${getAccuracyWhole(row)}%`} />
-                      <MiniStat label="Best Streak" value={row.best_streak ?? 0} />
-                      <MiniStat
-                        label="Current Streak"
-                        value={row.current_streak ?? 0}
-                      />
-                      <MiniStat
-                        label="Streaker"
-                        value={formatPoints(row.streak_bonus)}
-                      />
-                      <MiniStat
-                        label="Mav/Rogue/Cup"
-                        value={`${formatPoints(row.maverick_bonus)}/${formatPoints(
-                          row.rogue_bonus
-                        )}/${formatPoints(row.cup_bonus)}`}
-                      />
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
-                  Individual leaderboard not available yet.
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="grid gap-6 xl:grid-cols-[1fr_0.55fr]">
-            <div className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
-              <div className="mb-5 flex items-end justify-between gap-4">
-                <div>
-                  <h2 className="text-3xl font-black uppercase text-[#111111]">
-                    Team table
-                  </h2>
-                  <p className="mt-1 text-sm font-semibold text-neutral-600">
-                    Podcast team standings with MVP player.
-                  </p>
-                </div>
-                <div className="text-sm font-black uppercase tracking-wide text-[#C8102E]">
-                  {teamRows.length} teams
-                </div>
-              </div>
-
-              <div className="grid gap-3">
-                {teamRows.length ? (
-                  teamRows.map((row, index) => (
-                    <div
-                      key={row.team_id}
-                      className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3">
-                          {row.logo_url ? (
-                            <img
-                              src={row.logo_url}
-                              alt={row.logo_alt ?? row.display_name ?? row.team_name}
-                              className="h-12 w-12 rounded-xl border border-[#D9D6D1] bg-white object-contain"
-                            />
-                          ) : (
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#D9D6D1] bg-white text-xs font-black text-[#C8102E]">
-                              {row.team_name.slice(0, 2).toUpperCase()}
-                            </div>
-                          )}
-
-                          <div>
-                            <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
-                              Rank {index + 1}
-                            </div>
-                            <div className="mt-1 text-lg font-black">
-                              {row.display_name ?? row.team_name}
-                            </div>
-                            <div className="mt-2 text-xs font-bold uppercase tracking-wide text-neutral-500">
-                              Clean sweeps {row.clean_sweeps} · Blanks {row.blanks}
-                            </div>
-                            <div className="mt-2 text-xs font-bold uppercase tracking-wide text-neutral-600">
-                              MVP {displayMvpName(row)} ·{" "}
-                              {formatPercent(
-                                row.mvp_accuracy_percentage ??
-                                  row.best_player_accuracy_percentage
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="text-3xl font-black text-[#C8102E]">
-                          {formatPoints(row.total_team_points)}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
-                    Team leaderboard not available yet.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-[#D9D6D1] bg-[#111111] p-5 text-white shadow-sm md:p-6">
-              <div className="text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
-                Season pulse
-              </div>
-              <h2 className="mt-3 text-3xl font-black uppercase">
-                {nextFixture
-                  ? `${nextFixture.gameweek_label}: Forest ${
-                      nextFixture.venue === "H" ? "v" : "at"
-                    } ${nextFixture.opponent_short}`
-                  : "Next fixture TBC"}
-              </h2>
-              <p className="mt-3 text-sm font-semibold leading-6 text-neutral-300">
-                {nextFixture
-                  ? `Kick-off: ${formatDateTime(
-                      nextFixture.kickoff_at
-                    )}. Predictions lock 5 minutes before kick-off.`
-                  : "Fixture information will update from the API sync."}
-              </p>
-            </div>
-          </div>
+          <TeamLeaderboard
+            rows={teamRows}
+            title="Team leaderboard"
+            subtitle="Podcast team standings ranked by total score, clean sweeps, blanks and MVP accuracy."
+            countLabel={`${teamRows.length} teams`}
+          />
         </section>
       </section>
     </main>
@@ -524,23 +312,6 @@ function StatCard({
           {subValue}
         </div>
       )}
-    </div>
-  );
-}
-
-function MiniStat({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="rounded-2xl bg-white p-3">
-      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
-        {label}
-      </div>
-      <div className="mt-1 text-lg font-black">{value}</div>
     </div>
   );
 }

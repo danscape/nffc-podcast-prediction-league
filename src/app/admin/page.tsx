@@ -1,226 +1,275 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
+import IndividualLeaderboard from "@/components/leaderboards/web/IndividualLeaderboard";
+import TeamLeaderboard from "@/components/leaderboards/web/TeamLeaderboard";
 
-type AdminState = "loading" | "not-signed-in" | "not-admin" | "admin";
-
-type DashboardCounts = {
-  teams: number;
-  players: number;
-  fixtures: number;
-  predictions: number;
+type AppSetting = {
+  key: string;
+  value: string;
 };
 
-export default function AdminDashboardPage() {
-  const [adminState, setAdminState] = useState<AdminState>("loading");
-  const [adminEmail, setAdminEmail] = useState<string | null>(null);
-  const [counts, setCounts] = useState<DashboardCounts>({
-    teams: 0,
-    players: 0,
-    fixtures: 0,
-    predictions: 0,
-  });
+type IndividualLeaderboardRow = {
+  player_id: string;
+  player_name: string;
+  short_name: string | null;
+  table_display_name?: string | null;
+  team_name: string;
+  team_display_name?: string | null;
+  team_abbreviation?: string | null;
+  base_points: number;
+  streak_bonus: number;
+  maverick_bonus: number;
+  rogue_bonus: number;
+  cup_bonus: number;
+  total_points: number;
+  correct_predictions: number;
+  fixtures_scored: number;
+  accuracy_percentage: number;
+  bonus_points: number | null;
+  accuracy_whole_percentage: number | null;
+  best_streak: number | null;
+  current_streak: number | null;
+  team_logo_url?: string | null;
+  team_logo_alt?: string | null;
+  team_brand_colour?: string | null;
+};
 
-  useEffect(() => {
-    async function loadAdmin() {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData.session;
+type TeamLeaderboardRow = {
+  team_id: string;
+  team_name: string;
+  display_name: string | null;
+  x_handle: string | null;
+  total_team_points: number;
+  clean_sweeps: number;
+  blanks: number;
+  best_player_accuracy_percentage: number;
+  logo_url: string | null;
+  logo_alt: string | null;
+  brand_colour: string | null;
+  mvp_player_id?: string | null;
+  mvp_player_name?: string | null;
+  mvp_short_name?: string | null;
+  mvp_accuracy_percentage?: number | null;
+  latest_gameweek?: number | null;
+  latest_gameweek_label?: string | null;
+  latest_opponent_short?: string | null;
+  points_this_week?: number | null;
+};
 
-      if (!session?.user?.email) {
-        setAdminState("not-signed-in");
-        return;
-      }
+type FixtureRow = {
+  gameweek: number;
+  gameweek_label: string;
+  opponent: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  kickoff_at: string | null;
+  status: string;
+  result_confirmed: boolean;
+};
 
-      setAdminEmail(session.user.email);
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-      const { data: adminRows, error: adminError } = await supabase
-        .from("admin_users")
-        .select("email, active")
-        .eq("email", session.user.email)
-        .eq("active", true)
-        .limit(1);
-
-      if (adminError || !adminRows?.length) {
-        setAdminState("not-admin");
-        return;
-      }
-
-      const [
-        { count: teamCount },
-        { count: playerCount },
-        { count: fixtureCount },
-        { count: predictionCount },
-      ] = await Promise.all([
-        supabase.from("teams").select("*", { count: "exact", head: true }),
-        supabase.from("players").select("*", { count: "exact", head: true }),
-        supabase.from("fixtures").select("*", { count: "exact", head: true }),
-        supabase
-          .from("current_predictions")
-          .select("*", { count: "exact", head: true }),
-      ]);
-
-      setCounts({
-        teams: teamCount ?? 0,
-        players: playerCount ?? 0,
-        fixtures: fixtureCount ?? 0,
-        predictions: predictionCount ?? 0,
-      });
-
-      setAdminState("admin");
-    }
-
-    loadAdmin();
-  }, []);
-
-  async function signOut() {
-    await supabase.auth.signOut();
-    setAdminState("not-signed-in");
-    setAdminEmail(null);
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing Supabase environment variables.");
   }
 
-  if (adminState === "loading") {
-    return (
-      <main className="min-h-screen bg-[#F7F6F2] px-4 py-8 text-[#111111] sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-6 shadow-sm">
-            <div className="text-xl font-black uppercase text-[#C8102E]">
-              Loading admin…
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
 
-  if (adminState === "not-signed-in") {
-    return (
-      <main className="min-h-screen bg-[#F7F6F2] px-4 py-8 text-[#111111] sm:px-6 lg:px-8">
-        <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl flex-col justify-center">
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-6 text-center shadow-sm md:p-8">
-            <h1 className="text-3xl font-black uppercase text-[#C8102E]">
-              Admin access required
-            </h1>
-            <p className="mt-3 text-sm text-neutral-600">
-              Sign in with the admin email address to manage the prediction league.
-            </p>
-            <Link
-              href="/admin/login"
-              className="mt-6 inline-flex rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white"
-            >
-              Go to login
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
-  }
+function formatDateTime(value: string | null) {
+  if (!value) return "TBC";
 
-  if (adminState === "not-admin") {
-    return (
-      <main className="min-h-screen bg-[#F7F6F2] px-4 py-8 text-[#111111] sm:px-6 lg:px-8">
-        <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl flex-col justify-center">
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-center shadow-sm md:p-8">
-            <h1 className="text-3xl font-black uppercase text-red-800">
-              Not authorised
-            </h1>
-            <p className="mt-3 text-sm text-red-700">
-              {adminEmail} is signed in but is not listed as an active admin.
-            </p>
-            <button
-              type="button"
-              onClick={signOut}
-              className="mt-6 rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/London",
+  }).format(new Date(value));
+}
+
+export default async function HomePage() {
+  const supabase = getSupabaseClient();
+
+  const [
+    { count: teamCount },
+    { count: playerCount },
+    { count: fixtureCount },
+    { count: predictionCount },
+    { data: settingsData },
+    { data: individualData },
+    { data: teamData },
+    { data: nextFixtureData },
+    { data: completedFixturesData },
+  ] = await Promise.all([
+    supabase.from("teams").select("*", { count: "exact", head: true }),
+    supabase
+      .from("players")
+      .select("*", { count: "exact", head: true })
+      .eq("active", true),
+    supabase.from("fixtures").select("*", { count: "exact", head: true }),
+    supabase.from("current_predictions").select("*", {
+      count: "exact",
+      head: true,
+    }),
+    supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["current_season", "season_label"]),
+    supabase
+      .from("individual_leaderboard")
+      .select("*")
+      .order("total_points", { ascending: false })
+      .order("accuracy_whole_percentage", { ascending: false })
+      .order("player_name", { ascending: true })
+      .range(0, 1000),
+    supabase
+      .from("team_leaderboard")
+      .select("*")
+      .order("total_team_points", { ascending: false })
+      .order("clean_sweeps", { ascending: false })
+      .order("blanks", { ascending: true })
+      .order("best_player_accuracy_percentage", { ascending: false })
+      .order("team_name", { ascending: true })
+      .range(0, 1000),
+    supabase
+      .from("fixtures")
+      .select(
+        "gameweek, gameweek_label, opponent, opponent_short, venue, kickoff_at, status, result_confirmed"
+      )
+      .neq("status", "finished")
+      .order("gameweek", { ascending: true })
+      .limit(1),
+    supabase
+      .from("fixtures")
+      .select("gameweek")
+      .eq("status", "finished")
+      .eq("result_confirmed", true),
+  ]);
+
+  const settings = new Map(
+    ((settingsData ?? []) as AppSetting[]).map((setting) => [
+      setting.key,
+      setting.value,
+    ])
+  );
+
+  const season =
+    settings.get("season_label") ?? settings.get("current_season") ?? "2025/26";
+
+  const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
+  const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
+  const nextFixture = (nextFixtureData?.[0] ?? null) as FixtureRow | null;
+  const completedFixtureCount = completedFixturesData?.length ?? 0;
+
+  const totalPossiblePredictions = (playerCount ?? 0) * (fixtureCount ?? 0);
+  const predictionCompletion =
+    totalPossiblePredictions > 0
+      ? Math.round(((predictionCount ?? 0) / totalPossiblePredictions) * 100)
+      : 0;
 
   return (
     <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-end">
             <div>
-              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
-                🔮 Admin dashboard
+              <div className="mb-4 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+                🔮 NFFC Podcast Prediction League
               </div>
-              <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
-                Prediction League
-                <span className="block text-[#111111]">Admin</span>
+
+              <h1 className="max-w-4xl text-5xl font-black uppercase leading-[0.92] tracking-tight text-[#C8102E] md:text-7xl">
+                NFFC Podcast
+                <span className="block text-[#111111]">Prediction League</span>
               </h1>
-              <p className="mt-3 text-sm font-semibold text-neutral-600">
-                Signed in as {adminEmail}
+
+              <p className="mt-6 max-w-2xl text-base font-semibold leading-7 text-neutral-700 md:text-lg">
+                Individual and team score prediction game for the Forest podcast
+                community. Track the tables, follow the season mood, and see who
+                called it right.
               </p>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  href="/admin/login"
+                  className="rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+                >
+                  Admin login
+                </Link>
+                <a
+                  href="#leaderboards"
+                  className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+                >
+                  View leaderboards
+                </a>
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={signOut}
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
-            >
-              Sign out
-            </button>
+            <div className="rounded-3xl border border-[#D9D6D1] bg-[#F7F6F2] p-5 shadow-sm">
+              <div className="mb-4 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+                Current setup
+              </div>
+
+              <SetupRow label="Season" value={season} />
+              <SetupRow label="Teams" value={teamCount ?? 0} />
+              <SetupRow label="Players" value={playerCount ?? 0} />
+              <SetupRow label="Fixtures" value={fixtureCount ?? 0} />
+              <SetupRow label="Completed GWs" value={completedFixtureCount} />
+              <SetupRow label="Timezone" value="Europe/London" />
+            </div>
           </div>
         </header>
 
-        <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <AdminStat label="Teams" value={counts.teams} />
-          <AdminStat label="Players" value={counts.players} />
-          <AdminStat label="Fixtures" value={counts.fixtures} />
-          <AdminStat label="Predictions" value={counts.predictions} />
+        <section className="mb-6 grid gap-3 md:grid-cols-4">
+          <StatCard label="Current season" value={season} />
+          <StatCard label="Predictions stored" value={predictionCount ?? 0} />
+          <StatCard label="Prediction coverage" value={`${predictionCompletion}%`} />
+          <StatCard
+            label="Next fixture"
+            value={
+              nextFixture
+                ? `${nextFixture.gameweek_label} ${nextFixture.opponent_short} ${nextFixture.venue}`
+                : "TBC"
+            }
+            subValue={
+              nextFixture ? formatDateTime(nextFixture.kickoff_at) : undefined
+            }
+          />
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <AdminCard
-            title="Season"
-            description="Set the current season and football-data.org season used by fixture sync."
-            href="/admin/season"
+        <section className="mb-6 rounded-3xl border border-[#D9D6D1] bg-[#111111] p-5 text-white shadow-sm md:p-6">
+          <div className="text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+            Season pulse
+          </div>
+          <h2 className="mt-3 text-3xl font-black uppercase">
+            {nextFixture
+              ? `${nextFixture.gameweek_label}: Forest ${
+                  nextFixture.venue === "H" ? "v" : "at"
+                } ${nextFixture.opponent_short}`
+              : "Next fixture TBC"}
+          </h2>
+          <p className="mt-3 text-sm font-semibold leading-6 text-neutral-300">
+            {nextFixture
+              ? `Kick-off: ${formatDateTime(
+                  nextFixture.kickoff_at
+                )}. Predictions lock 5 minutes before kick-off.`
+              : "Fixture information will update from the API sync."}
+          </p>
+        </section>
+
+        <section id="leaderboards" className="grid gap-6">
+          <IndividualLeaderboard
+            rows={individualRows}
+            title="Individual leaderboard"
+            subtitle="All players ranked by total score, then accuracy."
+            countLabel={`${individualRows.length} players`}
           />
-          <AdminCard
-            title="Fixtures"
-            description="Review GW labels, opponents, kick-off times, API data, locks and results."
-            href="/admin/fixtures"
-          />
-          <AdminCard
-            title="Cups"
-            description="Set actual cup rounds reached and award Cup Specialist bonuses."
-            href="/admin/cups"
-          />
-          <AdminCard
-            title="Players"
-            description="View players, tokens, emails, teams and joined gameweek."
-            href="/admin/players"
-          />
-          <AdminCard
-            title="Teams"
-            description="Manage parent podcasts, team names, abbreviations, logos and X handles."
-            href="/admin/teams"
-          />
-          <AdminCard
-            title="Manual predictions"
-            description="Update player predictions when entries are sent outside the form."
-            href="/admin/predictions"
-          />
-          <AdminCard
-            title="Leaderboards"
-            description="Check individual and team tables after scoring."
-            href="/admin/leaderboards"
-          />
-          <AdminCard
-            title="Reminders"
-            description="Preview and send fixture reminder emails to players."
-            href="/admin/reminders"
-          />
-          <AdminCard
-            title="Social output"
-            description="Generate weekly post copy, leaderboard cards and preview stats."
-            href="/admin/social"
+
+          <TeamLeaderboard
+            rows={teamRows}
+            title="Team leaderboard"
+            subtitle="Podcast team standings ranked by total score, clean sweeps, blanks and MVP accuracy."
+            countLabel={`${teamRows.length} teams`}
           />
         </section>
       </section>
@@ -228,36 +277,41 @@ export default function AdminDashboardPage() {
   );
 }
 
-function AdminStat({ label, value }: { label: string; value: number }) {
+function SetupRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
-      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
-        {label}
-      </div>
-      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
+    <div className="flex items-center justify-between border-b border-[#D9D6D1] py-3 last:border-b-0">
+      <span className="text-sm font-semibold text-neutral-500">{label}</span>
+      <span className="text-lg font-black text-[#111111]">{value}</span>
     </div>
   );
 }
 
-function AdminCard({
-  title,
-  description,
-  href,
+function StatCard({
+  label,
+  value,
+  subValue,
 }: {
-  title: string;
-  description: string;
-  href: string;
+  label: string;
+  value: string | number;
+  subValue?: string;
 }) {
   return (
-    <Link
-      href={href}
-      className="rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm transition hover:border-[#C8102E]"
-    >
-      <h2 className="text-2xl font-black uppercase text-[#111111]">{title}</h2>
-      <p className="mt-3 text-sm leading-6 text-neutral-600">{description}</p>
-      <div className="mt-5 text-sm font-black uppercase tracking-wide text-[#C8102E]">
-        Open →
+    <div className="rounded-2xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
+      <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+        {label}
       </div>
-    </Link>
+      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
+      {subValue && (
+        <div className="mt-2 text-xs font-semibold text-neutral-500">
+          {subValue}
+        </div>
+      )}
+    </div>
   );
 }

@@ -128,7 +128,18 @@ type ChangedFixture = {
   new_prediction?: PredictionValue;
 };
 
-const cupStageOptions = [
+type ScoreRowWithRunning = ScoreBreakdownData["fixture_scores"][number] & {
+  runningTotal: number;
+};
+
+type SeasonPredictionRow = PlayerPageData["predictions"][number] & {
+  runningPredictedPoints: number;
+  actualPoints: number | null;
+  runningActualPoints: number | null;
+  runningPointDelta: number | null;
+};
+
+const domesticCupStageOptions = [
   "1st Round",
   "2nd Round",
   "3rd Round",
@@ -138,9 +149,31 @@ const cupStageOptions = [
   "Semi Finals",
   "Final",
   "Winners",
+];
+
+const europaLeagueStageOptions = [
   "League Phase",
   "Knockout/Playoff Round",
-  "Last 16",
+  "Round of 16",
+  "Quarter Finals",
+  "Semi Finals",
+  "Final",
+  "Winners",
+];
+
+const genericCupStageOptions = [
+  "1st Round",
+  "2nd Round",
+  "3rd Round",
+  "4th Round",
+  "5th Round",
+  "League Phase",
+  "Knockout/Playoff Round",
+  "Round of 16",
+  "Quarter Finals",
+  "Semi Finals",
+  "Final",
+  "Winners",
 ];
 
 const confirmationEmailDelayMs = 3 * 60 * 1000;
@@ -156,6 +189,12 @@ function formatSignedNumber(value: number) {
   return String(value);
 }
 
+function formatMaybeSignedNumber(value: number | null) {
+  if (value === null) return "—";
+  if (value > 0) return `+${value}`;
+  return String(value);
+}
+
 function isConfirmedPrediction(prediction: PlayerPageData["predictions"][number]) {
   return prediction.status === "finished" && prediction.forest_result !== null;
 }
@@ -166,15 +205,22 @@ function formatRank(value: number | null | undefined, total?: number | null) {
   return `${value}`;
 }
 
-function buildScoreParts(score: ScoreBreakdownData["fixture_scores"][number]) {
-  const parts: string[] = [];
+function getCupStageOptions(competition: string, displayName?: string | null) {
+  const label = `${competition} ${displayName ?? ""}`.toLowerCase();
 
-  if (score.base_points > 0) parts.push(`${score.base_points} base`);
-  if (score.streak_bonus > 0) parts.push(`${score.streak_bonus} streaker`);
-  if (score.maverick_bonus > 0) parts.push(`${score.maverick_bonus} maverick`);
-  if (score.rogue_bonus > 0) parts.push(`${score.rogue_bonus} rogue`);
+  if (label.includes("europa league") || label.includes("uefa europa league")) {
+    return europaLeagueStageOptions;
+  }
 
-  return parts.length ? parts.join(" + ") : "0";
+  if (
+    label.includes("fa cup") ||
+    label.includes("efl cup") ||
+    label.includes("carabao")
+  ) {
+    return domesticCupStageOptions;
+  }
+
+  return genericCupStageOptions;
 }
 
 export default function PredictionFormClient({
@@ -243,9 +289,7 @@ export default function PredictionFormClient({
           individualCount ??
           null,
         teamTotal:
-          initialData.rankings?.team_rank_out_of ??
-          teamCount ??
-          null,
+          initialData.rankings?.team_rank_out_of ?? teamCount ?? null,
       });
     }
 
@@ -264,29 +308,80 @@ export default function PredictionFormClient({
     };
   }, []);
 
-  const completedPredictions = useMemo(
-    () => predictions.filter(isConfirmedPrediction),
-    [predictions]
+  const seasonRows = useMemo<SeasonPredictionRow[]>(() => {
+    const sortedPredictions = [...predictions].sort(
+      (a, b) => a.gameweek - b.gameweek
+    );
+
+    return sortedPredictions.reduce<{
+      rows: SeasonPredictionRow[];
+      runningPredictedPoints: number;
+      runningActualPoints: number;
+    }>(
+      (state, prediction) => {
+        const nextRunningPredictedPoints =
+          state.runningPredictedPoints + prediction.predicted_forest_points;
+
+        const confirmed = isConfirmedPrediction(prediction);
+        const actualPoints =
+          confirmed && prediction.forest_result
+            ? predictionToPoints(prediction.forest_result)
+            : null;
+
+        const nextRunningActualPoints =
+          actualPoints !== null
+            ? state.runningActualPoints + actualPoints
+            : state.runningActualPoints;
+
+        const nextRow: SeasonPredictionRow = {
+          ...prediction,
+          runningPredictedPoints: nextRunningPredictedPoints,
+          actualPoints,
+          runningActualPoints:
+            actualPoints !== null ? nextRunningActualPoints : null,
+          runningPointDelta:
+            actualPoints !== null
+              ? nextRunningActualPoints - nextRunningPredictedPoints
+              : null,
+        };
+
+        return {
+          rows: [...state.rows, nextRow],
+          runningPredictedPoints: nextRunningPredictedPoints,
+          runningActualPoints: nextRunningActualPoints,
+        };
+      },
+      {
+        rows: [],
+        runningPredictedPoints: 0,
+        runningActualPoints: 0,
+      }
+    ).rows;
+  }, [predictions]);
+
+  const completedSeasonRows = useMemo(
+    () => seasonRows.filter((prediction) => isConfirmedPrediction(prediction)),
+    [seasonRows]
   );
 
-  const completedCount = completedPredictions.length;
+  const completedCount = completedSeasonRows.length;
 
-  const visiblePredictions = useMemo(() => {
-    if (showCompletedFixtures) return predictions;
-    return predictions.filter((prediction) => !isConfirmedPrediction(prediction));
-  }, [predictions, showCompletedFixtures]);
+  const visibleSeasonRows = useMemo(() => {
+    if (showCompletedFixtures) return seasonRows;
+    return seasonRows.filter((prediction) => !isConfirmedPrediction(prediction));
+  }, [seasonRows, showCompletedFixtures]);
 
   const performanceStats = useMemo(() => {
-    const correctCount = completedPredictions.filter(
+    const correctCount = completedSeasonRows.filter(
       (prediction) => prediction.prediction === prediction.forest_result
     ).length;
 
-    const actualPointsSoFar = completedPredictions.reduce((total, prediction) => {
+    const actualPointsSoFar = completedSeasonRows.reduce((total, prediction) => {
       if (!prediction.forest_result) return total;
       return total + predictionToPoints(prediction.forest_result);
     }, 0);
 
-    const predictedCompletedPoints = completedPredictions.reduce(
+    const predictedCompletedPoints = completedSeasonRows.reduce(
       (total, prediction) => total + predictionToPoints(prediction.prediction),
       0
     );
@@ -304,7 +399,7 @@ export default function PredictionFormClient({
       actualVsPredicted,
       accuracyPercentage,
     };
-  }, [completedCount, completedPredictions]);
+  }, [completedCount, completedSeasonRows]);
 
   const projection = useMemo(() => {
     const actualPoints = performanceStats.actualPointsSoFar;
@@ -332,9 +427,41 @@ export default function PredictionFormClient({
     predictions,
   ]);
 
+  const scoreRows = useMemo<ScoreRowWithRunning[]>(() => {
+    const sortedScores = [...(scoreData?.fixture_scores ?? [])].sort(
+      (a, b) => a.gameweek - b.gameweek
+    );
+
+    return sortedScores.reduce<{
+      rows: ScoreRowWithRunning[];
+      runningTotal: number;
+    }>(
+      (state, score) => {
+        const nextRunningTotal = state.runningTotal + score.total_points;
+
+        return {
+          rows: [
+            ...state.rows,
+            {
+              ...score,
+              runningTotal: nextRunningTotal,
+            },
+          ],
+          runningTotal: nextRunningTotal,
+        };
+      },
+      {
+        rows: [],
+        runningTotal: 0,
+      }
+    ).rows;
+  }, [scoreData]);
+
   function scheduleConfirmationEmail(changedFixture?: ChangedFixture) {
     if (changedFixture) {
-      const existing = pendingChangedFixturesRef.current.get(changedFixture.gameweek);
+      const existing = pendingChangedFixturesRef.current.get(
+        changedFixture.gameweek
+      );
 
       pendingChangedFixturesRef.current.set(changedFixture.gameweek, {
         ...changedFixture,
@@ -591,10 +718,7 @@ export default function PredictionFormClient({
     rankingTotals.individualTotal
   );
 
-  const teamRankLabel = formatRank(
-    rankings?.team_rank,
-    rankingTotals.teamTotal
-  );
+  const teamRankLabel = formatRank(rankings?.team_rank, rankingTotals.teamTotal);
 
   return (
     <main className="min-h-screen bg-[#F7F6F2] text-[#111111]">
@@ -643,9 +767,7 @@ export default function PredictionFormClient({
               <div className="mb-3 flex flex-wrap gap-x-6 gap-y-2 text-sm font-black uppercase tracking-wide text-[#111111]">
                 <span>
                   Individual rank{" "}
-                  <span className="text-[#C8102E]">
-                    {individualRankLabel}
-                  </span>
+                  <span className="text-[#C8102E]">{individualRankLabel}</span>
                 </span>
                 <span>
                   Individual points{" "}
@@ -654,10 +776,7 @@ export default function PredictionFormClient({
                   </span>
                 </span>
                 <span>
-                  Team rank{" "}
-                  <span className="text-[#C8102E]">
-                    {teamRankLabel}
-                  </span>
+                  Team rank <span className="text-[#C8102E]">{teamRankLabel}</span>
                 </span>
                 <span>
                   Team points{" "}
@@ -739,17 +858,27 @@ export default function PredictionFormClient({
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowScoreBreakdown((current) => !current)}
-              className="w-full rounded-full bg-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E] sm:w-fit"
-            >
-              {showScoreBreakdown ? "Hide score breakdown" : "Show score breakdown"}
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="rounded-full border border-[#D9D6D1] bg-[#F7F6F2] px-4 py-2 text-xs font-black uppercase tracking-wide text-neutral-600">
+                {scoreRows.length} scored GWs
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowScoreBreakdown((current) => !current)}
+                className="w-full rounded-full bg-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E] sm:w-fit"
+              >
+                {showScoreBreakdown ? "Hide score breakdown" : "Show score breakdown"}
+              </button>
+            </div>
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-            <ScoreStat label="Total score" value={scoreSummary?.total_points ?? 0} highlight />
+            <ScoreStat
+              label="Total score"
+              value={scoreSummary?.total_points ?? 0}
+              highlight
+            />
             <ScoreStat label="Base" value={scoreSummary?.base_points ?? 0} />
             <ScoreStat label="Streaker" value={scoreSummary?.streak_bonus ?? 0} />
             <ScoreStat label="Maverick" value={scoreSummary?.maverick_bonus ?? 0} />
@@ -759,48 +888,57 @@ export default function PredictionFormClient({
 
           {showScoreBreakdown && (
             <div className="mt-5 overflow-hidden rounded-2xl border border-[#D9D6D1]">
-              <div className="hidden lg:block">
+              <div className="hidden xl:block">
                 <table className="w-full border-collapse text-left text-sm">
                   <thead className="bg-[#111111] text-white">
                     <tr>
                       <th className="px-4 py-3">GW</th>
                       <th className="px-4 py-3">Fixture</th>
-                      <th className="px-4 py-3">Pick</th>
-                      <th className="px-4 py-3">Result</th>
+                      <th className="px-4 py-3 text-center">Pick</th>
+                      <th className="px-4 py-3 text-center">Result</th>
                       <th className="px-4 py-3">Breakdown</th>
-                      <th className="px-4 py-3">Total</th>
+                      <th className="px-4 py-3 text-center">GW total</th>
+                      <th className="px-4 py-3 text-center">Running</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {scoreData?.fixture_scores?.length ? (
-                      scoreData.fixture_scores.map((score) => (
+                    {scoreRows.length ? (
+                      scoreRows.map((score) => (
                         <tr
                           key={`${score.gameweek}-${score.opponent_short}`}
                           className="border-b border-[#E7E2DA] last:border-b-0"
                         >
-                          <td className="px-4 py-3 font-black">
+                          <td className="px-4 py-4 text-xl font-black text-[#C8102E]">
                             {score.gameweek_label}
                           </td>
-                          <td className="px-4 py-3 font-bold">
-                            {score.opponent_short} {score.venue}
+                          <td className="px-4 py-4">
+                            <div className="text-lg font-black tracking-tight text-[#111111]">
+                              {score.opponent_short} {score.venue}
+                            </div>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-4 text-center">
                             <MiniPrediction value={score.prediction} />
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-4 text-center">
                             <MiniPrediction value={score.actual_result} />
                           </td>
-                          <td className="px-4 py-3 text-neutral-700">
-                            {buildScoreParts(score)}
+                          <td className="px-4 py-4">
+                            <BreakdownPills score={score} />
                           </td>
-                          <td className="px-4 py-3 text-xl font-black">
-                            {score.total_points}
+                          <td className="px-4 py-4 text-center">
+                            <ScoreValuePill value={score.total_points} variant="gw" />
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <ScoreValuePill
+                              value={score.runningTotal}
+                              variant="running"
+                            />
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td className="px-4 py-6 text-neutral-600" colSpan={6}>
+                        <td className="px-4 py-6 text-neutral-600" colSpan={7}>
                           No scored fixtures yet.
                         </td>
                       </tr>
@@ -809,9 +947,9 @@ export default function PredictionFormClient({
                 </table>
               </div>
 
-              <div className="grid gap-3 bg-[#F7F6F2] p-3 lg:hidden">
-                {scoreData?.fixture_scores?.length ? (
-                  scoreData.fixture_scores.map((score) => (
+              <div className="grid gap-3 bg-[#F7F6F2] p-3 xl:hidden">
+                {scoreRows.length ? (
+                  scoreRows.map((score) => (
                     <div
                       key={`${score.gameweek}-${score.opponent_short}`}
                       className="rounded-2xl border border-[#D9D6D1] bg-white p-4"
@@ -821,12 +959,21 @@ export default function PredictionFormClient({
                           <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
                             {score.gameweek_label}
                           </div>
-                          <div className="mt-1 text-lg font-black">
+                          <div className="mt-1 text-xl font-black tracking-tight">
                             {score.opponent_short} {score.venue}
                           </div>
                         </div>
-                        <div className="text-3xl font-black text-[#C8102E]">
-                          {score.total_points}
+
+                        <div className="text-right">
+                          <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                            Running
+                          </div>
+                          <div className="mt-1">
+                            <ScoreValuePill
+                              value={score.runningTotal}
+                              variant="running"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -834,11 +981,20 @@ export default function PredictionFormClient({
                         <MiniPrediction value={score.prediction} />
                         <span className="text-sm font-bold text-neutral-500">Pick</span>
                         <MiniPrediction value={score.actual_result} />
-                        <span className="text-sm font-bold text-neutral-500">Result</span>
+                        <span className="text-sm font-bold text-neutral-500">
+                          Result
+                        </span>
                       </div>
 
-                      <div className="mt-3 border-t border-[#D9D6D1] pt-3 text-sm text-neutral-700">
-                        {buildScoreParts(score)}
+                      <div className="mt-4">
+                        <BreakdownPills score={score} />
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between rounded-2xl border border-[#E7E2DA] bg-[#F7F6F2] px-4 py-3">
+                        <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                          GW total
+                        </div>
+                        <ScoreValuePill value={score.total_points} variant="gw" />
                       </div>
                     </div>
                   ))
@@ -855,9 +1011,7 @@ export default function PredictionFormClient({
         <section className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-2xl font-black uppercase">
-                Season predictions
-              </h2>
+              <h2 className="text-2xl font-black uppercase">Season predictions</h2>
               <p className="text-sm text-neutral-600">
                 Tap W, D or L to update. W = Forest win · D = draw · L = Forest loss.
               </p>
@@ -865,7 +1019,7 @@ export default function PredictionFormClient({
 
             <div className="flex flex-col gap-2 sm:items-end">
               <div className="text-sm font-bold uppercase tracking-wide text-[#C8102E]">
-                {visiblePredictions.length} shown / {predictions.length} fixtures
+                {visibleSeasonRows.length} shown / {seasonRows.length} fixtures
               </div>
 
               {completedCount > 0 && (
@@ -888,14 +1042,20 @@ export default function PredictionFormClient({
                 <tr>
                   <th className="px-4 py-3">GW</th>
                   <th className="px-4 py-3">Fixture</th>
-                  <th className="px-4 py-3">Prediction</th>
-                  <th className="px-4 py-3">Points</th>
-                  <th className="px-4 py-3">Result</th>
-                  <th className="px-4 py-3">Status</th>
+                  <th className="bg-[#2A1D1D] px-4 py-3 text-center">
+                    Make your prediction
+                  </th>
+                  <th className="px-4 py-3 text-center">Predicted points</th>
+                  <th className="px-4 py-3 text-center">Predicted total</th>
+                  <th className="px-4 py-3 text-center">Actual points</th>
+                  <th className="px-4 py-3 text-center">Actual total</th>
+                  <th className="px-4 py-3 text-center">+/-</th>
+                  <th className="px-4 py-3 text-center">Correct</th>
+                  <th className="px-4 py-3 text-center">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {visiblePredictions.map((prediction) => {
+                {visibleSeasonRows.map((prediction) => {
                   const confirmed = isConfirmedPrediction(prediction);
                   const correct =
                     confirmed && prediction.prediction === prediction.forest_result;
@@ -907,18 +1067,15 @@ export default function PredictionFormClient({
                         prediction.is_locked || confirmed ? "bg-neutral-50" : ""
                       }`}
                     >
-                      <td className="px-4 py-3 font-black">
+                      <td className="px-4 py-4 text-lg font-black">
                         {prediction.gameweek_label}
                       </td>
-                      <td className="px-4 py-3">
-                        <span className="font-bold">
+                      <td className="px-4 py-4">
+                        <div className="text-lg font-black tracking-tight text-[#111111]">
                           {prediction.opponent_short} {prediction.venue}
-                        </span>
-                        <span className="ml-2 text-neutral-500">
-                          {prediction.opponent}
-                        </span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="bg-[#FFF4F4] px-4 py-4 text-center ring-1 ring-inset ring-red-100">
                         <PredictionButtons
                           fixtureId={prediction.fixture_id}
                           selected={prediction.prediction}
@@ -927,23 +1084,29 @@ export default function PredictionFormClient({
                           onChange={updatePrediction}
                         />
                       </td>
-                      <td className="px-4 py-3 font-bold">
+                      <td className="px-4 py-4 text-center text-base font-black">
                         {prediction.predicted_forest_points}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-4 text-center text-base font-black text-neutral-700">
+                        {prediction.runningPredictedPoints}
+                      </td>
+                      <td className="px-4 py-4 text-center text-base font-black">
+                        {prediction.actualPoints ?? "—"}
+                      </td>
+                      <td className="px-4 py-4 text-center text-base font-black text-neutral-700">
+                        {prediction.runningActualPoints ?? "—"}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <DeltaPill value={prediction.runningPointDelta} />
+                      </td>
+                      <td className="px-4 py-4 text-center">
                         {confirmed ? (
-                          <span
-                            className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-black text-white ${
-                              correct ? "bg-green-600" : "bg-[#C8102E]"
-                            }`}
-                          >
-                            {correct ? "✓" : "×"}
-                          </span>
+                          <CorrectCircle correct={correct} />
                         ) : (
                           <span className="text-neutral-400">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-4 text-center">
                         <StatusBadge
                           locked={prediction.is_locked}
                           confirmed={confirmed}
@@ -958,7 +1121,7 @@ export default function PredictionFormClient({
           </div>
 
           <div className="grid gap-3 lg:hidden">
-            {visiblePredictions.map((prediction) => {
+            {visibleSeasonRows.map((prediction) => {
               const confirmed = isConfirmedPrediction(prediction);
               const correct =
                 confirmed && prediction.prediction === prediction.forest_result;
@@ -977,11 +1140,8 @@ export default function PredictionFormClient({
                       <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
                         {prediction.gameweek_label}
                       </div>
-                      <div className="mt-1 text-lg font-black">
+                      <div className="mt-1 text-xl font-black tracking-tight">
                         {prediction.opponent_short} {prediction.venue}
-                      </div>
-                      <div className="text-sm text-neutral-600">
-                        {prediction.opponent}
                       </div>
                     </div>
 
@@ -992,29 +1152,47 @@ export default function PredictionFormClient({
                         status={prediction.status}
                       />
 
-                      {confirmed && (
-                        <span
-                          className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-black text-white ${
-                            correct ? "bg-green-600" : "bg-[#C8102E]"
-                          }`}
-                        >
-                          {correct ? "✓" : "×"}
-                        </span>
-                      )}
+                      {confirmed && <CorrectCircle correct={correct} />}
                     </div>
                   </div>
 
-                  <PredictionButtons
-                    fixtureId={prediction.fixture_id}
-                    selected={prediction.prediction}
-                    locked={prediction.is_locked || confirmed}
-                    saving={savingFixtureId === prediction.fixture_id}
-                    onChange={updatePrediction}
-                    fullWidth
-                  />
+                  <div className="rounded-2xl border border-red-100 bg-[#FFF4F4] p-3">
+                    <div className="mb-2 text-xs font-black uppercase tracking-wide text-[#C8102E]">
+                      Make your prediction
+                    </div>
+                    <PredictionButtons
+                      fixtureId={prediction.fixture_id}
+                      selected={prediction.prediction}
+                      locked={prediction.is_locked || confirmed}
+                      saving={savingFixtureId === prediction.fixture_id}
+                      onChange={updatePrediction}
+                      fullWidth
+                    />
+                  </div>
 
-                  <div className="mt-3 border-t border-[#D9D6D1] pt-3 text-sm text-neutral-600">
-                    {prediction.predicted_forest_points} projected Forest points
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-sm font-bold">
+                    <MiniStat
+                      label="Predicted"
+                      value={prediction.predicted_forest_points}
+                    />
+                    <MiniStat
+                      label="Predicted total"
+                      value={prediction.runningPredictedPoints}
+                    />
+                    <MiniStat label="Actual" value={prediction.actualPoints ?? "—"} />
+                    <MiniStat
+                      label="Actual total"
+                      value={prediction.runningActualPoints ?? "—"}
+                    />
+                    <MiniStat
+                      label="+/-"
+                      value={formatMaybeSignedNumber(prediction.runningPointDelta)}
+                      tone={deltaTone(prediction.runningPointDelta)}
+                    />
+                    <MiniStat
+                      label="Correct"
+                      value={confirmed ? (correct ? "✓" : "×") : "—"}
+                    />
                   </div>
                 </div>
               );
@@ -1031,49 +1209,68 @@ export default function PredictionFormClient({
 
             <div className="mt-5 grid gap-3">
               {extraData?.cup_predictions?.length ? (
-                extraData.cup_predictions.map((cup) => (
-                  <div
-                    key={cup.competition}
-                    className={`rounded-2xl border p-4 ${
-                      cup.is_locked
-                        ? "border-neutral-300 bg-neutral-100"
-                        : "border-[#D9D6D1] bg-[#F7F6F2]"
-                    }`}
-                  >
-                    <div className="mb-2 flex items-start justify-between gap-4">
-                      <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
-                        {cup.display_name ?? cup.competition}
-                      </div>
-                      {cup.is_locked && (
-                        <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-bold uppercase text-neutral-700">
-                          Locked
-                        </span>
-                      )}
-                    </div>
+                extraData.cup_predictions.map((cup) => {
+                  const stageOptions = getCupStageOptions(
+                    cup.competition,
+                    cup.display_name
+                  );
 
-                    <select
-                      value={cup.predicted_round_reached ?? ""}
-                      disabled={
-                        cup.is_locked || savingExtraKey === `cup-${cup.competition}`
-                      }
-                      onChange={(event) =>
-                        updateCupPrediction(cup.competition, event.target.value)
-                      }
-                      className="w-full rounded-xl border border-[#D9D6D1] bg-white px-3 py-3 text-base font-bold text-[#111111] disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
+                  return (
+                    <div
+                      key={cup.competition}
+                      className={`rounded-2xl border p-4 ${
+                        cup.is_locked
+                          ? "border-neutral-300 bg-neutral-100"
+                          : "border-[#D9D6D1] bg-[#F7F6F2]"
+                      }`}
                     >
-                      <option value="">No prediction</option>
-                      {cupStageOptions.map((stage) => (
-                        <option key={stage} value={stage}>
-                          {stage}
-                        </option>
-                      ))}
-                    </select>
+                      <div className="mb-2 flex items-start justify-between gap-4">
+                        <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                          {cup.display_name ?? cup.competition}
+                        </div>
+                        {cup.is_locked && (
+                          <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-bold uppercase text-neutral-700">
+                            Locked
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="mt-2 text-sm text-neutral-600">
-                      Bonus awarded: {cup.bonus_awarded}
+                      <select
+                        value={cup.predicted_round_reached ?? ""}
+                        disabled={
+                          cup.is_locked || savingExtraKey === `cup-${cup.competition}`
+                        }
+                        onChange={(event) =>
+                          updateCupPrediction(cup.competition, event.target.value)
+                        }
+                        className="w-full rounded-xl border border-[#D9D6D1] bg-white px-3 py-3 text-base font-bold text-[#111111] disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
+                      >
+                        <option value="">No prediction</option>
+                        {stageOptions.map((stage) => (
+                          <option key={stage} value={stage}>
+                            {stage}
+                          </option>
+                        ))}
+                      </select>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <InlineInfoPill
+                          label="Bonus"
+                          value={String(cup.bonus_awarded)}
+                          tone={
+                            cup.bonus_awarded > 0
+                              ? "border-green-200 bg-green-50 text-green-700"
+                              : "border-[#D9D6D1] bg-white text-neutral-600"
+                          }
+                        />
+                        <InlineInfoPill
+                          label="Actual"
+                          value={cup.actual_round_reached ?? "Not decided"}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm text-neutral-600">
                   Cup predictions loading or not available.
@@ -1188,6 +1385,155 @@ function ScoreStat({
   );
 }
 
+function BreakdownPills({
+  score,
+}: {
+  score: ScoreBreakdownData["fixture_scores"][number];
+}) {
+  const parts = [
+    score.base_points > 0
+      ? {
+          label: "base",
+          value: score.base_points,
+          tone: "border-[#D9D6D1] bg-white text-[#111111]",
+        }
+      : null,
+    score.streak_bonus > 0
+      ? {
+          label: "streak",
+          value: score.streak_bonus,
+          tone: "border-amber-200 bg-amber-50 text-amber-700",
+        }
+      : null,
+    score.maverick_bonus > 0
+      ? {
+          label: "maverick",
+          value: score.maverick_bonus,
+          tone: "border-green-200 bg-green-50 text-green-700",
+        }
+      : null,
+    score.rogue_bonus > 0
+      ? {
+          label: "rogue",
+          value: score.rogue_bonus,
+          tone: "border-purple-200 bg-purple-50 text-purple-700",
+        }
+      : null,
+    score.cup_bonus > 0
+      ? {
+          label: "cup",
+          value: score.cup_bonus,
+          tone: "border-red-200 bg-red-50 text-[#C8102E]",
+        }
+      : null,
+  ].filter(Boolean) as {
+    label: string;
+    value: number;
+    tone: string;
+  }[];
+
+  if (!parts.length) {
+    return (
+      <span className="inline-flex rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-neutral-500">
+        0
+      </span>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {parts.map((part) => (
+        <span
+          key={part.label}
+          className={`inline-flex rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide ${part.tone}`}
+        >
+          {part.value} {part.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ScoreValuePill({
+  value,
+  variant,
+}: {
+  value: number;
+  variant: "gw" | "running";
+}) {
+  if (variant === "gw") {
+    const gwTone =
+      value > 0
+        ? "border-green-200 bg-green-50 text-green-700"
+        : "border-red-200 bg-red-50 text-red-700";
+
+    return (
+      <span
+        className={`inline-flex min-w-[64px] items-center justify-center rounded-xl border px-3 py-2 text-xl font-black ${gwTone}`}
+      >
+        {value}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex min-w-[64px] items-center justify-center rounded-xl border border-[#111111] bg-[#111111] px-3 py-2 text-xl font-black text-white">
+      {value}
+    </span>
+  );
+}
+
+function InlineInfoPill({
+  label,
+  value,
+  tone = "border-[#D9D6D1] bg-white text-[#111111]",
+}: {
+  label: string;
+  value: string;
+  tone?: string;
+}) {
+  return (
+    <span
+      className={`inline-flex flex-wrap items-center gap-2 rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide ${tone}`}
+    >
+      <span className="opacity-60">{label}</span>
+      <span>{value}</span>
+    </span>
+  );
+}
+
+function DeltaPill({ value }: { value: number | null }) {
+  if (value === null) {
+    return (
+      <span className="inline-flex min-w-[58px] items-center justify-center rounded-full border border-[#D9D6D1] bg-white px-3 py-1 text-xs font-black uppercase tracking-wide text-neutral-500">
+        —
+      </span>
+    );
+  }
+
+  const tone =
+    value > 0
+      ? "border-green-200 bg-green-50 text-green-700"
+      : value < 0
+        ? "border-red-200 bg-red-50 text-red-700"
+        : "border-[#D9D6D1] bg-white text-neutral-700";
+
+  return (
+    <span
+      className={`inline-flex min-w-[58px] items-center justify-center rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide ${tone}`}
+    >
+      {formatMaybeSignedNumber(value)}
+    </span>
+  );
+}
+
+function deltaTone(value: number | null) {
+  if (value === null) return "border-[#E7E2DA] bg-white text-neutral-500";
+  if (value > 0) return "border-green-200 bg-green-50 text-green-700";
+  if (value < 0) return "border-red-200 bg-red-50 text-red-700";
+  return "border-[#D9D6D1] bg-white text-neutral-700";
+}
+
 function MiniPrediction({ value }: { value: PredictionValue }) {
   return (
     <span
@@ -1204,6 +1550,18 @@ function predictionMiniClass(value: PredictionValue) {
   if (value === "W") return "bg-green-600";
   if (value === "L") return "bg-[#C8102E]";
   return "bg-[#111111]";
+}
+
+function CorrectCircle({ correct }: { correct: boolean }) {
+  return (
+    <span
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-full text-lg font-black text-white ${
+        correct ? "bg-green-600" : "bg-[#C8102E]"
+      }`}
+    >
+      {correct ? "✓" : "×"}
+    </span>
+  );
 }
 
 function PredictionButtons({
@@ -1224,7 +1582,7 @@ function PredictionButtons({
   const options: PredictionValue[] = ["W", "D", "L"];
 
   return (
-    <div className={`flex gap-2 ${fullWidth ? "w-full" : ""}`}>
+    <div className={`flex justify-center gap-2 ${fullWidth ? "w-full" : ""}`}>
       {options.map((option) => {
         const isSelected = selected === option;
 
@@ -1264,6 +1622,29 @@ function predictionButtonClass(option: PredictionValue, isSelected: boolean) {
   }
 
   return "border-[#111111] bg-[#111111] text-white";
+}
+
+function MiniStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string | number;
+  tone?: string;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-3 text-center ${
+        tone ?? "border-[#E7E2DA] bg-white text-[#111111]"
+      }`}
+    >
+      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-black">{value}</div>
+    </div>
+  );
 }
 
 function StatusBadge({
