@@ -242,6 +242,35 @@ export default function AdminFixturesPage() {
     await loadFixtures();
   }
 
+  async function createSnapshot(fixture: FixtureRow) {
+    setSavingKey(`snapshot-${fixture.id}`);
+    setMessage(null);
+
+    const snapshotLabel = fixture.gameweek_label || `GW${fixture.gameweek}`;
+
+    const { error } = await supabase.rpc("create_prediction_snapshot_for_gameweek", {
+      target_gameweek: fixture.gameweek,
+      target_snapshot_label: snapshotLabel,
+    });
+
+    setSavingKey(null);
+
+    if (error) {
+      setMessage({
+        type: "error",
+        text: error.message ?? "Could not create prediction snapshot.",
+      });
+      return;
+    }
+
+    setMessage({
+      type: "success",
+      text: `${snapshotLabel} prediction snapshot created.`,
+    });
+
+    await loadFixtures();
+  }
+
   async function confirmResult(fixture: FixtureRow) {
     if (fixture.home_score === null || fixture.away_score === null) {
       setMessage({
@@ -325,7 +354,7 @@ export default function AdminFixturesPage() {
                 Fixtures
               </h1>
               <p className="mt-3 text-sm font-semibold text-neutral-600">
-                Edit fixture dates, lock times, status and confirmed scoring results.
+                Edit fixture dates, lock times, status, snapshots and confirmed scoring results.
               </p>
             </div>
 
@@ -626,7 +655,7 @@ export default function AdminFixturesPage() {
                         </div>
 
                         <div className="flex flex-col gap-2 md:col-span-2 xl:col-span-6">
-                          <div className="grid gap-2 md:grid-cols-4">
+                          <div className="grid gap-2 md:grid-cols-5">
                             <button
                               type="button"
                               onClick={() => saveFixture(draft)}
@@ -636,6 +665,17 @@ export default function AdminFixturesPage() {
                               {savingKey === `fixture-${draft.id}`
                                 ? "Saving…"
                                 : "Save fixture"}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => createSnapshot(draft)}
+                              disabled={savingKey === `snapshot-${draft.id}`}
+                              className="rounded-full border border-[#C8102E] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#C8102E] transition hover:bg-[#C8102E] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {savingKey === `snapshot-${draft.id}`
+                                ? "Snapshotting…"
+                                : "Create snapshot"}
                             </button>
 
                             <button
@@ -668,6 +708,11 @@ export default function AdminFixturesPage() {
                               Cancel
                             </button>
                           </div>
+
+                          <p className="px-1 text-xs font-semibold text-neutral-500">
+                            Create snapshot should be used at/after the prediction lock
+                            and before confirming the result for future gameweeks.
+                          </p>
                         </div>
                       </div>
                     </div>

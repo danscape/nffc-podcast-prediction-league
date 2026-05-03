@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
 type PredictionValue = "W" | "D" | "L";
@@ -622,19 +623,19 @@ export default function PredictionFormClient({
               </p>
 
               <div className="mt-5 flex flex-wrap gap-3">
-                <a
+                <Link
                   href="/#leaderboards"
                   className="rounded-full bg-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
                 >
                   View leaderboards
-                </a>
+                </Link>
 
-                <a
+                <Link
                   href="/"
                   className="rounded-full border border-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
                 >
                   League homepage
-                </a>
+                </Link>
               </div>
             </div>
 
