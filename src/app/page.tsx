@@ -460,6 +460,9 @@ export default async function HomePage() {
           individualRows={individualRows}
           teamRows={teamRows}
           fixtureRows={fixtureRows}
+        />\n\n        <RunInMoodTracker
+          moodTracker={moodTracker}
+          personalityCards={insights?.personality_cards ?? null}
         />
 
         <section className="mt-4 mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -559,6 +562,185 @@ export default async function HomePage() {
         </footer>
       </section>
     </main>
+  );
+}
+
+
+function RunInMoodTracker({
+  moodTracker,
+  personalityCards,
+}: {
+  moodTracker: HomepageInsights["mood_tracker"];
+  personalityCards: HomepageInsights["personality_cards"] | null;
+}) {
+  if (!moodTracker) return null;
+
+  const optimistic = personalityCards?.most_optimistic_team ?? null;
+  const cautious = personalityCards?.most_cautious_team ?? null;
+  const drawMerchants = personalityCards?.draw_merchants ?? null;
+
+  return (
+    <section className="mb-4 mt-4 overflow-hidden rounded-3xl border border-[#111111] bg-[#111111] text-white shadow-sm">
+      <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_#C8102E_0,_#7A0719_34%,_#111111_74%)] p-4 md:p-5">
+        <div className="absolute inset-0 opacity-[0.08]">
+          <div className="h-full w-full bg-[linear-gradient(135deg,_transparent_0,_transparent_47%,_#ffffff_47%,_#ffffff_53%,_transparent_53%,_transparent_100%)]" />
+        </div>
+
+        <div className="relative z-10">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="text-[0.68rem] font-black uppercase tracking-[0.24em] text-white/65 md:text-xs">
+                🔮 Prediction League Mood
+              </div>
+              <h2 className="mt-2 text-3xl font-black uppercase leading-none tracking-tight text-white md:text-5xl">
+                Run-in Mood Tracker
+              </h2>
+            </div>
+
+            <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-left backdrop-blur md:text-right">
+              <div className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/55">
+                Current mood
+              </div>
+              <div className="mt-1 text-3xl font-black uppercase text-white">
+                {moodTracker.mood_label}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr] xl:items-stretch">
+            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <div className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/55">
+                Projected from remaining games
+              </div>
+
+              <div className="mt-2 text-6xl font-black leading-none text-white md:text-7xl">
+                {formatPoints(moodTracker.average_remaining_predicted_points)}
+              </div>
+
+              <div className="mt-2 text-sm font-black uppercase tracking-wide text-[#C8102E]">
+                points expected from {moodTracker.remaining_fixture_count} games
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-white/15 bg-black/20 p-3 text-xs font-semibold leading-5 text-white/70">
+                Aggregate remaining predictions only. No individual future picks
+                shown.
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              <div className="grid grid-cols-3 gap-2">
+                <MoodPercentCard
+                  label="Forest wins"
+                  value={moodTracker.forest_win_rate}
+                  tone="win"
+                />
+                <MoodPercentCard
+                  label="Draws"
+                  value={moodTracker.draw_rate}
+                  tone="draw"
+                />
+                <MoodPercentCard
+                  label="Forest losses"
+                  value={moodTracker.forest_loss_rate}
+                  tone="loss"
+                />
+              </div>
+
+              <div className="overflow-hidden rounded-3xl border border-white/15 bg-white/10">
+                <div
+                  className="grid h-8"
+                  style={{
+                    gridTemplateColumns: `${Math.max(
+                      moodTracker.forest_win_rate,
+                      0.01
+                    )}fr ${Math.max(
+                      moodTracker.draw_rate,
+                      0.01
+                    )}fr ${Math.max(moodTracker.forest_loss_rate, 0.01)}fr`,
+                  }}
+                >
+                  <div className="bg-green-500" />
+                  <div className="bg-amber-400" />
+                  <div className="bg-red-600" />
+                </div>
+              </div>
+
+              <div className="grid gap-2 md:grid-cols-3">
+                <MoodTeamStoryCard
+                  label="Most optimistic"
+                  card={optimistic}
+                />
+                <MoodTeamStoryCard
+                  label="Most cautious"
+                  card={cautious}
+                />
+                <MoodTeamStoryCard
+                  label="Draw merchants"
+                  card={drawMerchants}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MoodPercentCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "win" | "draw" | "loss";
+}) {
+  const toneClass =
+    tone === "win"
+      ? "border-green-300/40 bg-green-500/15 text-green-100"
+      : tone === "draw"
+        ? "border-amber-300/40 bg-amber-400/15 text-amber-100"
+        : "border-red-300/40 bg-red-500/15 text-red-100";
+
+  return (
+    <div className={`rounded-2xl border p-3 text-center backdrop-blur ${toneClass}`}>
+      <div className="text-[0.68rem] font-black uppercase tracking-wide opacity-70">
+        {label}
+      </div>
+      <div className="mt-1 text-4xl font-black leading-none">
+        {formatPercent(value)}
+      </div>
+    </div>
+  );
+}
+
+function MoodTeamStoryCard({
+  label,
+  card,
+}: {
+  label: string;
+  card: InsightCard | null;
+}) {
+  const href = insightTeamHref(card);
+
+  const content = (
+    <div className="h-full rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur transition hover:border-white/35">
+      <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/55">
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-black leading-tight text-white">
+        {card?.team_name ?? "TBC"}
+      </div>
+    </div>
+  );
+
+  if (!href) return content;
+
+  return (
+    <Link href={href} className="block h-full">
+      {content}
+    </Link>
   );
 }
 
