@@ -36,6 +36,7 @@ type TeamLeaderboardRow = {
   team_id: string;
   team_name: string;
   display_name: string | null;
+  slug?: string | null;
   x_handle: string | null;
   total_team_points: number;
   clean_sweeps: number;
@@ -54,87 +55,106 @@ type TeamLeaderboardRow = {
   points_this_week?: number | null;
 };
 
+type FixtureTableRow = {
+  fixture_id: string;
+  gameweek: number;
+  gameweek_label: string;
+  opponent: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  home_team: string;
+  away_team: string;
+  home_score: number | null;
+  away_score: number | null;
+  forest_result: "W" | "D" | "L" | null;
+  total_predictions: number;
+  forest_win_count: number;
+  draw_count: number;
+  forest_loss_count: number;
+  correct_count: number;
+  forest_win_percent: number;
+  draw_percent: number;
+  forest_loss_percent: number;
+  rogue_applied: boolean;
+  maverick_applied: boolean;
+};
+
+type ActiveTab = "teams" | "players" | "fixtures";
+
+function formatPercent(value: number | null | undefined) {
+  return `${Math.round(Number(value ?? 0))}%`;
+}
+
+function resultLabel(result: "W" | "D" | "L" | null) {
+  if (result === "W") return "Forest win";
+  if (result === "D") return "Draw";
+  if (result === "L") return "Forest loss";
+  return "—";
+}
+
 export default function HomepageLeaderboardTabs({
   individualRows,
   teamRows,
+  fixtureRows,
 }: {
   individualRows: IndividualLeaderboardRow[];
   teamRows: TeamLeaderboardRow[];
+  fixtureRows: FixtureTableRow[];
 }) {
-  const [activeTab, setActiveTab] = useState<"teams" | "individuals">("teams");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("teams");
   const [showFullMobileStats, setShowFullMobileStats] = useState(false);
 
-  function changeTab(nextTab: "teams" | "individuals") {
+  function changeTab(nextTab: ActiveTab) {
     setActiveTab(nextTab);
     setShowFullMobileStats(false);
   }
 
   return (
     <section id="leaderboards" className="scroll-mt-6">
-      <div className="mb-4 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
-              Leaderboards
-            </div>
-            <h2 className="text-3xl font-black uppercase tracking-tight text-[#111111] md:text-4xl">
-              Tables
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-neutral-600">
-              Teams first for the headline table. Switch to individuals for the
-              full player race.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:w-fit">
-            <button
-              type="button"
-              onClick={() => changeTab("teams")}
-              className={`rounded-full px-5 py-3 text-xs font-black uppercase tracking-wide transition ${
-                activeTab === "teams"
-                  ? "bg-[#111111] text-white"
-                  : "border border-[#111111] bg-white text-[#111111] hover:border-[#C8102E] hover:text-[#C8102E]"
-              }`}
-            >
-              Teams
-            </button>
-            <button
-              type="button"
-              onClick={() => changeTab("individuals")}
-              className={`rounded-full px-5 py-3 text-xs font-black uppercase tracking-wide transition ${
-                activeTab === "individuals"
-                  ? "bg-[#111111] text-white"
-                  : "border border-[#111111] bg-white text-[#111111] hover:border-[#C8102E] hover:text-[#C8102E]"
-              }`}
-            >
-              Individuals
-            </button>
-          </div>
-        </div>
+      <div className="mb-4 grid grid-cols-3 gap-2 rounded-3xl border border-[#D9D6D1] bg-white p-3 shadow-sm">
+        <TableButton
+          label="Team Table"
+          active={activeTab === "teams"}
+          onClick={() => changeTab("teams")}
+        />
+        <TableButton
+          label="Player Table"
+          active={activeTab === "players"}
+          onClick={() => changeTab("players")}
+        />
+        <TableButton
+          label="Fixture Table"
+          active={activeTab === "fixtures"}
+          onClick={() => changeTab("fixtures")}
+        />
       </div>
 
       <div className="2xl:hidden">
         {activeTab === "teams" ? (
           <CompactTeamLeaderboard rows={teamRows} />
-        ) : (
+        ) : activeTab === "players" ? (
           <CompactIndividualLeaderboard rows={individualRows} />
+        ) : (
+          <FixtureTable rows={fixtureRows} compact />
         )}
 
-        <button
-          type="button"
-          onClick={() => setShowFullMobileStats((current) => !current)}
-          className="mt-3 w-full rounded-full border border-[#111111] bg-white px-5 py-3 text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
-        >
-          {showFullMobileStats ? "Hide full stats" : "Show full stats"}
-        </button>
+        {activeTab !== "fixtures" && (
+          <button
+            type="button"
+            onClick={() => setShowFullMobileStats((current) => !current)}
+            className="mt-3 w-full rounded-full border border-[#111111] bg-white px-5 py-3 text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+          >
+            {showFullMobileStats ? "Hide full stats" : "Show full stats"}
+          </button>
+        )}
 
         {showFullMobileStats && (
           <div className="mt-4">
             {activeTab === "teams" ? (
               <TeamLeaderboard rows={teamRows} />
-            ) : (
+            ) : activeTab === "players" ? (
               <IndividualLeaderboard rows={individualRows} />
-            )}
+            ) : null}
           </div>
         )}
       </div>
@@ -142,10 +162,168 @@ export default function HomepageLeaderboardTabs({
       <div className="hidden 2xl:block">
         {activeTab === "teams" ? (
           <TeamLeaderboard rows={teamRows} />
-        ) : (
+        ) : activeTab === "players" ? (
           <IndividualLeaderboard rows={individualRows} />
+        ) : (
+          <FixtureTable rows={fixtureRows} />
         )}
       </div>
     </section>
+  );
+}
+
+function TableButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full px-3 py-3 text-[0.68rem] font-black uppercase tracking-wide transition md:text-xs ${
+        active
+          ? "bg-[#111111] text-white"
+          : "border border-[#111111] bg-white text-[#111111] hover:border-[#C8102E] hover:text-[#C8102E]"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function FixtureTable({
+  rows,
+  compact = false,
+}: {
+  rows: FixtureTableRow[];
+  compact?: boolean;
+}) {
+  if (!rows.length) {
+    return (
+      <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
+        Fixture table not available yet.
+      </div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <div className="grid gap-2">
+        {rows.map((row) => (
+          <div
+            key={row.fixture_id}
+            className="rounded-2xl border border-[#D9D6D1] bg-white p-3 shadow-sm"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[#C8102E]">
+                  {row.gameweek_label}
+                </div>
+                <div className="mt-1 text-lg font-black">
+                  {row.opponent_short} {row.venue}
+                </div>
+              </div>
+              <div className="text-right text-sm font-black">
+                {resultLabel(row.forest_result)}
+              </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+              <MiniPercent label="W" value={row.forest_win_percent} />
+              <MiniPercent label="D" value={row.draw_percent} />
+              <MiniPercent label="L" value={row.forest_loss_percent} />
+            </div>
+
+            <div className="mt-3 text-xs font-bold uppercase tracking-wide text-neutral-500">
+              Correct {row.correct_count}/{row.total_predictions}
+              {row.maverick_applied ? " · Maverick" : ""}
+              {row.rogue_applied ? " · Rogue" : ""}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+      <div className="mb-4">
+        <h2 className="text-2xl font-black uppercase">Fixture table</h2>
+        <p className="text-sm font-semibold text-neutral-600">
+          Completed fixtures only. Future prediction splits are not shown.
+        </p>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-[#D9D6D1]">
+        <table className="w-full border-collapse text-left text-sm">
+          <thead className="bg-[#111111] text-white">
+            <tr>
+              <th className="px-4 py-3">GW</th>
+              <th className="px-4 py-3">Fixture</th>
+              <th className="px-4 py-3">Result</th>
+              <th className="px-4 py-3">Forest W</th>
+              <th className="px-4 py-3">Draw</th>
+              <th className="px-4 py-3">Forest L</th>
+              <th className="px-4 py-3">Correct</th>
+              <th className="px-4 py-3">Bonuses</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr
+                key={row.fixture_id}
+                className="border-b border-[#E7E2DA] last:border-b-0"
+              >
+                <td className="px-4 py-3 font-black text-[#C8102E]">
+                  {row.gameweek_label}
+                </td>
+                <td className="px-4 py-3 font-black">
+                  {row.opponent_short} {row.venue}
+                </td>
+                <td className="px-4 py-3 font-bold">
+                  {resultLabel(row.forest_result)}
+                </td>
+                <td className="px-4 py-3 font-bold">
+                  {formatPercent(row.forest_win_percent)}
+                </td>
+                <td className="px-4 py-3 font-bold">
+                  {formatPercent(row.draw_percent)}
+                </td>
+                <td className="px-4 py-3 font-bold">
+                  {formatPercent(row.forest_loss_percent)}
+                </td>
+                <td className="px-4 py-3 font-bold">
+                  {row.correct_count}/{row.total_predictions}
+                </td>
+                <td className="px-4 py-3 font-bold">
+                  {row.maverick_applied ? "Maverick" : ""}
+                  {row.maverick_applied && row.rogue_applied ? " · " : ""}
+                  {row.rogue_applied ? "Rogue" : ""}
+                  {!row.maverick_applied && !row.rogue_applied ? "—" : ""}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function MiniPercent({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-[#E7E2DA] bg-[#F7F6F2] px-3 py-2">
+      <div className="text-[0.62rem] font-black uppercase tracking-wide text-neutral-500">
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-black text-[#111111]">
+        {formatPercent(value)}
+      </div>
+    </div>
   );
 }

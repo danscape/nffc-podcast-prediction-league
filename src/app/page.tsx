@@ -38,6 +38,7 @@ type TeamLeaderboardRow = {
   team_id: string;
   team_name: string;
   display_name: string | null;
+  slug?: string | null;
   x_handle: string | null;
   total_team_points: number;
   clean_sweeps: number;
@@ -65,6 +66,80 @@ type FixtureRow = {
   kickoff_at: string | null;
   status: string;
   result_confirmed: boolean;
+};
+
+type FixtureTableRow = {
+  fixture_id: string;
+  gameweek: number;
+  gameweek_label: string;
+  opponent: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  home_team: string;
+  away_team: string;
+  home_score: number | null;
+  away_score: number | null;
+  forest_result: "W" | "D" | "L" | null;
+  total_predictions: number;
+  forest_win_count: number;
+  draw_count: number;
+  forest_loss_count: number;
+  correct_count: number;
+  forest_win_percent: number;
+  draw_percent: number;
+  forest_loss_percent: number;
+  rogue_applied: boolean;
+  maverick_applied: boolean;
+};
+
+type InsightCard = {
+  team_id?: string | null;
+  team_name?: string | null;
+  slug?: string | null;
+  label?: string | null;
+  value?: number | null;
+  suffix?: string | null;
+  gameweek_label?: string | null;
+  opponent_short?: string | null;
+  venue?: "H" | "A" | null;
+  text?: string | null;
+};
+
+type HomepageInsights = {
+  latest_news: {
+    average_accuracy: number;
+    latest_gameweek_label: string | null;
+    latest_result_text: string | null;
+    individual_leader_name: string | null;
+    individual_leader_points: number | null;
+    team_leader_name: string | null;
+    team_leader_points: number | null;
+    team_of_the_week_name: string | null;
+    team_of_the_week_points: number | null;
+    streaker_of_the_week_name: string | null;
+    streaker_of_the_week_value: number | null;
+    optimism_change: number | null;
+  };
+  personality_cards: {
+    most_optimistic_team: InsightCard | null;
+    most_cautious_team: InsightCard | null;
+    draw_merchants: InsightCard | null;
+    most_volatile_team: InsightCard | null;
+    most_steady_team: InsightCard | null;
+  };
+  fixture_insights: {
+    most_divided_fixture: InsightCard | null;
+    draw_trap: InsightCard | null;
+  };
+  mood_tracker: {
+    remaining_fixture_count: number;
+    total_remaining_predictions: number;
+    forest_win_rate: number;
+    draw_rate: number;
+    forest_loss_rate: number;
+    average_remaining_predicted_points: number;
+    mood_label: string;
+  } | null;
 };
 
 function getSupabaseClient() {
@@ -99,6 +174,12 @@ function formatTeamPoints(value: number | null | undefined) {
 function formatPercent(value: number | null | undefined) {
   if (value === null || value === undefined) return "0%";
   return `${Math.round(Number(value))}%`;
+}
+
+function formatSigned(value: number | null | undefined) {
+  const numberValue = Number(value ?? 0);
+  if (numberValue > 0) return `+${formatPoints(numberValue)}`;
+  return formatPoints(numberValue);
 }
 
 function displayPlayerName(row: IndividualLeaderboardRow | null) {
@@ -137,24 +218,6 @@ function calculateAverageAccuracy(rows: IndividualLeaderboardRow[]) {
   return Math.round(totalAccuracy / scoredRows.length);
 }
 
-function getLongestStreaker(rows: IndividualLeaderboardRow[]) {
-  return (
-    [...rows]
-      .filter((row) => Number(row.best_streak ?? 0) > 0)
-      .sort((a, b) => {
-        const streakDifference =
-          Number(b.best_streak ?? 0) - Number(a.best_streak ?? 0);
-        if (streakDifference !== 0) return streakDifference;
-
-        const pointsDifference =
-          Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
-        if (pointsDifference !== 0) return pointsDifference;
-
-        return displayPlayerName(a).localeCompare(displayPlayerName(b));
-      })[0] ?? null
-  );
-}
-
 function getMostAccuratePlayer(rows: IndividualLeaderboardRow[]) {
   return (
     [...rows]
@@ -167,10 +230,6 @@ function getMostAccuratePlayer(rows: IndividualLeaderboardRow[]) {
           Number(b.correct_predictions ?? 0) -
           Number(a.correct_predictions ?? 0);
         if (correctDifference !== 0) return correctDifference;
-
-        const pointsDifference =
-          Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
-        if (pointsDifference !== 0) return pointsDifference;
 
         return displayPlayerName(a).localeCompare(displayPlayerName(b));
       })[0] ?? null
@@ -194,18 +253,23 @@ function getBonusKing(rows: IndividualLeaderboardRow[]) {
   );
 }
 
+function insightTeamHref(card: InsightCard | null) {
+  return card?.slug ? `/team/${card.slug}` : null;
+}
+
 export default async function HomePage() {
   const supabase = getSupabaseClient();
 
   const [
     { count: teamCount },
     { count: playerCount },
-    { count: fixtureCount },
     { data: settingsData },
     { data: individualData },
     { data: teamData },
     { data: nextFixtureData },
     { data: completedFixturesData },
+    { data: fixtureTableData },
+    { data: insightsData },
   ] = await Promise.all([
     supabase
       .from("teams")
@@ -215,7 +279,6 @@ export default async function HomePage() {
       .from("players")
       .select("*", { count: "exact", head: true })
       .eq("active", true),
-    supabase.from("fixtures").select("*", { count: "exact", head: true }),
     supabase
       .from("app_settings")
       .select("key, value")
@@ -249,6 +312,11 @@ export default async function HomePage() {
       .select("gameweek")
       .eq("status", "finished")
       .eq("result_confirmed", true),
+    supabase
+      .from("homepage_fixture_table")
+      .select("*")
+      .order("gameweek", { ascending: false }),
+    supabase.rpc("get_homepage_insights_v2"),
   ]);
 
   const settings = new Map(
@@ -263,65 +331,47 @@ export default async function HomePage() {
 
   const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
   const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
+  const fixtureRows = (fixtureTableData ?? []) as FixtureTableRow[];
   const nextFixture = (nextFixtureData?.[0] ?? null) as FixtureRow | null;
   const completedFixtureCount = completedFixturesData?.length ?? 0;
+  const insights = insightsData as HomepageInsights | null;
 
   const currentLeader = individualRows[0] ?? null;
   const leadingTeam = teamRows[0] ?? null;
-  const averageAccuracy = calculateAverageAccuracy(individualRows);
-  const longestStreaker = getLongestStreaker(individualRows);
+  const averageAccuracy =
+    insights?.latest_news.average_accuracy ??
+    calculateAverageAccuracy(individualRows);
   const mostAccuratePlayer = getMostAccuratePlayer(individualRows);
   const bonusKing = getBonusKing(individualRows);
+  const latestNews = insights?.latest_news;
+  const moodTracker = insights?.mood_tracker;
 
   return (
     <main className="min-h-screen bg-[#F7F6F2] px-4 py-4 text-[#111111] sm:px-6 lg:px-8 lg:py-6">
       <section className="mx-auto max-w-7xl">
         <header className="mb-4 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
-          <div className="grid gap-5 lg:grid-cols-[1fr_330px] lg:items-center">
-            <div>
-              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-1.5 text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#C8102E] md:text-xs">
-                🔮 NFFC Podcast Prediction League
-              </div>
-
-              <h1 className="max-w-4xl text-4xl font-black uppercase leading-[0.92] tracking-tight text-[#C8102E] md:text-6xl">
-                NFFC Podcast
-                <span className="block text-[#111111]">Prediction League</span>
-              </h1>
-
-              <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-neutral-700 md:text-base">
-                Individual and team score prediction game for the Forest podcast
-                community. Track the tables, follow the season mood, and see who
-                called it right.
-              </p>
-
-              <div className="mt-5 flex flex-wrap gap-3">
-                <a
-                  href="#leaderboards"
-                  className="rounded-full bg-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
-                >
-                  View leaderboards
-                </a>
-              </div>
+          <div>
+            <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-1.5 text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#C8102E] md:text-xs">
+              🔮 NFFC Podcast Prediction League
             </div>
 
-            <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 shadow-sm">
-              <div className="mb-2 text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#C8102E]">
-                Current setup
-              </div>
+            <h1 className="max-w-4xl text-4xl font-black uppercase leading-[0.92] tracking-tight text-[#C8102E] md:text-6xl">
+              NFFC Podcast
+              <span className="block text-[#111111]">Prediction League</span>
+            </h1>
 
-              <SetupRow label="Season" value={season} />
-              <SetupRow label="Teams" value={teamCount ?? 0} />
-              <SetupRow label="Players" value={playerCount ?? 0} />
-              <SetupRow label="Fixtures" value={fixtureCount ?? 0} />
-              <SetupRow label="Completed GWs" value={completedFixtureCount} />
-            </div>
+            <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-neutral-700 md:text-base">
+              Individual and team score prediction game for the Forest podcast
+              community. Track the tables, follow the season mood, and see who
+              called it right.
+            </p>
           </div>
         </header>
 
-        <section className="mb-4 grid gap-3 xl:grid-cols-[1fr_0.75fr]">
+        <section className="mb-4 grid gap-3 xl:grid-cols-[1fr_0.8fr]">
           <div className="rounded-3xl border border-[#111111] bg-[#111111] p-4 text-white shadow-sm md:p-5">
             <div className="text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#C8102E] md:text-xs">
-              Season pulse
+              Latest News
             </div>
 
             <h2 className="mt-2 text-2xl font-black uppercase tracking-tight md:text-3xl">
@@ -340,65 +390,12 @@ export default async function HomePage() {
                 : "Fixture information will update from the league sync."}
             </p>
 
-            <div className="mt-4 grid gap-2 md:hidden">
-              <MobilePulseRow
-                label="Longest streaker"
-                value={displayPlayerName(longestStreaker)}
-                subValue={
-                  longestStreaker
-                    ? `${longestStreaker.best_streak ?? 0} correct in a row`
-                    : undefined
-                }
-              />
-              <MobilePulseRow
-                label="Current leader"
-                value={displayPlayerName(currentLeader)}
-                subValue={
-                  currentLeader
-                    ? `${formatPoints(currentLeader.total_points)} pts`
-                    : undefined
-                }
-              />
-              <MobilePulseRow
-                label="Leading team"
-                value={displayTeamName(leadingTeam)}
-                subValue={
-                  leadingTeam
-                    ? `${formatTeamPoints(leadingTeam.total_team_points)} pts`
-                    : undefined
-                }
-              />
-              <MobilePulseRow
-                label="Most accurate"
-                value={displayPlayerName(mostAccuratePlayer)}
-                subValue={
-                  mostAccuratePlayer
-                    ? `${formatPercent(getAccuracyWhole(mostAccuratePlayer))} accuracy`
-                    : undefined
-                }
-              />
-              <MobilePulseRow
-                label="Bonus king"
-                value={displayPlayerName(bonusKing)}
-                subValue={
-                  bonusKing
-                    ? `${formatPoints(getBonusPoints(bonusKing))} bonus pts`
-                    : undefined
-                }
-              />
-            </div>
-
-            <div className="mt-4 hidden gap-2 md:grid md:grid-cols-5">
+            <div className="mt-4 grid gap-2 md:grid-cols-3 xl:grid-cols-6">
               <DarkPulseStat
-                label="Longest streaker"
-                value={displayPlayerName(longestStreaker)}
-                subValue={
-                  longestStreaker
-                    ? `${longestStreaker.best_streak ?? 0} correct in a row`
-                    : undefined
-                }
+                label="Average accuracy"
+                value={formatPercent(averageAccuracy)}
+                subValue="Across scored players"
               />
-
               <DarkPulseStat
                 label="Current leader"
                 value={displayPlayerName(currentLeader)}
@@ -408,7 +405,6 @@ export default async function HomePage() {
                     : undefined
                 }
               />
-
               <DarkPulseStat
                 label="Leading team"
                 value={displayTeamName(leadingTeam)}
@@ -418,23 +414,33 @@ export default async function HomePage() {
                     : undefined
                 }
               />
-
               <DarkPulseStat
-                label="Most accurate"
-                value={displayPlayerName(mostAccuratePlayer)}
+                label="Team of the Week"
+                value={latestNews?.team_of_the_week_name ?? "TBC"}
                 subValue={
-                  mostAccuratePlayer
-                    ? `${formatPercent(getAccuracyWhole(mostAccuratePlayer))} accuracy`
+                  latestNews?.team_of_the_week_points !== null &&
+                  latestNews?.team_of_the_week_points !== undefined
+                    ? `${formatTeamPoints(latestNews.team_of_the_week_points)} pts`
                     : undefined
                 }
               />
-
               <DarkPulseStat
-                label="Bonus king"
-                value={displayPlayerName(bonusKing)}
+                label="Streaker of the Week"
+                value={latestNews?.streaker_of_the_week_name ?? "TBC"}
                 subValue={
-                  bonusKing
-                    ? `${formatPoints(getBonusPoints(bonusKing))} bonus pts`
+                  latestNews?.streaker_of_the_week_value
+                    ? `${latestNews.streaker_of_the_week_value} current streak`
+                    : undefined
+                }
+              />
+              <DarkPulseStat
+                label="Mood tracker"
+                value={moodTracker?.mood_label ?? "TBC"}
+                subValue={
+                  moodTracker
+                    ? `${formatPoints(
+                        moodTracker.average_remaining_predicted_points
+                      )} pts remaining`
                     : undefined
                 }
               />
@@ -442,20 +448,104 @@ export default async function HomePage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
+            <LightPulseStat label="Season" value={season} />
             <LightPulseStat label="Completed GWs" value={completedFixtureCount} />
             <LightPulseStat label="Players" value={playerCount ?? 0} />
             <LightPulseStat label="Teams" value={teamCount ?? 0} />
-            <LightPulseStat
-              label="Average accuracy"
-              value={formatPercent(averageAccuracy)}
-              highlight
-            />
           </div>
         </section>
+
+        <section className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <TeamInsightCard
+            card={insights?.personality_cards.most_optimistic_team ?? null}
+          />
+          <TeamInsightCard
+            card={insights?.personality_cards.most_cautious_team ?? null}
+          />
+          <TeamInsightCard
+            card={insights?.personality_cards.draw_merchants ?? null}
+          />
+          <TeamInsightCard
+            card={insights?.personality_cards.most_volatile_team ?? null}
+          />
+          <TeamInsightCard
+            card={insights?.personality_cards.most_steady_team ?? null}
+          />
+        </section>
+
+        <section className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <FixtureInsightCard
+            title="Most divided fixture"
+            card={insights?.fixture_insights.most_divided_fixture ?? null}
+          />
+          <FixtureInsightCard
+            title="Draw trap"
+            card={insights?.fixture_insights.draw_trap ?? null}
+          />
+          <LightPulseStat
+            label="Most accurate"
+            value={displayPlayerName(mostAccuratePlayer)}
+            helper={
+              mostAccuratePlayer
+                ? `${formatPercent(getAccuracyWhole(mostAccuratePlayer))} accuracy`
+                : undefined
+            }
+          />
+          <LightPulseStat
+            label="Bonus king"
+            value={displayPlayerName(bonusKing)}
+            helper={
+              bonusKing
+                ? `${formatPoints(getBonusPoints(bonusKing))} bonus pts`
+                : undefined
+            }
+          />
+        </section>
+
+        {moodTracker && (
+          <section className="mb-4 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-2xl font-black uppercase">
+                  Overall mood tracker
+                </h2>
+                <p className="text-sm font-semibold text-neutral-600">
+                  Aggregate remaining fixture predictions only. No individual
+                  future picks shown.
+                </p>
+              </div>
+              <div className="text-sm font-black uppercase tracking-wide text-[#C8102E]">
+                {moodTracker.remaining_fixture_count} fixtures left
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-4">
+              <MoodStat
+                label="Forest win picks"
+                value={formatPercent(moodTracker.forest_win_rate)}
+              />
+              <MoodStat
+                label="Draw picks"
+                value={formatPercent(moodTracker.draw_rate)}
+              />
+              <MoodStat
+                label="Forest loss picks"
+                value={formatPercent(moodTracker.forest_loss_rate)}
+              />
+              <MoodStat
+                label="Predicted points left"
+                value={formatPoints(
+                  moodTracker.average_remaining_predicted_points
+                )}
+              />
+            </div>
+          </section>
+        )}
 
         <HomepageLeaderboardTabs
           individualRows={individualRows}
           teamRows={teamRows}
+          fixtureRows={fixtureRows}
         />
 
         <footer className="mt-6 flex justify-center border-t border-[#D9D6D1] pt-4">
@@ -468,52 +558,6 @@ export default async function HomePage() {
         </footer>
       </section>
     </main>
-  );
-}
-
-function SetupRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="flex items-center justify-between border-b border-[#D9D6D1] py-2 last:border-b-0">
-      <span className="text-xs font-semibold text-neutral-500 md:text-sm">
-        {label}
-      </span>
-      <span className="text-base font-black text-[#111111] md:text-lg">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function MobilePulseRow({
-  label,
-  value,
-  subValue,
-}: {
-  label: string;
-  value: string | number;
-  subValue?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-neutral-800 bg-neutral-950 px-4 py-3">
-      <div className="min-w-0">
-        <div className="text-[0.68rem] font-black uppercase tracking-wide text-neutral-400">
-          {label}
-        </div>
-        <div className="mt-1 truncate text-lg font-black text-white">{value}</div>
-      </div>
-
-      {subValue && (
-        <div className="shrink-0 text-right text-xs font-black uppercase tracking-wide text-[#C8102E]">
-          {subValue}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -546,28 +590,86 @@ function DarkPulseStat({
 function LightPulseStat({
   label,
   value,
-  highlight = false,
+  helper,
 }: {
   label: string;
   value: string | number;
-  highlight?: boolean;
+  helper?: string;
 }) {
   return (
-    <div
-      className={`rounded-3xl border p-4 shadow-sm ${
-        highlight
-          ? "border-[#C8102E] bg-[#C8102E] text-white"
-          : "border-[#D9D6D1] bg-white text-[#111111]"
-      }`}
-    >
-      <div
-        className={`text-xs font-black uppercase tracking-wide ${
-          highlight ? "text-white/75" : "text-neutral-500"
-        }`}
-      >
+    <div className="rounded-3xl border border-[#D9D6D1] bg-white p-4 text-[#111111] shadow-sm">
+      <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
         {label}
       </div>
-      <div className="mt-1 text-3xl font-black">{value}</div>
+      <div className="mt-1 text-2xl font-black">{value}</div>
+      {helper && (
+        <div className="mt-1 text-xs font-bold uppercase tracking-wide text-[#C8102E]">
+          {helper}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TeamInsightCard({ card }: { card: InsightCard | null }) {
+  const href = insightTeamHref(card);
+  const content = (
+    <div className="h-full rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm transition hover:border-[#C8102E]">
+      <div className="text-xs font-black uppercase tracking-wide text-[#C8102E]">
+        {card?.label ?? "Team insight"}
+      </div>
+      <div className="mt-1 text-xl font-black">{card?.team_name ?? "TBC"}</div>
+      <div className="mt-2 text-3xl font-black text-[#111111]">
+        {card?.value !== null && card?.value !== undefined
+          ? formatSigned(card.value)
+          : "—"}
+      </div>
+      <div className="mt-1 text-xs font-bold uppercase tracking-wide text-neutral-500">
+        {card?.suffix ?? "Completed fixtures only"}
+      </div>
+    </div>
+  );
+
+  if (!href) return content;
+
+  return (
+    <Link href={href} className="block h-full">
+      {content}
+    </Link>
+  );
+}
+
+function FixtureInsightCard({
+  title,
+  card,
+}: {
+  title: string;
+  card: InsightCard | null;
+}) {
+  return (
+    <div className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
+      <div className="text-xs font-black uppercase tracking-wide text-[#C8102E]">
+        {title}
+      </div>
+      <div className="mt-1 text-xl font-black">
+        {card
+          ? `${card.gameweek_label}: ${card.opponent_short} ${card.venue}`
+          : "TBC"}
+      </div>
+      <div className="mt-2 text-xs font-bold uppercase tracking-wide text-neutral-500">
+        {card?.text ?? "Completed fixtures only"}
+      </div>
+    </div>
+  );
+}
+
+function MoodStat({ label, value }: { label: string | number; value: string | number }) {
+  return (
+    <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4">
+      <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+        {label}
+      </div>
+      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
     </div>
   );
 }
