@@ -92,6 +92,23 @@ type FixtureTableRow = {
   maverick_applied: boolean;
 };
 
+type RemainingFixtureMoodRow = {
+  fixture_id: string;
+  gameweek: number;
+  gameweek_label: string;
+  opponent: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  kickoff_at: string | null;
+  total_predictions: number;
+  forest_win_count: number;
+  draw_count: number;
+  forest_loss_count: number;
+  forest_win_percent: number;
+  draw_percent: number;
+  forest_loss_percent: number;
+};
+
 type InsightCard = {
   team_id?: string | null;
   team_name?: string | null;
@@ -270,6 +287,7 @@ export default async function HomePage() {
     { data: completedFixturesData },
     { data: fixtureTableData },
     { data: insightsData },
+    { data: remainingFixtureMoodData },
   ] = await Promise.all([
     supabase
       .from("teams")
@@ -317,6 +335,10 @@ export default async function HomePage() {
       .select("*")
       .order("gameweek", { ascending: false }),
     supabase.rpc("get_homepage_insights_v2"),
+    supabase
+      .from("remaining_fixture_mood_table")
+      .select("*")
+      .order("gameweek", { ascending: true }),
   ]);
 
   const settings = new Map(
@@ -332,6 +354,8 @@ export default async function HomePage() {
   const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
   const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
   const fixtureRows = (fixtureTableData ?? []) as FixtureTableRow[];
+  const remainingFixtureMoodRows =
+    (remainingFixtureMoodData ?? []) as RemainingFixtureMoodRow[];
   const nextFixture = (nextFixtureData?.[0] ?? null) as FixtureRow | null;
   const completedFixtureCount = completedFixturesData?.length ?? 0;
   const insights = insightsData as HomepageInsights | null;
@@ -383,6 +407,12 @@ export default async function HomePage() {
           fixtureRows={fixtureRows}
         />
 
+        <RunInMoodTracker
+          moodTracker={moodTracker ?? null}
+          personalityCards={insights?.personality_cards ?? null}
+          remainingFixtures={remainingFixtureMoodRows}
+        />
+
         <section className="mt-4 mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <TeamInsightCard
             card={insights?.personality_cards.most_optimistic_team ?? null}
@@ -430,45 +460,7 @@ export default async function HomePage() {
           />
         </section>
 
-        {moodTracker && (
-          <section className="mb-4 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
-            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-2xl font-black uppercase">
-                  Overall mood tracker
-                </h2>
-                <p className="text-sm font-semibold text-neutral-600">
-                  Aggregate remaining fixture predictions only. No individual
-                  future picks shown.
-                </p>
-              </div>
-              <div className="text-sm font-black uppercase tracking-wide text-[#C8102E]">
-                {moodTracker.remaining_fixture_count} fixtures left
-              </div>
-            </div>
 
-            <div className="grid gap-3 md:grid-cols-4">
-              <MoodStat
-                label="Forest win picks"
-                value={formatPercent(moodTracker.forest_win_rate)}
-              />
-              <MoodStat
-                label="Draw picks"
-                value={formatPercent(moodTracker.draw_rate)}
-              />
-              <MoodStat
-                label="Forest loss picks"
-                value={formatPercent(moodTracker.forest_loss_rate)}
-              />
-              <MoodStat
-                label="Predicted points left"
-                value={formatPoints(
-                  moodTracker.average_remaining_predicted_points
-                )}
-              />
-            </div>
-          </section>
-        )}
 
         <footer className="mt-6 flex justify-center border-t border-[#D9D6D1] pt-4">
           <Link
@@ -637,6 +629,298 @@ function LatestNewsStat({
 
 function formatWholePoints(value: number | null | undefined) {
   return String(Math.round(Number(value ?? 0)));
+}
+
+function getRoundedPercentSplit(win: number, draw: number, loss: number) {
+  const values = [
+    { key: "win", value: Number(win ?? 0) },
+    { key: "draw", value: Number(draw ?? 0) },
+    { key: "loss", value: Number(loss ?? 0) },
+  ];
+
+  const total = values.reduce((sum, item) => sum + item.value, 0);
+
+  if (total <= 0) {
+    return { win: 0, draw: 0, loss: 0 };
+  }
+
+  const normalised = values.map((item) => {
+    const exact = (item.value / total) * 100;
+    return {
+      ...item,
+      exact,
+      floor: Math.floor(exact),
+      remainder: exact - Math.floor(exact),
+    };
+  });
+
+  let remaining = 100 - normalised.reduce((sum, item) => sum + item.floor, 0);
+
+  const sorted = [...normalised].sort((a, b) => b.remainder - a.remainder);
+
+  for (const item of sorted) {
+    if (remaining <= 0) break;
+    item.floor += 1;
+    remaining -= 1;
+  }
+
+  return {
+    win: sorted.find((item) => item.key === "win")?.floor ?? 0,
+    draw: sorted.find((item) => item.key === "draw")?.floor ?? 0,
+    loss: sorted.find((item) => item.key === "loss")?.floor ?? 0,
+  };
+}
+
+function RunInMoodTracker({
+  moodTracker,
+  personalityCards,
+  remainingFixtures,
+}: {
+  moodTracker: HomepageInsights["mood_tracker"];
+  personalityCards: HomepageInsights["personality_cards"] | null;
+  remainingFixtures: RemainingFixtureMoodRow[];
+}) {
+  if (!moodTracker) return null;
+
+  const optimistic = personalityCards?.most_optimistic_team ?? null;
+  const cautious = personalityCards?.most_cautious_team ?? null;
+  const drawMerchants = personalityCards?.draw_merchants ?? null;
+  const displayPercentages = getRoundedPercentSplit(
+    moodTracker.forest_win_rate,
+    moodTracker.draw_rate,
+    moodTracker.forest_loss_rate
+  );
+
+  const remainingWithPredictions = remainingFixtures.filter(
+    (fixture) => Number(fixture.total_predictions ?? 0) > 0
+  );
+
+  const mostOptimisticFixture =
+    [...remainingWithPredictions].sort((a, b) => {
+      const winDifference =
+        Number(b.forest_win_percent ?? 0) - Number(a.forest_win_percent ?? 0);
+
+      if (winDifference !== 0) return winDifference;
+
+      return Number(a.gameweek ?? 0) - Number(b.gameweek ?? 0);
+    })[0] ?? null;
+
+  const mostCautiousFixture =
+    [...remainingWithPredictions].sort((a, b) => {
+      const lossDifference =
+        Number(b.forest_loss_percent ?? 0) - Number(a.forest_loss_percent ?? 0);
+
+      if (lossDifference !== 0) return lossDifference;
+
+      return Number(a.gameweek ?? 0) - Number(b.gameweek ?? 0);
+    })[0] ?? null;
+
+  return (
+    <section className="mb-4 mt-4 overflow-hidden rounded-3xl border border-[#111111] bg-[#111111] text-white shadow-sm">
+      <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_#C8102E_0,_#7A0719_34%,_#111111_74%)] p-4 md:p-5">
+        <div className="absolute inset-0 opacity-[0.08]">
+          <div className="h-full w-full bg-[linear-gradient(135deg,_transparent_0,_transparent_47%,_#ffffff_47%,_#ffffff_53%,_transparent_53%,_transparent_100%)]" />
+        </div>
+
+        <div className="relative z-10">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="text-[0.68rem] font-black uppercase tracking-[0.24em] text-white/65 md:text-xs">
+                🔮 Prediction League Mood
+              </div>
+              <h2 className="mt-2 text-3xl font-black uppercase leading-none tracking-tight text-white md:text-5xl">
+                Run-in Mood Tracker
+              </h2>
+            </div>
+
+            <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-left backdrop-blur md:text-right">
+              <div className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/55">
+                Current mood
+              </div>
+              <div className="mt-1 text-3xl font-black uppercase text-white">
+                {moodTracker.mood_label}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr] xl:items-stretch">
+            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <div className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/55">
+                Projected from remaining games
+              </div>
+
+              <div className="mt-2 text-6xl font-black leading-none text-white md:text-7xl">
+                {formatWholePoints(moodTracker.average_remaining_predicted_points)}
+              </div>
+
+              <div className="mt-2 text-sm font-black uppercase tracking-wide text-white/75">
+                points expected from {moodTracker.remaining_fixture_count} games
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-white/15 bg-black/20 p-3 text-xs font-semibold leading-5 text-white/70">
+                Aggregate remaining predictions only. No individual future picks
+                shown.
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              <div className="grid grid-cols-3 gap-2">
+                <MoodPercentCard
+                  label="Forest wins"
+                  value={displayPercentages.win}
+                  tone="win"
+                />
+                <MoodPercentCard
+                  label="Draws"
+                  value={displayPercentages.draw}
+                  tone="draw"
+                />
+                <MoodPercentCard
+                  label="Forest losses"
+                  value={displayPercentages.loss}
+                  tone="loss"
+                />
+              </div>
+
+              <div className="overflow-hidden rounded-3xl border border-white/15 bg-white/10">
+                <div
+                  className="grid h-8"
+                  style={{
+                    gridTemplateColumns: `${Math.max(
+                      moodTracker.forest_win_rate,
+                      0.01
+                    )}fr ${Math.max(
+                      moodTracker.draw_rate,
+                      0.01
+                    )}fr ${Math.max(moodTracker.forest_loss_rate, 0.01)}fr`,
+                  }}
+                >
+                  <div className="bg-green-500" />
+                  <div className="bg-amber-400" />
+                  <div className="bg-red-600" />
+                </div>
+              </div>
+
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
+                <MoodTeamStoryCard
+                  label="Most optimistic team"
+                  card={optimistic}
+                />
+                <MoodTeamStoryCard
+                  label="Most cautious team"
+                  card={cautious}
+                />
+                <MoodTeamStoryCard
+                  label="Draw merchants"
+                  card={drawMerchants}
+                />
+                <MoodFixtureStoryCard
+                  label="Most backed game"
+                  fixture={mostOptimisticFixture}
+                  mode="win"
+                />
+                <MoodFixtureStoryCard
+                  label="Toughest game"
+                  fixture={mostCautiousFixture}
+                  mode="loss"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MoodPercentCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "win" | "draw" | "loss";
+}) {
+  const toneClass =
+    tone === "win"
+      ? "border-green-300/40 bg-green-500/15 text-green-100"
+      : tone === "draw"
+        ? "border-amber-300/40 bg-amber-400/15 text-amber-100"
+        : "border-red-300/40 bg-red-500/15 text-red-100";
+
+  return (
+    <div className={`rounded-2xl border p-3 text-center backdrop-blur ${toneClass}`}>
+      <div className="text-[0.68rem] font-black uppercase tracking-wide opacity-70">
+        {label}
+      </div>
+      <div className="mt-1 text-4xl font-black leading-none">
+        {formatPercent(value)}
+      </div>
+    </div>
+  );
+}
+
+function MoodFixtureStoryCard({
+  label,
+  fixture,
+  mode,
+}: {
+  label: string;
+  fixture: RemainingFixtureMoodRow | null;
+  mode: "win" | "loss";
+}) {
+  const value =
+    mode === "win"
+      ? Number(fixture?.forest_win_percent ?? 0)
+      : Number(fixture?.forest_loss_percent ?? 0);
+
+  return (
+    <div className="h-full rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+      <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/55">
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-black leading-tight text-white">
+        {fixture
+          ? `${fixture.gameweek_label}: ${fixture.opponent_short} ${fixture.venue}`
+          : "TBC"}
+      </div>
+      {fixture && (
+        <div className="mt-2 text-[0.68rem] font-black uppercase tracking-wide text-white/65">
+          {formatPercent(value)} {mode === "win" ? "Forest win" : "Forest loss"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MoodTeamStoryCard({
+  label,
+  card,
+}: {
+  label: string;
+  card: InsightCard | null;
+}) {
+  const href = insightTeamHref(card);
+
+  const content = (
+    <div className="h-full rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur transition hover:border-white/35">
+      <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/55">
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-black leading-tight text-white">
+        {card?.team_name ?? "TBC"}
+      </div>
+    </div>
+  );
+
+  if (!href) return content;
+
+  return (
+    <Link href={href} className="block h-full">
+      {content}
+    </Link>
+  );
 }
 
 function DarkPulseStat({
