@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import HomepageLeaderboardTabs from "@/components/leaderboards/web/HomepageLeaderboardTabs";
+import LatestNewsGraphic from "@/components/social-graphics/LatestNewsGraphic";
+import RunInMoodGraphic from "@/components/social-graphics/RunInMoodGraphic";
 
 type AppSetting = {
   key: string;
@@ -405,7 +407,45 @@ export default async function HomePage() {
           individualRows={individualRows}
           teamRows={teamRows}
           fixtureRows={fixtureRows}
-        />
+        />\n\n        <section className="mb-4 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.24em] text-[#C8102E]">
+                Social graphics
+              </div>
+              <h2 className="mt-1 text-2xl font-black uppercase tracking-tight md:text-3xl">
+                Shareable story cards
+              </h2>
+              <p className="mt-1 text-sm font-semibold text-neutral-600">
+                Auto-updated 4:5 graphics designed for X/social sharing.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <LatestNewsGraphic
+              nextFixture={nextFixture}
+              averageAccuracy={averageAccuracy}
+              currentLeaderName={displayPlayerName(currentLeader)}
+              currentLeaderPoints={currentLeader?.total_points ?? null}
+              leadingTeamName={displayTeamName(leadingTeam)}
+              leadingTeamPoints={leadingTeam?.total_team_points ?? null}
+              latestNews={latestNews ?? null}
+              moodTracker={moodTracker ?? null}
+            />
+
+            <RunInMoodGraphic
+              moodTracker={moodTracker ?? null}
+              mostOptimisticTeam={
+                insights?.personality_cards.most_optimistic_team ?? null
+              }
+              mostCautiousTeam={
+                insights?.personality_cards.most_cautious_team ?? null
+              }
+              drawMerchants={insights?.personality_cards.draw_merchants ?? null}
+            />
+          </div>
+        </section>
 
         <RunInMoodTracker
           moodTracker={moodTracker ?? null}
