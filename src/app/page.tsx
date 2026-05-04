@@ -344,7 +344,7 @@ export default async function HomePage() {
   const mostAccuratePlayer = getMostAccuratePlayer(individualRows);
   const bonusKing = getBonusKing(individualRows);
   const latestNews = insights?.latest_news;
-  const moodTracker = insights?.mood_tracker;
+  const moodTracker = insights?.mood_tracker ?? null;
 
   return (
     <main className="min-h-screen bg-[#F7F6F2] px-4 py-4 text-[#111111] sm:px-6 lg:px-8 lg:py-6">
@@ -460,8 +460,10 @@ export default async function HomePage() {
           individualRows={individualRows}
           teamRows={teamRows}
           fixtureRows={fixtureRows}
-        />\n\n        <RunInMoodTracker
-          moodTracker={moodTracker}
+        />
+
+        <RunInMoodTracker
+          moodTracker={moodTracker ?? null}
           personalityCards={insights?.personality_cards ?? null}
         />
 
