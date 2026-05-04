@@ -92,6 +92,23 @@ type FixtureTableRow = {
   maverick_applied: boolean;
 };
 
+type RemainingFixtureMoodRow = {
+  fixture_id: string;
+  gameweek: number;
+  gameweek_label: string;
+  opponent: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  kickoff_at: string | null;
+  total_predictions: number;
+  forest_win_count: number;
+  draw_count: number;
+  forest_loss_count: number;
+  forest_win_percent: number;
+  draw_percent: number;
+  forest_loss_percent: number;
+};
+
 type InsightCard = {
   team_id?: string | null;
   team_name?: string | null;
@@ -270,6 +287,7 @@ export default async function HomePage() {
     { data: completedFixturesData },
     { data: fixtureTableData },
     { data: insightsData },
+    { data: remainingFixtureMoodData },
   ] = await Promise.all([
     supabase
       .from("teams")
@@ -317,6 +335,10 @@ export default async function HomePage() {
       .select("*")
       .order("gameweek", { ascending: false }),
     supabase.rpc("get_homepage_insights_v2"),
+    supabase
+      .from("remaining_fixture_mood_table")
+      .select("*")
+      .order("gameweek", { ascending: true }),
   ]);
 
   const settings = new Map(
@@ -332,6 +354,8 @@ export default async function HomePage() {
   const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
   const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
   const fixtureRows = (fixtureTableData ?? []) as FixtureTableRow[];
+  const remainingFixtureMoodRows =
+    (remainingFixtureMoodData ?? []) as RemainingFixtureMoodRow[];
   const nextFixture = (nextFixtureData?.[0] ?? null) as FixtureRow | null;
   const completedFixtureCount = completedFixturesData?.length ?? 0;
   const insights = insightsData as HomepageInsights | null;
@@ -465,6 +489,7 @@ export default async function HomePage() {
         <RunInMoodTracker
           moodTracker={moodTracker ?? null}
           personalityCards={insights?.personality_cards ?? null}
+          remainingFixtures={remainingFixtureMoodRows}
         />
 
         <section className="mt-4 mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -568,18 +593,93 @@ export default async function HomePage() {
 }
 
 
+function formatWholePoints(value: number | null | undefined) {
+  return String(Math.round(Number(value ?? 0)));
+}
+
+function getRoundedPercentSplit(win: number, draw: number, loss: number) {
+  const values = [
+    { key: "win", value: Number(win ?? 0) },
+    { key: "draw", value: Number(draw ?? 0) },
+    { key: "loss", value: Number(loss ?? 0) },
+  ];
+
+  const total = values.reduce((sum, item) => sum + item.value, 0);
+
+  if (total <= 0) {
+    return { win: 0, draw: 0, loss: 0 };
+  }
+
+  const normalised = values.map((item) => {
+    const exact = (item.value / total) * 100;
+    return {
+      ...item,
+      exact,
+      floor: Math.floor(exact),
+      remainder: exact - Math.floor(exact),
+    };
+  });
+
+  let remaining = 100 - normalised.reduce((sum, item) => sum + item.floor, 0);
+
+  const sorted = [...normalised].sort((a, b) => b.remainder - a.remainder);
+
+  for (const item of sorted) {
+    if (remaining <= 0) break;
+    item.floor += 1;
+    remaining -= 1;
+  }
+
+  return {
+    win: sorted.find((item) => item.key === "win")?.floor ?? 0,
+    draw: sorted.find((item) => item.key === "draw")?.floor ?? 0,
+    loss: sorted.find((item) => item.key === "loss")?.floor ?? 0,
+  };
+}
+
 function RunInMoodTracker({
   moodTracker,
   personalityCards,
+  remainingFixtures,
 }: {
   moodTracker: HomepageInsights["mood_tracker"];
   personalityCards: HomepageInsights["personality_cards"] | null;
+  remainingFixtures: RemainingFixtureMoodRow[];
 }) {
   if (!moodTracker) return null;
 
   const optimistic = personalityCards?.most_optimistic_team ?? null;
   const cautious = personalityCards?.most_cautious_team ?? null;
   const drawMerchants = personalityCards?.draw_merchants ?? null;
+  const displayPercentages = getRoundedPercentSplit(
+    moodTracker.forest_win_rate,
+    moodTracker.draw_rate,
+    moodTracker.forest_loss_rate
+  );
+
+  const remainingWithPredictions = remainingFixtures.filter(
+    (fixture) => Number(fixture.total_predictions ?? 0) > 0
+  );
+
+  const mostOptimisticFixture =
+    [...remainingWithPredictions].sort((a, b) => {
+      const winDifference =
+        Number(b.forest_win_percent ?? 0) - Number(a.forest_win_percent ?? 0);
+
+      if (winDifference !== 0) return winDifference;
+
+      return Number(a.gameweek ?? 0) - Number(b.gameweek ?? 0);
+    })[0] ?? null;
+
+  const mostCautiousFixture =
+    [...remainingWithPredictions].sort((a, b) => {
+      const lossDifference =
+        Number(b.forest_loss_percent ?? 0) - Number(a.forest_loss_percent ?? 0);
+
+      if (lossDifference !== 0) return lossDifference;
+
+      return Number(a.gameweek ?? 0) - Number(b.gameweek ?? 0);
+    })[0] ?? null;
 
   return (
     <section className="mb-4 mt-4 overflow-hidden rounded-3xl border border-[#111111] bg-[#111111] text-white shadow-sm">
@@ -616,10 +716,10 @@ function RunInMoodTracker({
               </div>
 
               <div className="mt-2 text-6xl font-black leading-none text-white md:text-7xl">
-                {formatPoints(moodTracker.average_remaining_predicted_points)}
+                {formatWholePoints(moodTracker.average_remaining_predicted_points)}
               </div>
 
-              <div className="mt-2 text-sm font-black uppercase tracking-wide text-[#C8102E]">
+              <div className="mt-2 text-sm font-black uppercase tracking-wide text-white/75">
                 points expected from {moodTracker.remaining_fixture_count} games
               </div>
 
@@ -633,17 +733,17 @@ function RunInMoodTracker({
               <div className="grid grid-cols-3 gap-2">
                 <MoodPercentCard
                   label="Forest wins"
-                  value={moodTracker.forest_win_rate}
+                  value={displayPercentages.win}
                   tone="win"
                 />
                 <MoodPercentCard
                   label="Draws"
-                  value={moodTracker.draw_rate}
+                  value={displayPercentages.draw}
                   tone="draw"
                 />
                 <MoodPercentCard
                   label="Forest losses"
-                  value={moodTracker.forest_loss_rate}
+                  value={displayPercentages.loss}
                   tone="loss"
                 />
               </div>
@@ -667,18 +767,28 @@ function RunInMoodTracker({
                 </div>
               </div>
 
-              <div className="grid gap-2 md:grid-cols-3">
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
                 <MoodTeamStoryCard
-                  label="Most optimistic"
+                  label="Most optimistic team"
                   card={optimistic}
                 />
                 <MoodTeamStoryCard
-                  label="Most cautious"
+                  label="Most cautious team"
                   card={cautious}
                 />
                 <MoodTeamStoryCard
                   label="Draw merchants"
                   card={drawMerchants}
+                />
+                <MoodFixtureStoryCard
+                  label="Most backed game"
+                  fixture={mostOptimisticFixture}
+                  mode="win"
+                />
+                <MoodFixtureStoryCard
+                  label="Toughest game"
+                  fixture={mostCautiousFixture}
+                  mode="loss"
                 />
               </div>
             </div>
@@ -713,6 +823,39 @@ function MoodPercentCard({
       <div className="mt-1 text-4xl font-black leading-none">
         {formatPercent(value)}
       </div>
+    </div>
+  );
+}
+
+function MoodFixtureStoryCard({
+  label,
+  fixture,
+  mode,
+}: {
+  label: string;
+  fixture: RemainingFixtureMoodRow | null;
+  mode: "win" | "loss";
+}) {
+  const value =
+    mode === "win"
+      ? Number(fixture?.forest_win_percent ?? 0)
+      : Number(fixture?.forest_loss_percent ?? 0);
+
+  return (
+    <div className="h-full rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+      <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/55">
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-black leading-tight text-white">
+        {fixture
+          ? `${fixture.gameweek_label}: ${fixture.opponent_short} ${fixture.venue}`
+          : "TBC"}
+      </div>
+      {fixture && (
+        <div className="mt-2 text-[0.68rem] font-black uppercase tracking-wide text-white/65">
+          {formatPercent(value)} {mode === "win" ? "Forest win" : "Forest loss"}
+        </div>
+      )}
     </div>
   );
 }
