@@ -392,93 +392,14 @@ export default async function HomePage() {
           </div>
         </header>
 
-        <section className="mb-4">
-          <div className="rounded-3xl border border-[#111111] bg-[#111111] p-4 text-white shadow-sm md:p-5">
-            <div className="text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#C8102E] md:text-xs">
-              Latest News
-            </div>
-
-            <div className="mt-2 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight md:text-3xl">
-                  {nextFixture
-                    ? `${nextFixture.gameweek_label}: Forest ${
-                        nextFixture.venue === "H" ? "v" : "at"
-                      } ${nextFixture.opponent_short}`
-                    : "Next fixture TBC"}
-                </h2>
-
-                <p className="mt-2 max-w-3xl text-xs font-semibold leading-5 text-neutral-300 md:text-sm">
-                  {nextFixture
-                    ? `Kick-off: ${formatDateTime(
-                        nextFixture.kickoff_at
-                      )}. Predictions lock 5 minutes before kick-off.`
-                    : "Fixture information will update from the league sync."}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-[#C8102E]/40 bg-[#C8102E]/10 px-4 py-3">
-                <div className="text-[0.68rem] font-black uppercase tracking-wide text-[#C8102E]">
-                  Average accuracy
-                </div>
-                <div className="mt-1 text-3xl font-black text-white">
-                  {formatPercent(averageAccuracy)}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-2 md:grid-cols-3 xl:grid-cols-5">
-              <DarkPulseStat
-                label="Current leader"
-                value={displayPlayerName(currentLeader)}
-                subValue={
-                  currentLeader
-                    ? `${formatPoints(currentLeader.total_points)} pts`
-                    : undefined
-                }
-              />
-              <DarkPulseStat
-                label="Leading team"
-                value={displayTeamName(leadingTeam)}
-                subValue={
-                  leadingTeam
-                    ? `${formatTeamPoints(leadingTeam.total_team_points)} pts`
-                    : undefined
-                }
-              />
-              <DarkPulseStat
-                label="Team of the Week"
-                value={latestNews?.team_of_the_week_name ?? "TBC"}
-                subValue={
-                  latestNews?.team_of_the_week_points !== null &&
-                  latestNews?.team_of_the_week_points !== undefined
-                    ? `${formatTeamPoints(latestNews.team_of_the_week_points)} pts`
-                    : undefined
-                }
-              />
-              <DarkPulseStat
-                label="Streaker of the Week"
-                value={latestNews?.streaker_of_the_week_name ?? "TBC"}
-                subValue={
-                  latestNews?.streaker_of_the_week_value
-                    ? `${latestNews.streaker_of_the_week_value} current streak`
-                    : undefined
-                }
-              />
-              <DarkPulseStat
-                label="Mood tracker"
-                value={moodTracker?.mood_label ?? "TBC"}
-                subValue={
-                  moodTracker
-                    ? `${formatPoints(
-                        moodTracker.average_remaining_predicted_points
-                      )} pts remaining`
-                    : undefined
-                }
-              />
-            </div>
-          </div>
-        </section>
+        <LatestNewsBlock
+          nextFixture={nextFixture}
+          averageAccuracy={averageAccuracy}
+          currentLeader={currentLeader}
+          leadingTeam={leadingTeam}
+          latestNews={latestNews ?? null}
+          moodTracker={moodTracker ?? null}
+        />
 
         <HomepageLeaderboardTabs
           individualRows={individualRows}
@@ -589,6 +510,157 @@ export default async function HomePage() {
         </footer>
       </section>
     </main>
+  );
+}
+
+
+
+function LatestNewsBlock({
+  nextFixture,
+  averageAccuracy,
+  currentLeader,
+  leadingTeam,
+  latestNews,
+  moodTracker,
+}: {
+  nextFixture: FixtureRow | null;
+  averageAccuracy: number;
+  currentLeader: IndividualLeaderboardRow | null;
+  leadingTeam: TeamLeaderboardRow | null;
+  latestNews: HomepageInsights["latest_news"] | null;
+  moodTracker: HomepageInsights["mood_tracker"];
+}) {
+  return (
+    <section className="mb-4 overflow-hidden rounded-3xl border border-[#111111] bg-[#111111] text-white shadow-sm">
+      <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_#C8102E_0,_#7A0719_34%,_#111111_74%)] p-4 md:p-5">
+        <div className="absolute inset-0 opacity-[0.08]">
+          <div className="h-full w-full bg-[linear-gradient(135deg,_transparent_0,_transparent_47%,_#ffffff_47%,_#ffffff_53%,_transparent_53%,_transparent_100%)]" />
+        </div>
+
+        <div className="relative z-10">
+          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="text-[0.68rem] font-black uppercase tracking-[0.24em] text-white/65 md:text-xs">
+                🔮 NFFC Podcast Prediction League
+              </div>
+
+              <h2 className="mt-2 text-3xl font-black uppercase leading-none tracking-tight text-white md:text-5xl">
+                Latest News
+              </h2>
+
+              <div className="mt-3 text-xl font-black uppercase tracking-tight text-white md:text-3xl">
+                {nextFixture
+                  ? `${nextFixture.gameweek_label}: Forest ${
+                      nextFixture.venue === "H" ? "v" : "at"
+                    } ${nextFixture.opponent_short}`
+                  : "Next fixture TBC"}
+              </div>
+
+              <p className="mt-2 max-w-3xl text-xs font-semibold leading-5 text-white/70 md:text-sm">
+                {nextFixture
+                  ? `Kick-off: ${formatDateTime(
+                      nextFixture.kickoff_at
+                    )}. Predictions lock 5 minutes before kick-off.`
+                  : "Fixture information will update from the league sync."}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-left backdrop-blur lg:min-w-[220px] lg:text-right">
+              <div className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/55">
+                Average accuracy
+              </div>
+              <div className="mt-1 text-4xl font-black uppercase text-white">
+                {formatPercent(averageAccuracy)}
+              </div>
+              <div className="mt-1 text-[0.68rem] font-black uppercase tracking-wide text-white/60">
+                scored players
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <LatestNewsStat
+              label="Current leader"
+              value={displayPlayerName(currentLeader)}
+              subValue={
+                currentLeader
+                  ? `${formatPoints(currentLeader.total_points)} pts`
+                  : undefined
+              }
+            />
+
+            <LatestNewsStat
+              label="Leading team"
+              value={displayTeamName(leadingTeam)}
+              subValue={
+                leadingTeam
+                  ? `${formatTeamPoints(leadingTeam.total_team_points)} pts`
+                  : undefined
+              }
+            />
+
+            <LatestNewsStat
+              label="Team of the Week"
+              value={latestNews?.team_of_the_week_name ?? "TBC"}
+              subValue={
+                latestNews?.team_of_the_week_points !== null &&
+                latestNews?.team_of_the_week_points !== undefined
+                  ? `${formatTeamPoints(latestNews.team_of_the_week_points)} pts`
+                  : undefined
+              }
+            />
+
+            <LatestNewsStat
+              label="Streaker of the Week"
+              value={latestNews?.streaker_of_the_week_name ?? "TBC"}
+              subValue={
+                latestNews?.streaker_of_the_week_value
+                  ? `${latestNews.streaker_of_the_week_value} current streak`
+                  : undefined
+              }
+            />
+
+            <LatestNewsStat
+              label="Run-in mood"
+              value={moodTracker?.mood_label ?? "TBC"}
+              subValue={
+                moodTracker
+                  ? `${formatWholePoints(
+                      moodTracker.average_remaining_predicted_points
+                    )} pts expected`
+                  : undefined
+              }
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LatestNewsStat({
+  label,
+  value,
+  subValue,
+}: {
+  label: string;
+  value: string | number;
+  subValue?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+      <div className="text-[0.68rem] font-black uppercase leading-tight tracking-[0.18em] text-white/55">
+        {label}
+      </div>
+      <div className="mt-1 text-xl font-black leading-tight text-white">
+        {value}
+      </div>
+      {subValue && (
+        <div className="mt-2 text-[0.68rem] font-black uppercase tracking-wide text-white/65">
+          {subValue}
+        </div>
+      )}
+    </div>
   );
 }
 
