@@ -79,6 +79,10 @@ type TeamPageData = {
     correct_count: number;
     team_player_count: number;
     team_fixture_points: number;
+    league_average_team_points: number;
+    points_vs_average: number;
+    fixture_team_rank: number;
+    fixture_team_count: number;
     clean_sweep: boolean;
     blank: boolean;
   }[];
@@ -103,6 +107,10 @@ type TeamPageData = {
     incorrect_count: number;
     correct_percentage: number;
     team_fixture_points: number;
+    league_average_team_points: number;
+    points_vs_average: number;
+    fixture_team_rank: number;
+    fixture_team_count: number;
     clean_sweep: boolean;
     blank: boolean;
   }[];
