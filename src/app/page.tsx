@@ -368,34 +368,42 @@ export default async function HomePage() {
           </div>
         </header>
 
-        <section className="mb-4 grid gap-3 xl:grid-cols-[1fr_0.8fr]">
+        <section className="mb-4">
           <div className="rounded-3xl border border-[#111111] bg-[#111111] p-4 text-white shadow-sm md:p-5">
             <div className="text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#C8102E] md:text-xs">
               Latest News
             </div>
 
-            <h2 className="mt-2 text-2xl font-black uppercase tracking-tight md:text-3xl">
-              {nextFixture
-                ? `${nextFixture.gameweek_label}: Forest ${
-                    nextFixture.venue === "H" ? "v" : "at"
-                  } ${nextFixture.opponent_short}`
-                : "Next fixture TBC"}
-            </h2>
+            <div className="mt-2 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tight md:text-3xl">
+                  {nextFixture
+                    ? `${nextFixture.gameweek_label}: Forest ${
+                        nextFixture.venue === "H" ? "v" : "at"
+                      } ${nextFixture.opponent_short}`
+                    : "Next fixture TBC"}
+                </h2>
 
-            <p className="mt-2 max-w-3xl text-xs font-semibold leading-5 text-neutral-300 md:text-sm">
-              {nextFixture
-                ? `Kick-off: ${formatDateTime(
-                    nextFixture.kickoff_at
-                  )}. Predictions lock 5 minutes before kick-off.`
-                : "Fixture information will update from the league sync."}
-            </p>
+                <p className="mt-2 max-w-3xl text-xs font-semibold leading-5 text-neutral-300 md:text-sm">
+                  {nextFixture
+                    ? `Kick-off: ${formatDateTime(
+                        nextFixture.kickoff_at
+                      )}. Predictions lock 5 minutes before kick-off.`
+                    : "Fixture information will update from the league sync."}
+                </p>
+              </div>
 
-            <div className="mt-4 grid gap-2 md:grid-cols-3 xl:grid-cols-6">
-              <DarkPulseStat
-                label="Average accuracy"
-                value={formatPercent(averageAccuracy)}
-                subValue="Across scored players"
-              />
+              <div className="rounded-2xl border border-[#C8102E]/40 bg-[#C8102E]/10 px-4 py-3">
+                <div className="text-[0.68rem] font-black uppercase tracking-wide text-[#C8102E]">
+                  Average accuracy
+                </div>
+                <div className="mt-1 text-3xl font-black text-white">
+                  {formatPercent(averageAccuracy)}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-2 md:grid-cols-3 xl:grid-cols-5">
               <DarkPulseStat
                 label="Current leader"
                 value={displayPlayerName(currentLeader)}
@@ -446,16 +454,15 @@ export default async function HomePage() {
               />
             </div>
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <LightPulseStat label="Season" value={season} />
-            <LightPulseStat label="Completed GWs" value={completedFixtureCount} />
-            <LightPulseStat label="Players" value={playerCount ?? 0} />
-            <LightPulseStat label="Teams" value={teamCount ?? 0} />
-          </div>
         </section>
 
-        <section className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <HomepageLeaderboardTabs
+          individualRows={individualRows}
+          teamRows={teamRows}
+          fixtureRows={fixtureRows}
+        />
+
+        <section className="mt-4 mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <TeamInsightCard
             card={insights?.personality_cards.most_optimistic_team ?? null}
           />
@@ -541,12 +548,6 @@ export default async function HomePage() {
             </div>
           </section>
         )}
-
-        <HomepageLeaderboardTabs
-          individualRows={individualRows}
-          teamRows={teamRows}
-          fixtureRows={fixtureRows}
-        />
 
         <footer className="mt-6 flex justify-center border-t border-[#D9D6D1] pt-4">
           <Link

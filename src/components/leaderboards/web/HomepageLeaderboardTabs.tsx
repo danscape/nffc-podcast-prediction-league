@@ -228,21 +228,25 @@ function FixtureTable({
                   {row.opponent_short} {row.venue}
                 </div>
               </div>
-              <div className="text-right text-sm font-black">
-                {resultLabel(row.forest_result)}
-              </div>
+
+              <ResultPill result={row.forest_result} />
             </div>
 
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-              <MiniPercent label="W" value={row.forest_win_percent} />
-              <MiniPercent label="D" value={row.draw_percent} />
-              <MiniPercent label="L" value={row.forest_loss_percent} />
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <SplitPill label="Forest W" value={row.forest_win_percent} tone="win" />
+              <SplitPill label="Draw" value={row.draw_percent} tone="draw" />
+              <SplitPill label="Forest L" value={row.forest_loss_percent} tone="loss" />
             </div>
 
-            <div className="mt-3 text-xs font-bold uppercase tracking-wide text-neutral-500">
-              Correct {row.correct_count}/{row.total_predictions}
-              {row.maverick_applied ? " · Maverick" : ""}
-              {row.rogue_applied ? " · Rogue" : ""}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <CorrectPill
+                correct={row.correct_count}
+                total={row.total_predictions}
+              />
+              <BonusPills
+                maverick={row.maverick_applied}
+                rogue={row.rogue_applied}
+              />
             </div>
           </div>
         ))}
@@ -252,11 +256,17 @@ function FixtureTable({
 
   return (
     <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
-      <div className="mb-4">
-        <h2 className="text-2xl font-black uppercase">Fixture table</h2>
-        <p className="text-sm font-semibold text-neutral-600">
-          Completed fixtures only. Future prediction splits are not shown.
-        </p>
+      <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-black uppercase">Fixture table</h2>
+          <p className="text-sm font-semibold text-neutral-600">
+            Completed fixtures only. Future prediction splits are not shown.
+          </p>
+        </div>
+
+        <div className="text-xs font-black uppercase tracking-wide text-[#C8102E]">
+          {rows.length} completed fixtures
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-[#D9D6D1]">
@@ -266,45 +276,69 @@ function FixtureTable({
               <th className="px-4 py-3">GW</th>
               <th className="px-4 py-3">Fixture</th>
               <th className="px-4 py-3">Result</th>
-              <th className="px-4 py-3">Forest W</th>
-              <th className="px-4 py-3">Draw</th>
-              <th className="px-4 py-3">Forest L</th>
+              <th className="px-4 py-3">Prediction split</th>
               <th className="px-4 py-3">Correct</th>
-              <th className="px-4 py-3">Bonuses</th>
+              <th className="px-4 py-3">Bonus</th>
             </tr>
           </thead>
+
           <tbody>
             {rows.map((row) => (
               <tr
                 key={row.fixture_id}
                 className="border-b border-[#E7E2DA] last:border-b-0"
               >
-                <td className="px-4 py-3 font-black text-[#C8102E]">
-                  {row.gameweek_label}
+                <td className="px-4 py-3 align-middle">
+                  <span className="inline-flex min-w-[58px] items-center justify-center rounded-xl border border-[#C8102E]/20 bg-[#C8102E]/10 px-3 py-2 text-sm font-black text-[#C8102E]">
+                    {row.gameweek_label}
+                  </span>
                 </td>
-                <td className="px-4 py-3 font-black">
-                  {row.opponent_short} {row.venue}
+
+                <td className="px-4 py-3 align-middle">
+                  <div className="text-base font-black text-[#111111]">
+                    {row.opponent_short}
+                  </div>
+                  <div className="mt-0.5 text-xs font-bold uppercase tracking-wide text-neutral-500">
+                    {row.venue === "H" ? "Home" : "Away"}
+                  </div>
                 </td>
-                <td className="px-4 py-3 font-bold">
-                  {resultLabel(row.forest_result)}
+
+                <td className="px-4 py-3 align-middle">
+                  <ResultPill result={row.forest_result} />
                 </td>
-                <td className="px-4 py-3 font-bold">
-                  {formatPercent(row.forest_win_percent)}
+
+                <td className="px-4 py-3 align-middle">
+                  <div className="grid max-w-[360px] grid-cols-3 gap-2">
+                    <SplitPill
+                      label="W"
+                      value={row.forest_win_percent}
+                      tone="win"
+                    />
+                    <SplitPill
+                      label="D"
+                      value={row.draw_percent}
+                      tone="draw"
+                    />
+                    <SplitPill
+                      label="L"
+                      value={row.forest_loss_percent}
+                      tone="loss"
+                    />
+                  </div>
                 </td>
-                <td className="px-4 py-3 font-bold">
-                  {formatPercent(row.draw_percent)}
+
+                <td className="px-4 py-3 align-middle">
+                  <CorrectPill
+                    correct={row.correct_count}
+                    total={row.total_predictions}
+                  />
                 </td>
-                <td className="px-4 py-3 font-bold">
-                  {formatPercent(row.forest_loss_percent)}
-                </td>
-                <td className="px-4 py-3 font-bold">
-                  {row.correct_count}/{row.total_predictions}
-                </td>
-                <td className="px-4 py-3 font-bold">
-                  {row.maverick_applied ? "Maverick" : ""}
-                  {row.maverick_applied && row.rogue_applied ? " · " : ""}
-                  {row.rogue_applied ? "Rogue" : ""}
-                  {!row.maverick_applied && !row.rogue_applied ? "—" : ""}
+
+                <td className="px-4 py-3 align-middle">
+                  <BonusPills
+                    maverick={row.maverick_applied}
+                    rogue={row.rogue_applied}
+                  />
                 </td>
               </tr>
             ))}
@@ -315,15 +349,94 @@ function FixtureTable({
   );
 }
 
-function MiniPercent({ label, value }: { label: string; value: number }) {
+function ResultPill({ result }: { result: "W" | "D" | "L" | null }) {
+  const className =
+    result === "W"
+      ? "border-green-200 bg-green-50 text-green-700"
+      : result === "D"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : result === "L"
+          ? "border-red-200 bg-red-50 text-red-700"
+          : "border-[#D9D6D1] bg-[#F7F6F2] text-neutral-600";
+
   return (
-    <div className="rounded-xl border border-[#E7E2DA] bg-[#F7F6F2] px-3 py-2">
-      <div className="text-[0.62rem] font-black uppercase tracking-wide text-neutral-500">
+    <span
+      className={`inline-flex min-w-[96px] items-center justify-center rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-wide ${className}`}
+    >
+      {resultLabel(result)}
+    </span>
+  );
+}
+
+function SplitPill({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "win" | "draw" | "loss";
+}) {
+  const className =
+    tone === "win"
+      ? "border-green-200 bg-green-50 text-green-700"
+      : tone === "draw"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : "border-red-200 bg-red-50 text-red-700";
+
+  return (
+    <div className={`rounded-xl border px-3 py-2 text-center ${className}`}>
+      <div className="text-[0.62rem] font-black uppercase tracking-wide opacity-70">
         {label}
       </div>
-      <div className="mt-1 text-lg font-black text-[#111111]">
+      <div className="mt-0.5 text-base font-black">
         {formatPercent(value)}
       </div>
     </div>
+  );
+}
+
+function CorrectPill({
+  correct,
+  total,
+}: {
+  correct: number;
+  total: number;
+}) {
+  return (
+    <span className="inline-flex min-w-[96px] items-center justify-center rounded-xl border border-[#111111] bg-[#111111] px-3 py-2 text-xs font-black uppercase tracking-wide text-white">
+      {correct}/{total}
+    </span>
+  );
+}
+
+function BonusPills({
+  maverick,
+  rogue,
+}: {
+  maverick: boolean;
+  rogue: boolean;
+}) {
+  if (!maverick && !rogue) {
+    return (
+      <span className="inline-flex rounded-xl border border-[#D9D6D1] bg-[#F7F6F2] px-3 py-2 text-xs font-black uppercase tracking-wide text-neutral-500">
+        —
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex flex-wrap gap-2">
+      {maverick && (
+        <span className="rounded-xl border border-[#C8102E]/25 bg-[#C8102E]/10 px-3 py-2 text-xs font-black uppercase tracking-wide text-[#C8102E]">
+          Maverick
+        </span>
+      )}
+      {rogue && (
+        <span className="rounded-xl border border-[#111111]/25 bg-[#111111] px-3 py-2 text-xs font-black uppercase tracking-wide text-white">
+          Rogue
+        </span>
+      )}
+    </span>
   );
 }
