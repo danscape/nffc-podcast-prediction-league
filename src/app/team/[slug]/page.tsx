@@ -106,6 +106,49 @@ type TeamPageData = {
     clean_sweep: boolean;
     blank: boolean;
   }[];
+  average_tracker: {
+    weeks_above_average: number;
+    weeks_below_average: number;
+    weeks_level_average: number;
+    average_points_vs_field: number;
+    best_margin_vs_field: number;
+    worst_margin_vs_field: number;
+  } | null;
+  personality: {
+    profile_label: string;
+    forest_win_pick_rate: number;
+    draw_pick_rate: number;
+    forest_loss_pick_rate: number;
+  } | null;
+  rank_summary: {
+    highest_rank: number;
+    lowest_rank: number;
+    latest_rank: number;
+    previous_rank: number | null;
+    movement: number;
+  } | null;
+  rank_history: {
+    fixture_id: string;
+    gameweek: number;
+    gameweek_label: string;
+    opponent_short: string;
+    venue: "H" | "A";
+    team_fixture_points: number;
+    running_team_points: number;
+    team_rank: number;
+    team_rank_out_of: number;
+  }[];
+  sweep_blank_events: {
+    fixture_id: string;
+    gameweek: number;
+    gameweek_label: string;
+    opponent_short: string;
+    venue: "H" | "A";
+    event_type: "Clean sweep" | "Blank";
+    team_fixture_points: number;
+    correct_count: number;
+    team_player_count: number;
+  }[];
   standout: {
     mvp_name: string | null;
     mvp_accuracy_percentage: number;
@@ -149,6 +192,19 @@ function formatPercent(value: number | null | undefined) {
 
 function displayTeamName(team: NonNullable<TeamPageData["team"]>) {
   return team.display_name ?? team.team_name;
+}
+
+function formatSignedPoints(value: number | null | undefined) {
+  const numberValue = Number(value ?? 0);
+  if (numberValue > 0) return `+${formatPoints(numberValue)}`;
+  return formatPoints(numberValue);
+}
+
+function formatMovement(value: number | null | undefined) {
+  const numberValue = Number(value ?? 0);
+  if (numberValue > 0) return `↑ ${numberValue}`;
+  if (numberValue < 0) return `↓ ${Math.abs(numberValue)}`;
+  return "—";
 }
 
 function resultLabel(result: "W" | "D" | "L" | null) {
@@ -203,6 +259,11 @@ export default async function TeamPage({
   const leaderboard = pageData.leaderboard;
   const summary = pageData.summary;
   const standout = pageData.standout;
+  const averageTracker = pageData.average_tracker;
+  const personality = pageData.personality;
+  const rankSummary = pageData.rank_summary;
+  const rankHistory = pageData.rank_history ?? [];
+  const sweepBlankEvents = pageData.sweep_blank_events ?? [];
   const players = pageData.players ?? [];
   const form = [...(pageData.form ?? [])].sort((a, b) => a.gameweek - b.gameweek);
   const fixtures = pageData.fixtures ?? [];
@@ -257,7 +318,7 @@ export default async function TeamPage({
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-5">
+            <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-6">
               <TopStat
                 label="Rank"
                 value={
@@ -265,6 +326,10 @@ export default async function TeamPage({
                     ? `${leaderboard.team_rank}/${leaderboard.team_rank_out_of}`
                     : "—"
                 }
+              />
+              <TopStat
+                label="Movement"
+                value={formatMovement(rankSummary?.movement)}
               />
               <TopStat
                 label="Points"
@@ -306,6 +371,88 @@ export default async function TeamPage({
             label="Completed GWs"
             value={summary?.completed_fixtures ?? 0}
           />
+        </section>
+
+        <section className="mb-6 grid gap-6 xl:grid-cols-3">
+          <Panel
+            title="Rank story"
+            description="Position movement based on completed fixtures only."
+          >
+            <div className="grid gap-3">
+              <MiniStat
+                label="Current rank"
+                value={
+                  rankSummary?.latest_rank
+                    ? `${rankSummary.latest_rank}/${leaderboard?.team_rank_out_of ?? "—"}`
+                    : "—"
+                }
+              />
+              <MiniStat
+                label="Previous GW"
+                value={
+                  rankSummary?.previous_rank
+                    ? `${rankSummary.previous_rank}`
+                    : "No previous rank"
+                }
+              />
+              <MiniStat
+                label="Best rank"
+                value={rankSummary?.highest_rank ?? "—"}
+              />
+              <MiniStat
+                label="Lowest rank"
+                value={rankSummary?.lowest_rank ?? "—"}
+              />
+            </div>
+          </Panel>
+
+          <Panel
+            title="Versus the field"
+            description="How this team compares to the league average each completed GW."
+          >
+            <div className="grid gap-3">
+              <MiniStat
+                label="Above average"
+                value={averageTracker?.weeks_above_average ?? 0}
+              />
+              <MiniStat
+                label="Below average"
+                value={averageTracker?.weeks_below_average ?? 0}
+              />
+              <MiniStat
+                label="Avg v field"
+                value={`${formatSignedPoints(averageTracker?.average_points_vs_field)} pts`}
+              />
+              <MiniStat
+                label="Best margin"
+                value={`${formatSignedPoints(averageTracker?.best_margin_vs_field)} pts`}
+              />
+            </div>
+          </Panel>
+
+          <Panel
+            title="Team profile"
+            description="Prediction personality from completed fixtures only."
+          >
+            <div className="grid gap-3">
+              <MiniStat
+                label="Profile"
+                value={personality?.profile_label ?? "Balanced"}
+              />
+              <MiniStat
+                label="Forest win picks"
+                value={formatPercent(personality?.forest_win_pick_rate)}
+              />
+              <MiniStat
+                label="Draw picks"
+                value={formatPercent(personality?.draw_pick_rate)}
+              />
+              <MiniStat
+                label="Forest loss picks"
+                value={formatPercent(personality?.forest_loss_pick_rate)}
+              />
+            </div>
+          </Panel>
         </section>
 
         <section className="mb-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -439,6 +586,92 @@ export default async function TeamPage({
           </div>
         </Panel>
 
+        <div className="mt-6 grid gap-6 xl:grid-cols-2">
+          <Panel
+            title="Rank history"
+            description="Running rank after each completed fixture."
+          >
+            <div className="overflow-hidden rounded-2xl border border-[#D9D6D1]">
+              <table className="w-full border-collapse text-left text-sm">
+                <thead className="bg-[#111111] text-white">
+                  <tr>
+                    <th className="px-4 py-3">GW</th>
+                    <th className="px-4 py-3">Fixture</th>
+                    <th className="px-4 py-3">Pts</th>
+                    <th className="px-4 py-3">Running</th>
+                    <th className="px-4 py-3">Rank</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rankHistory.length ? (
+                    rankHistory.map((row) => (
+                      <tr
+                        key={row.fixture_id}
+                        className="border-b border-[#E7E2DA] last:border-b-0"
+                      >
+                        <td className="px-4 py-3 font-black text-[#C8102E]">
+                          {row.gameweek_label}
+                        </td>
+                        <td className="px-4 py-3 font-black">
+                          {row.opponent_short} {row.venue}
+                        </td>
+                        <td className="px-4 py-3 font-bold">
+                          {formatPoints(row.team_fixture_points)}
+                        </td>
+                        <td className="px-4 py-3 font-bold">
+                          {formatPoints(row.running_team_points)}
+                        </td>
+                        <td className="px-4 py-3 font-black">
+                          {row.team_rank}/{row.team_rank_out_of}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="px-4 py-6 text-sm font-semibold text-neutral-600" colSpan={5}>
+                        No rank history yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+
+          <Panel
+            title="Sweeps and blanks"
+            description="Every clean sweep or blank so far."
+          >
+            <div className="grid gap-2">
+              {sweepBlankEvents.length ? (
+                sweepBlankEvents.map((event) => (
+                  <div
+                    key={`${event.fixture_id}-${event.event_type}`}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4"
+                  >
+                    <div>
+                      <div className="text-xs font-black uppercase tracking-[0.18em] text-[#C8102E]">
+                        {event.event_type}
+                      </div>
+                      <div className="mt-1 text-base font-black">
+                        {event.gameweek_label} · {event.opponent_short} {event.venue}
+                      </div>
+                    </div>
+                    <div className="text-right text-sm font-black">
+                      {event.correct_count}/{event.team_player_count}
+                      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                        {formatPoints(event.team_fixture_points)} pts
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <EmptyState text="No clean sweeps or blanks yet." />
+              )}
+            </div>
+          </Panel>
+        </div>
+
         <div className="mt-6">
           <Panel
             title="Completed fixture history"
@@ -482,6 +715,9 @@ export default async function TeamPage({
                         </td>
                         <td className="px-4 py-3 font-black">
                           {formatPoints(fixture.team_fixture_points)}
+                        </td>
+                        <td className="px-4 py-3 font-bold">
+                          {formatSignedPoints(fixture.points_vs_average)} pts
                         </td>
                       </tr>
                     ))
