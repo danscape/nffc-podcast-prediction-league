@@ -25,6 +25,7 @@ export type IndividualLeaderboardLike = {
 
 export type TeamLeaderboardLike = {
   team_id: string;
+  slug?: string | null;
   team_name: string;
   display_name: string | null;
   x_handle?: string | null;

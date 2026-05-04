@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   displayMvpName,
   displayTeamName,
@@ -20,6 +21,71 @@ type TeamLeaderboardProps = {
   countLabel?: string;
   emptyText?: string;
 };
+
+function TeamIdentity({
+  row,
+  size = "desktop",
+}: {
+  row: TeamLeaderboardLike;
+  size?: "desktop" | "mobile";
+}) {
+  const teamName = displayTeamName(row);
+  const logoSizeClass = size === "mobile" ? "h-9 w-9 rounded-xl" : "h-8 w-8 rounded-lg";
+  const fallbackSizeClass =
+    size === "mobile"
+      ? "h-9 w-9 rounded-xl text-xs"
+      : "h-8 w-8 rounded-lg text-[0.65rem]";
+
+  const logo = row.logo_url ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={row.logo_url}
+      alt={row.logo_alt ?? teamName}
+      className={`${logoSizeClass} border border-[#D9D6D1] bg-white object-cover`}
+    />
+  ) : (
+    <div
+      className={`flex ${fallbackSizeClass} items-center justify-center border border-[#D9D6D1] bg-[#F7F6F2] font-black text-[#C8102E]`}
+    >
+      {row.team_name.slice(0, 2).toUpperCase()}
+    </div>
+  );
+
+  if (!row.slug) {
+    return (
+      <div className="flex items-center gap-2">
+        {logo}
+        <div
+          className={
+            size === "mobile"
+              ? "truncate text-base font-black leading-tight"
+              : "text-base font-black leading-tight text-[#111111] xl:text-lg"
+          }
+        >
+          {teamName}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/team/${row.slug}`}
+      className="group flex items-center gap-2"
+    >
+      {logo}
+      <div
+        className={
+          size === "mobile"
+            ? "truncate text-base font-black leading-tight underline decoration-[#C8102E]/25 underline-offset-4 transition group-hover:text-[#C8102E]"
+            : "text-base font-black leading-tight text-[#111111] underline decoration-[#C8102E]/25 underline-offset-4 transition group-hover:text-[#C8102E] xl:text-lg"
+        }
+      >
+        {teamName}
+      </div>
+    </Link>
+  );
+}
 
 export default function TeamLeaderboard({
   rows,
@@ -90,24 +156,7 @@ export default function TeamLeaderboard({
                     </td>
 
                     <td className="px-2 py-2">
-                      <div className="flex items-center gap-2">
-                        {row.logo_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={row.logo_url}
-                            alt={row.logo_alt ?? displayTeamName(row)}
-                            className="h-8 w-8 rounded-lg border border-[#D9D6D1] bg-white object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D9D6D1] bg-[#F7F6F2] text-[0.65rem] font-black text-[#C8102E]">
-                            {row.team_name.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-
-                        <div className="text-base font-black leading-tight text-[#111111] xl:text-lg">
-                          {displayTeamName(row)}
-                        </div>
-                      </div>
+                      <TeamIdentity row={row} />
                     </td>
 
                     <td className="px-2 py-2 text-center">
@@ -160,26 +209,11 @@ export default function TeamLeaderboard({
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2">
-                    {row.logo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={row.logo_url}
-                        alt={row.logo_alt ?? displayTeamName(row)}
-                        className="h-9 w-9 rounded-xl border border-[#D9D6D1] bg-white object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D9D6D1] bg-white text-xs font-black text-[#C8102E]">
-                        {row.team_name.slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
+                    <TeamIdentity row={row} size="mobile" />
 
                     <div className="min-w-0">
                       <div className="text-[0.65rem] font-black uppercase tracking-[0.16em] text-[#C8102E]">
                         POS {index + 1}
-                      </div>
-
-                      <div className="truncate text-base font-black leading-tight">
-                        {displayTeamName(row)}
                       </div>
 
                       <div className="mt-0.5 truncate text-[0.68rem] font-bold uppercase tracking-wide text-neutral-600">
