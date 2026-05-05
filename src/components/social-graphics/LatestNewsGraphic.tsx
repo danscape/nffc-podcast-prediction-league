@@ -3,7 +3,6 @@ import {
   formatGraphicPercent,
   formatGraphicPoints,
   formatWholeGraphicPoints,
-  GraphicHeroStat,
   GraphicStatCard,
 } from "./SocialGraphicBits";
 
@@ -62,10 +61,10 @@ export default function LatestNewsGraphic({
     : "Next fixture TBC";
 
   return (
-    <SocialGraphicFrame title="Latest News" footer="#NFFC">
+    <SocialGraphicFrame title="Latest News">
       <div className="grid gap-3">
         <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-          <div className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/55">
+          <div className="text-[0.66rem] font-black uppercase tracking-[0.2em] text-white/55">
             Next up
           </div>
           <div className="mt-2 text-2xl font-black uppercase leading-tight text-white">
@@ -76,11 +75,31 @@ export default function LatestNewsGraphic({
           </div>
         </div>
 
-        <GraphicHeroStat
-          label="Average accuracy"
-          value={formatGraphicPercent(averageAccuracy)}
-          subValue="Across scored players"
-        />
+        <div className="grid grid-cols-[0.9fr_1.1fr] gap-3">
+          <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+            <div className="text-[0.66rem] font-black uppercase tracking-[0.2em] text-white/55">
+              Average accuracy
+            </div>
+            <div className="mt-2 text-5xl font-black leading-none text-white">
+              {formatGraphicPercent(averageAccuracy)}
+            </div>
+            <div className="mt-2 text-[0.66rem] font-black uppercase tracking-wide text-white/65">
+              scored players
+            </div>
+          </div>
+
+          <GraphicStatCard
+            label="Run-in mood"
+            value={moodTracker?.mood_label ?? "TBC"}
+            subValue={
+              moodTracker
+                ? `${formatWholeGraphicPoints(
+                    moodTracker.average_remaining_predicted_points
+                  )} pts expected`
+                : undefined
+            }
+          />
+        </div>
 
         <div className="grid grid-cols-2 gap-2">
           <GraphicStatCard
@@ -121,18 +140,6 @@ export default function LatestNewsGraphic({
             }
           />
         </div>
-
-        <GraphicStatCard
-          label="Run-in mood"
-          value={moodTracker?.mood_label ?? "TBC"}
-          subValue={
-            moodTracker
-              ? `${formatWholeGraphicPoints(
-                  moodTracker.average_remaining_predicted_points
-                )} pts expected`
-              : undefined
-          }
-        />
       </div>
     </SocialGraphicFrame>
   );

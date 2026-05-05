@@ -1,9 +1,7 @@
 import SocialGraphicFrame from "./SocialGraphicFrame";
 import {
-  formatGraphicPercent,
   formatWholeGraphicPoints,
   getRoundedPercentSplit,
-  GraphicHeroStat,
   GraphicPercentCard,
   GraphicTeamCard,
 } from "./SocialGraphicBits";
@@ -46,10 +44,10 @@ export default function RunInMoodGraphic({
   );
 
   return (
-    <SocialGraphicFrame title="Run-in Mood" footer="#NFFC">
+    <SocialGraphicFrame title="Run-in Mood">
       <div className="grid gap-3">
         <div className="rounded-3xl border border-white/15 bg-white/10 p-4 text-center backdrop-blur">
-          <div className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/55">
+          <div className="text-[0.66rem] font-black uppercase tracking-[0.2em] text-white/55">
             Current mood
           </div>
           <div className="mt-2 text-5xl font-black uppercase leading-none text-white">
@@ -57,23 +55,31 @@ export default function RunInMoodGraphic({
           </div>
         </div>
 
-        <GraphicHeroStat
-          label="Projected from remaining games"
-          value={formatWholeGraphicPoints(
-            moodTracker.average_remaining_predicted_points
-          )}
-          subValue={`points expected from ${moodTracker.remaining_fixture_count} games`}
-        />
+        <div className="grid grid-cols-[0.9fr_1.1fr] gap-3">
+          <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+            <div className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
+              Projected points
+            </div>
+            <div className="mt-2 text-6xl font-black leading-none text-white">
+              {formatWholeGraphicPoints(
+                moodTracker.average_remaining_predicted_points
+              )}
+            </div>
+            <div className="mt-2 text-[0.66rem] font-black uppercase tracking-wide text-white/65">
+              from {moodTracker.remaining_fixture_count} games
+            </div>
+          </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <GraphicPercentCard label="Wins" value={split.win} tone="win" />
-          <GraphicPercentCard label="Draws" value={split.draw} tone="draw" />
-          <GraphicPercentCard label="Losses" value={split.loss} tone="loss" />
+          <div className="grid gap-2">
+            <GraphicPercentCard label="Wins" value={split.win} tone="win" />
+            <GraphicPercentCard label="Draws" value={split.draw} tone="draw" />
+            <GraphicPercentCard label="Losses" value={split.loss} tone="loss" />
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-3xl border border-white/15 bg-white/10">
           <div
-            className="grid h-8"
+            className="grid h-7"
             style={{
               gridTemplateColumns: `${Math.max(split.win, 0.01)}fr ${Math.max(
                 split.draw,
