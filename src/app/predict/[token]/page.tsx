@@ -22,6 +22,7 @@ type PlayerPageData = {
     remaining_predicted_points: number;
     total_now_predicted: number;
     full_prediction_set_points: number;
+    gw1_predicted_points?: number | string | null;
   } | null;
   rankings: {
     individual_rank: number;
@@ -31,6 +32,8 @@ type PlayerPageData = {
     team_points: number;
     team_clean_sweeps: number;
     team_blanks: number;
+    individual_rank_out_of?: number | null;
+    team_rank_out_of?: number | null;
   } | null;
   predictions: {
     fixture_id: string;
@@ -51,8 +54,13 @@ type PlayerPageData = {
   }[];
 };
 
-type RawPlayerPageData = Omit<PlayerPageData, "rankings"> & {
+type RawPlayerPageData = Omit<
+  PlayerPageData,
+  "projection" | "rankings" | "predictions"
+> & {
+  projection?: PlayerPageData["projection"];
   rankings?: PlayerPageData["rankings"];
+  predictions?: PlayerPageData["predictions"];
 };
 
 function getSupabaseClient() {

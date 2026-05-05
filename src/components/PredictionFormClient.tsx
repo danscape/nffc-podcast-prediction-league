@@ -25,10 +25,7 @@ type PlayerPageData = {
     remaining_predicted_points: number;
     total_now_predicted: number;
     full_prediction_set_points: number;
-    gw1_predicted_points?: number | null;
-    pre_gw1_predicted_points?: number | null;
-    initial_predicted_points?: number | null;
-    baseline_predicted_points?: number | null;
+    gw1_predicted_points?: number | string | null;
   } | null;
   rankings: {
     individual_rank: number;
@@ -200,6 +197,20 @@ function formatPoints(value: number | null | undefined) {
   return Number(value ?? 0).toFixed(1).replace(".0", "");
 }
 
+function formatTeamPoints(value: number | null | undefined) {
+  return Number(value ?? 0).toFixed(2);
+}
+
+function formatNullablePoints(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") return "N/A";
+
+  const numericValue = Number(value);
+
+  if (Number.isNaN(numericValue)) return "N/A";
+
+  return numericValue.toFixed(0);
+}
+
 function formatPercent(value: number | null | undefined) {
   if (value === null || value === undefined) return "N/A";
   return `${Math.round(Number(value))}%`;
@@ -223,16 +234,8 @@ function getCupStageOptions(competition: string, displayName?: string | null) {
   return genericCupStageOptions;
 }
 
-function getGw1PredictedPoints(projection: PlayerPageData["projection"]) {
-  if (!projection) return null;
-
-  return (
-    projection.gw1_predicted_points ??
-    projection.pre_gw1_predicted_points ??
-    projection.initial_predicted_points ??
-    projection.baseline_predicted_points ??
-    null
-  );
+function getOriginalPredictionPoints(projection: PlayerPageData["projection"]) {
+  return projection?.gw1_predicted_points ?? null;
 }
 
 export default function PredictionFormClient({
@@ -386,7 +389,7 @@ export default function PredictionFormClient({
       total_now_predicted: actualPoints + remainingPredictedPoints,
       full_prediction_set_points: fullPredictionSetPoints,
       actual_vs_predicted: performanceStats.actualVsPredicted,
-      gw1_predicted_points: getGw1PredictedPoints(initialData.projection),
+      original_prediction_points: getOriginalPredictionPoints(initialData.projection),
     };
   }, [
     initialData.projection,
@@ -737,13 +740,14 @@ export default function PredictionFormClient({
               )}
             />
             <TopStat label="Team rank" value={teamRankLabel} />
-            <TopStat label="Team score" value={formatPoints(rankings?.team_points)} />
+            <TopStat
+              label="Team score"
+              value={formatTeamPoints(rankings?.team_points)}
+            />
           </div>
         </header>
 
-        {message && (
-          <AlertMessage type={message.type} text={message.text} />
-        )}
+        {message && <AlertMessage type={message.type} text={message.text} />}
 
         {emailMessage && (
           <AlertMessage type={emailMessage.type} text={emailMessage.text} />
@@ -787,13 +791,9 @@ export default function PredictionFormClient({
               helper="If your whole set was correct"
             />
             <ProjectionStat
-              label="Predicted at GW1"
-              value={
-                projection.gw1_predicted_points === null
-                  ? "TBC"
-                  : projection.gw1_predicted_points
-              }
-              helper="Pre-GW1 baseline"
+              label="Original Prediction"
+              value={formatNullablePoints(projection.original_prediction_points)}
+              helper="Season points locked in at GW1"
             />
             <ProjectionStat
               label="Actual v predicted"
