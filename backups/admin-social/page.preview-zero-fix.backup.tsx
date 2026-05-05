@@ -42,6 +42,7 @@ type TeamLeaderboardRow = {
 
 type FixtureRow = {
   id: string;
+  id: string;
   gameweek: number;
   gameweek_label: string;
   opponent_short: string;
