@@ -42,6 +42,7 @@ type TeamLeaderboardRow = {
 
 type FixtureRow = {
   id: string;
+  id: string;
   gameweek: number;
   gameweek_label: string;
   opponent_short: string;
@@ -1159,7 +1160,7 @@ function SocialPreviewGraphic({
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-[2rem] border border-[#111111] bg-[#111111] text-white shadow-sm">
+      <div className="overflow-hidden rounded-none border border-[#111111] bg-[#111111] text-white shadow-sm">
         <div className="relative min-h-[720px] overflow-hidden bg-[radial-gradient(circle_at_top_left,_#C8102E_0,_#7A0719_34%,_#111111_72%)] p-8">
           <div className="absolute inset-0 opacity-[0.08]">
             <div className="h-full w-full bg-[linear-gradient(135deg,_transparent_0,_transparent_47%,_#ffffff_47%,_#ffffff_53%,_transparent_53%,_transparent_100%)]" />
