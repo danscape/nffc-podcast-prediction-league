@@ -843,12 +843,6 @@ export default function AdminSocialPage() {
                 Refresh
               </button>
               <Link
-                href="/admin/social/results"
-                className="w-full rounded-full bg-[#C8102E] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#111111] sm:w-fit"
-              >
-                GW results graphic
-              </Link>
-              <Link
                 href="/admin"
                 className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
               >

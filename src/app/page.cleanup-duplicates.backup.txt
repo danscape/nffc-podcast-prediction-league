@@ -394,6 +394,15 @@ export default async function HomePage() {
           </div>
         </header>
 
+        <LatestNewsBlock
+          nextFixture={nextFixture}
+          averageAccuracy={averageAccuracy}
+          currentLeader={currentLeader}
+          leadingTeam={leadingTeam}
+          latestNews={latestNews ?? null}
+          moodTracker={moodTracker ?? null}
+        />
+
         <HomepageLeaderboardTabs
           individualRows={individualRows}
           teamRows={teamRows}
@@ -423,6 +432,12 @@ export default async function HomePage() {
             drawMerchants={insights?.personality_cards.draw_merchants ?? null}
           />
         </section>
+
+        <RunInMoodTracker
+          moodTracker={moodTracker ?? null}
+          personalityCards={insights?.personality_cards ?? null}
+          remainingFixtures={remainingFixtureMoodRows}
+        />
 
         <section className="mt-4 mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <TeamInsightCard
