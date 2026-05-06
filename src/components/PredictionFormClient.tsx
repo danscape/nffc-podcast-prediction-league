@@ -1,8 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import PublicMasthead from "@/components/layout/PublicMasthead";
 
 type PredictionValue = "W" | "D" | "L";
 
@@ -187,6 +189,22 @@ function isConfirmedPrediction(prediction: PlayerPageData["predictions"][number]
   return prediction.status === "finished" && prediction.forest_result !== null;
 }
 
+function formatOrdinal(value: number | null | undefined) {
+  const numberValue = Number(value ?? 0);
+
+  if (!numberValue || numberValue <= 0) return "—";
+
+  const lastTwoDigits = numberValue % 100;
+  const lastDigit = numberValue % 10;
+
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 13) return `${numberValue}th`;
+  if (lastDigit === 1) return `${numberValue}st`;
+  if (lastDigit === 2) return `${numberValue}nd`;
+  if (lastDigit === 3) return `${numberValue}rd`;
+
+  return `${numberValue}th`;
+}
+
 function formatRank(value: number | null | undefined, total?: number | null) {
   if (!value || value <= 0) return "—";
   if (total && total > 0) return `${value}/${total}`;
@@ -234,6 +252,85 @@ function getCupStageOptions(competition: string, displayName?: string | null) {
   return genericCupStageOptions;
 }
 
+function formatCompactDateTime(value: string | null) {
+  if (!value) return "DATE TBC";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/London",
+  })
+    .format(new Date(value))
+    .replace(",", "")
+    .toUpperCase();
+}
+
+function getDeadlineCountdown(value: string | null) {
+  if (!value) {
+    return {
+      label: "DATE TBC",
+      tone: "white" as const,
+      expired: false,
+    };
+  }
+
+  const target = new Date(value).getTime();
+  const now = Date.now();
+  const diffMs = target - now;
+
+  if (!Number.isFinite(target) || diffMs <= 0) {
+    return {
+      label: "LOCKED",
+      tone: "red" as const,
+      expired: true,
+    };
+  }
+
+  const totalMinutes = Math.ceil(diffMs / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  const label =
+    days > 0
+      ? `${days}D ${String(hours).padStart(2, "0")}H LEFT`
+      : hours > 0
+        ? `${hours}H ${String(minutes).padStart(2, "0")}M LEFT`
+        : `${minutes}M LEFT`;
+
+  return {
+    label,
+    tone: totalMinutes <= 120 ? ("red" as const) : totalMinutes <= 1440 ? ("yellow" as const) : ("green" as const),
+    expired: false,
+  };
+}
+
+function countdownTextClass(tone: "green" | "yellow" | "red" | "white") {
+  if (tone === "green") return "text-[var(--stat-green,#22e55e)]";
+  if (tone === "yellow") return "text-[var(--stat-yellow,#ffe44d)]";
+  if (tone === "red") return "text-[var(--stat-wrong,#ff3030)]";
+  return "text-white";
+}
+
+function getPlayerProfileTag(predictions: PlayerPageData["predictions"]) {
+  const total = predictions.length || 1;
+  const winCount = predictions.filter((prediction) => prediction.prediction === "W").length;
+  const drawCount = predictions.filter((prediction) => prediction.prediction === "D").length;
+  const lossCount = predictions.filter((prediction) => prediction.prediction === "L").length;
+
+  const winRate = winCount / total;
+  const drawRate = drawCount / total;
+  const lossRate = lossCount / total;
+
+  if (drawRate >= 0.35) return "Draw Specialist";
+  if (winRate >= 0.5) return "Optimist";
+  if (lossRate >= 0.35) return "Cautious";
+  return "Balanced";
+}
+
 function getOriginalPredictionPoints(projection: PlayerPageData["projection"]) {
   return projection?.gw1_predicted_points ?? null;
 }
@@ -254,9 +351,6 @@ export default function PredictionFormClient({
   });
   const [savingFixtureId, setSavingFixtureId] = useState<string | null>(null);
   const [savingExtraKey, setSavingExtraKey] = useState<string | null>(null);
-  const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
-  const [showCupPredictions, setShowCupPredictions] = useState(false);
-  const [showOtherPredictions, setShowOtherPredictions] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -425,7 +519,7 @@ export default function PredictionFormClient({
         rows: [],
         runningTotal: 0,
       }
-    ).rows;
+    ).rows.reverse();
   }, [scoreData]);
 
   function scheduleConfirmationEmail(changedFixture?: ChangedFixture) {
@@ -693,75 +787,85 @@ export default function PredictionFormClient({
   const playerDisplayName = player.short_name ?? player.player_name;
   const teamDisplayName = player.team_display_name ?? player.team_name;
   const scoreTotal = scoreSummary?.total_points ?? rankings?.individual_points ?? 0;
+  const playerProfileTag = getPlayerProfileTag(predictions);
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] text-[#111111]">
-      <section className="mx-auto max-w-5xl px-4 py-4 sm:px-6 lg:py-6">
-        <header className="mb-4 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
-          <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-1.5 text-[0.68rem] font-black uppercase tracking-[0.22em] text-[#C8102E]">
-            🔮 NFFC Podcast Prediction League
+    <main className="w-full bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]">
+      <section className="w-full px-0 py-0">
+        <header className="mb-12 bg-[var(--nffc-black,#000000)] p-0">
+          <div className="mb-5">
+            <PublicMasthead active="none" title="Prediction Terminal" />
           </div>
 
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-3xl font-black uppercase leading-none tracking-tight text-[#C8102E] sm:text-4xl">
-                {playerDisplayName}
-              </h1>
-              <p className="mt-2 text-base font-black text-[#111111]">
-                {teamDisplayName}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 sm:w-fit">
-              <Link
-                href="/#leaderboards"
-                className="rounded-full bg-[#111111] px-4 py-2.5 text-center text-[0.68rem] font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
-              >
-                Leaderboards
-              </Link>
-
-              <Link
-                href="/"
-                className="rounded-full border border-[#111111] px-4 py-2.5 text-center text-[0.68rem] font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
-              >
-                Homepage
-              </Link>
-            </div>
+          <div className="mb-1 bg-[var(--nffc-black,#000000)] px-4 pb-2 pt-4">
+            <h1 className="text-4xl font-black uppercase leading-none tracking-[0.04em] md:text-6xl">
+              <span className="text-[var(--nffc-white,#f5f5f5)]">{playerDisplayName}</span>
+              <span className="px-3 text-[var(--nffc-white,#f5f5f5)]">/</span>
+              <span className="align-middle text-[0.72em] text-[var(--nffc-red,#e50914)]">{teamDisplayName}</span>
+            </h1>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-5">
-            <TopStat label="Rank" value={individualRankLabel} />
-            <TopStat label="Score" value={formatPoints(scoreTotal)} highlight />
-            <TopStat
-              label="Accuracy"
-              value={formatPercent(
-                performanceStats.accuracyPercentage ??
-                  rankings?.individual_accuracy_percentage
-              )}
-            />
-            <TopStat label="Team rank" value={teamRankLabel} />
-            <TopStat
-              label="Team score"
-              value={formatTeamPoints(rankings?.team_points)}
-            />
+          <div className="bg-[var(--nffc-black,#000000)] px-4 py-2 text-2xl font-black uppercase leading-tight tracking-[0.08em] text-white md:text-4xl">
+            Pos {formatOrdinal(rankings?.individual_rank)}
+            <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+            Score {formatPoints(scoreTotal)}
+            <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+            Accuracy {formatPercent(performanceStats.accuracyPercentage ?? rankings?.individual_accuracy_percentage)}
+            <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+            Profile <span className="text-[var(--stat-cyan,#59efff)]">{playerProfileTag}</span>
+          </div>
+
+          <div className="mt-4 bg-[var(--nffc-black,#000000)] px-4 py-3">
+            <div className="text-2xl font-black uppercase leading-tight tracking-[0.06em] text-white md:text-3xl">
+              GW1 Prediction{" "}
+              <span className="text-[var(--stat-yellow,#ffe44d)]">
+                {formatNullablePoints(projection.original_prediction_points)} pts
+              </span>
+              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+              Current{" "}
+              <span className="text-[var(--stat-green,#22e55e)]">
+                {formatPoints(projection.total_now_predicted)} pts
+              </span>
+              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+              Perfect Picks{" "}
+              <span className="text-[var(--stat-cyan,#59efff)]">
+                {formatPoints(projection.full_prediction_set_points)} pts
+              </span>
+              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+              Reality Check{" "}
+              <span
+                className={
+                  projection.actual_vs_predicted >= 0
+                    ? "text-[var(--stat-green,#22e55e)]"
+                    : "text-[var(--stat-wrong,#ff3030)]"
+                }
+              >
+                {formatSignedNumber(projection.actual_vs_predicted)} pts
+              </span>
+            </div>
+
+            <div className="mt-2 text-sm font-black uppercase leading-5 tracking-[0.08em] text-[#8f8f8f] md:text-base">
+              GW1 = original call / Current = actual + remaining picks / Perfect Picks = all correct / Reality Check = completed picks v reality
+            </div>
           </div>
         </header>
 
-        {message && <AlertMessage type={message.type} text={message.text} />}
-
-        {emailMessage && (
-          <AlertMessage type={emailMessage.type} text={emailMessage.text} />
-        )}
-
-        <section className="mb-4 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+        <section className="mb-12 rounded-none border border-[#242424] bg-[var(--nffc-black,#000000)] p-4 shadow-none md:p-5">
           <div className="mb-4">
-            <h2 className="text-2xl font-black uppercase">Your Predictions</h2>
-            <p className="mt-1 text-sm font-semibold text-neutral-600">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-3 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">Make Your Predictions Here</h2>
+            <p className="mt-1 text-sm font-semibold text-white">
               Select W, D or L for each unlocked fixture.
             </p>
           </div>
 
-          <div className="grid gap-2">
+          <div className="overflow-hidden border border-[#242424]">
+            <div className="hidden grid-cols-[100px_minmax(150px,1fr)_560px_230px] border-b border-[var(--nffc-red,#e50914)] bg-[var(--nffc-black,#000000)] text-base font-black uppercase tracking-[0.16em] text-white lg:grid">
+              <div className="border-r border-[#242424] px-4 py-3">GW</div>
+              <div className="border-r border-[#242424] px-4 py-3">Fixture</div>
+              <div className="border-r border-[#242424] px-4 py-3">Deadline</div>
+              <div className="px-4 py-3 text-center">Prediction</div>
+            </div>
+
             {openPredictions.length ? (
               openPredictions.map((prediction) => (
                 <PredictionEntryRow
@@ -772,212 +876,152 @@ export default function PredictionFormClient({
                 />
               ))
             ) : (
-              <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
+              <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-white">
                 No unlocked fixture predictions are currently available.
               </div>
             )}
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4">
-            <ProjectionStat
-              label="Predicted points"
-              value={projection.total_now_predicted}
-              helper="Actual Forest points + remaining picks"
-              highlight
-            />
-            <ProjectionStat
-              label="All picks came in"
-              value={projection.full_prediction_set_points}
-              helper="If your whole set was correct"
-            />
-            <ProjectionStat
-              label="Original Prediction"
-              value={formatNullablePoints(projection.original_prediction_points)}
-              helper="Season points locked in at GW1"
-            />
-            <ProjectionStat
-              label="Actual v predicted"
-              value={`${formatSignedNumber(projection.actual_vs_predicted)} pts`}
-              helper="Actual points v completed picks"
-            />
-          </div>
+          <CurrentPredictedPointsStrip value={projection.total_now_predicted} />
+
+          {(message || emailMessage) && (
+            <div className="mt-5 bg-[var(--nffc-black,#000000)]">
+              <div className="bg-[var(--nffc-red,#e50914)] px-4 py-2 text-xl font-black uppercase tracking-[0.12em] text-white">
+                Status
+              </div>
+
+              <div className="grid gap-px bg-[#242424]">
+                {message && <AlertMessage type={message.type} text={message.text} />}
+
+                {emailMessage && (
+                  <AlertMessage type={emailMessage.type} text={emailMessage.text} />
+                )}
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="grid gap-3">
-          <ExpandableButton
-            open={showScoreBreakdown}
-            onClick={() => setShowScoreBreakdown((current) => !current)}
-            title="Score breakdown"
-            meta={`${scoreRows.length} scored GWs`}
-          />
+          <section className="bg-[var(--nffc-black,#000000)]">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-4 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+              Score Breakdown
+            </h2>
 
-          {showScoreBreakdown && (
-            <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
-                <ScoreStat
-                  label="Total"
-                  value={scoreSummary?.total_points ?? 0}
-                  highlight
-                />
-                <ScoreStat label="Base" value={scoreSummary?.base_points ?? 0} />
-                <ScoreStat
-                  label="Streaker"
-                  value={scoreSummary?.streak_bonus ?? 0}
-                />
-                <ScoreStat
-                  label="Maverick"
-                  value={scoreSummary?.maverick_bonus ?? 0}
-                />
-                <ScoreStat label="Rogue" value={scoreSummary?.rogue_bonus ?? 0} />
-                <ScoreStat label="Cup" value={scoreSummary?.cup_bonus ?? 0} />
+            <div className="overflow-hidden bg-[var(--nffc-black,#000000)]">
+              <div className="hidden grid-cols-[100px_minmax(240px,1fr)_170px_140px_110px_120px_120px_120px_100px_150px] border-b border-[var(--nffc-red,#e50914)] text-base font-black uppercase tracking-[0.16em] text-white lg:grid">
+                <div className="border-r border-[#242424] px-4 py-3">GW</div>
+                <div className="border-r border-[#242424] px-4 py-3">Fixture</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center">Your Prediction</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center">Result</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center">Pts</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-yellow,#ffe44d)]">Streak</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-cyan,#59efff)]">Maverick</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-pink,#ff4fd8)]">Rogue</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-green,#22e55e)]">Cup</div>
+                <div className="px-4 py-3 text-center">Running Total</div>
               </div>
 
-              <div className="mt-4 grid gap-2">
-                {scoreRows.length ? (
-                  scoreRows.map((score) => (
-                    <ScoreBreakdownRow
-                      key={`${score.gameweek}-${score.opponent_short}`}
-                      score={score}
+              {scoreRows.length ? (
+                scoreRows.map((score) => (
+                  <ScoreBreakdownRow
+                    key={`${score.gameweek}-${score.opponent_short}`}
+                    score={score}
+                  />
+                ))
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  No scored fixtures yet.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="mt-12 bg-[var(--nffc-black,#000000)]">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-4 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+              Cup Predictions
+            </h2>
+
+            <div className="overflow-hidden bg-[var(--nffc-black,#000000)]">
+              <div className="hidden grid-cols-[minmax(260px,1fr)_240px_300px_260px_160px] border-b border-[var(--nffc-red,#e50914)] text-xl font-black uppercase tracking-[0.16em] text-white lg:grid">
+                <div className="border-r border-[#242424] px-4 py-5">Cup Competition</div>
+                <div className="border-r border-[#242424] px-4 py-5">Deadline</div>
+                <div className="border-r border-[#242424] px-4 py-5">Predicted Round</div>
+                <div className="border-r border-[#242424] px-4 py-5">Actual Round</div>
+                <div className="px-4 py-5 text-center">Bonus Points</div>
+              </div>
+
+              {extraData?.cup_predictions?.length ? (
+                extraData.cup_predictions.map((cup) => {
+                  const stageOptions = getCupStageOptions(
+                    cup.competition,
+                    cup.display_name
+                  );
+
+                  return (
+                    <CupPredictionRow
+                      key={cup.competition}
+                      cup={cup}
+                      stageOptions={stageOptions}
+                      saving={savingExtraKey === `cup-${cup.competition}`}
+                      onChange={updateCupPrediction}
                     />
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
-                    No scored fixtures yet.
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
+                  );
+                })
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  Cup predictions loading or not available.
+                </div>
+              )}
+            </div>
+          </section>
 
-          <ExpandableButton
-            open={showCupPredictions}
-            onClick={() => setShowCupPredictions((current) => !current)}
-            title="Cup predictions"
-            meta={`${extraData?.cup_predictions?.length ?? 0} cups`}
-          />
+          <section className="mt-12 bg-[var(--nffc-black,#000000)]">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-4 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+              Other Predictions
+            </h2>
 
-          {showCupPredictions && (
-            <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
-              <div className="grid gap-3">
-                {extraData?.cup_predictions?.length ? (
-                  extraData.cup_predictions.map((cup) => {
-                    const stageOptions = getCupStageOptions(
-                      cup.competition,
-                      cup.display_name
-                    );
-
-                    return (
-                      <div
-                        key={cup.competition}
-                        className={`rounded-2xl border p-4 ${
-                          cup.is_locked
-                            ? "border-neutral-300 bg-neutral-100"
-                            : "border-[#D9D6D1] bg-[#F7F6F2]"
-                        }`}
-                      >
-                        <div className="mb-2 flex items-start justify-between gap-4">
-                          <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
-                            {cup.display_name ?? cup.competition}
-                          </div>
-                          {cup.is_locked && <LockedBadge />}
-                        </div>
-
-                        <select
-                          value={cup.predicted_round_reached ?? ""}
-                          disabled={
-                            cup.is_locked ||
-                            savingExtraKey === `cup-${cup.competition}`
-                          }
-                          onChange={(event) =>
-                            updateCupPrediction(cup.competition, event.target.value)
-                          }
-                          className="w-full rounded-xl border border-[#D9D6D1] bg-white px-3 py-3 text-base font-bold text-[#111111] disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
-                        >
-                          <option value="">No prediction</option>
-                          {stageOptions.map((stage) => (
-                            <option key={stage} value={stage}>
-                              {stage}
-                            </option>
-                          ))}
-                        </select>
-
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <InlineInfoPill
-                            label="Bonus"
-                            value={String(cup.bonus_awarded)}
-                            tone={
-                              cup.bonus_awarded > 0
-                                ? "border-green-200 bg-green-50 text-green-700"
-                                : "border-[#D9D6D1] bg-white text-neutral-600"
-                            }
-                          />
-                          <InlineInfoPill
-                            label="Actual"
-                            value={cup.actual_round_reached ?? "Not decided"}
-                          />
-                        </div>
+            <div className="grid gap-0 bg-[var(--nffc-black,#000000)]">
+              {extraData?.custom_answers?.length ? (
+                extraData.custom_answers.map((answer) => (
+                  <div
+                    key={answer.question_key}
+                    className={`grid gap-3 border-b border-[#242424] bg-[var(--nffc-black,#000000)] p-4 text-white last:border-b-0 lg:grid-cols-[minmax(320px,0.9fr)_1.1fr] ${
+                      answer.is_locked ? "opacity-70" : ""
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xl font-black uppercase leading-tight tracking-[0.08em] text-white md:text-2xl">
+                        {answer.question_text}
                       </div>
-                    );
-                  })
-                ) : (
-                  <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
-                    Cup predictions loading or not available.
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-
-          <ExpandableButton
-            open={showOtherPredictions}
-            onClick={() => setShowOtherPredictions((current) => !current)}
-            title="Other predictions"
-            meta={`${extraData?.custom_answers?.length ?? 0} questions`}
-          />
-
-          {showOtherPredictions && (
-            <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
-              <div className="grid gap-3">
-                {extraData?.custom_answers?.length ? (
-                  extraData.custom_answers.map((answer) => (
-                    <div
-                      key={answer.question_key}
-                      className={`rounded-2xl border p-4 ${
-                        answer.is_locked
-                          ? "border-neutral-300 bg-neutral-100"
-                          : "border-[#D9D6D1] bg-[#F7F6F2]"
-                      }`}
-                    >
-                      <div className="mb-2 flex items-start justify-between gap-4">
-                        <div className="text-xs font-black uppercase tracking-[0.16em] text-[#C8102E]">
-                          {answer.question_text}
+                      {answer.is_locked && (
+                        <div className="mt-2 text-sm font-black uppercase tracking-[0.14em] text-[var(--stat-yellow,#ffe44d)]">
+                          Locked
                         </div>
-                        {answer.is_locked && <LockedBadge />}
-                      </div>
-
-                      <textarea
-                        value={answer.answer ?? ""}
-                        disabled={
-                          answer.is_locked ||
-                          savingExtraKey === `custom-${answer.question_key}`
-                        }
-                        onChange={(event) =>
-                          updateCustomAnswer(answer.question_key, event.target.value)
-                        }
-                        rows={3}
-                        className="w-full rounded-xl border border-[#D9D6D1] bg-white px-3 py-3 text-base font-semibold leading-7 text-[#111111] disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
-                        placeholder="No answer"
-                      />
+                      )}
                     </div>
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
-                    Other predictions loading or not available.
+
+                    <textarea
+                      value={answer.answer ?? ""}
+                      disabled={
+                        answer.is_locked ||
+                        savingExtraKey === `custom-${answer.question_key}`
+                      }
+                      onChange={(event) =>
+                        updateCustomAnswer(answer.question_key, event.target.value)
+                      }
+                      rows={3}
+                      className="w-full rounded-none border border-[#444444] bg-[#151515] px-4 py-3 text-lg font-black leading-7 text-white disabled:cursor-not-allowed disabled:bg-[#202020] disabled:text-white md:text-xl"
+                      placeholder="No answer"
+                    />
                   </div>
-                )}
-              </div>
-            </section>
-          )}
+                ))
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  Other predictions loading or not available.
+                </div>
+              )}
+            </div>
+          </section>
         </section>
       </section>
     </main>
@@ -991,17 +1035,78 @@ function AlertMessage({
   type: "success" | "error" | "pending";
   text: string;
 }) {
+  const tone =
+    type === "success"
+      ? {
+          label: "Saved",
+          className:
+            "text-[var(--stat-green,#22e55e)]",
+        }
+      : type === "error"
+        ? {
+            label: "Action needed",
+            className:
+              "text-[var(--stat-wrong,#ff3030)]",
+          }
+        : {
+            label: "Pending",
+            className:
+              "text-[var(--stat-yellow,#ffe44d)]",
+          };
+
   return (
-    <div
-      className={`mb-4 rounded-2xl border p-4 text-sm font-semibold ${
-        type === "success"
-          ? "border-green-200 bg-green-50 text-green-800"
-          : type === "error"
-            ? "border-red-200 bg-red-50 text-red-800"
-            : "border-[#D9D6D1] bg-white text-neutral-700"
-      }`}
-    >
-      {text}
+    <div className="grid gap-px bg-[#242424] text-white md:grid-cols-[260px_1fr]" role="status">
+      <div className={`bg-[var(--nffc-black,#000000)] px-5 py-3 text-lg font-black uppercase tracking-[0.18em] md:text-xl ${tone.className}`}>
+        {tone.label}
+      </div>
+
+      <div className="bg-[var(--nffc-black,#000000)] px-5 py-3 text-lg font-black uppercase tracking-[0.08em] text-white md:text-xl">
+        {text}
+      </div>
+    </div>
+  );
+}
+
+function PredictionInfoCell({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "green" | "yellow" | "cyan" | "red";
+}) {
+  const toneClass =
+    tone === "green"
+      ? "text-[var(--stat-green,#22e55e)]"
+      : tone === "yellow"
+        ? "text-[var(--stat-yellow,#ffe44d)]"
+        : tone === "cyan"
+          ? "text-[var(--stat-cyan,#59efff)]"
+          : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <div className="grid min-h-[112px] content-between gap-2 bg-[var(--nffc-black,#000000)] px-4 py-4">
+      <div className="text-base font-black uppercase leading-tight tracking-[0.08em] text-white md:text-lg">
+        {label}
+      </div>
+      <div className={`whitespace-nowrap text-4xl font-black uppercase leading-none md:text-5xl ${toneClass}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function CurrentPredictedPointsStrip({ value }: { value: number }) {
+  return (
+    <div className="mt-5 flex items-center justify-between bg-[var(--nffc-black,#000000)] px-5 py-4 text-white">
+      <div className="text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+        Current Predicted Points
+      </div>
+
+      <div className="text-6xl font-black leading-none text-white md:text-7xl">
+        {formatPoints(value)}
+      </div>
     </div>
   );
 }
@@ -1017,10 +1122,10 @@ function TopStat({
 }) {
   return (
     <div
-      className={`rounded-2xl border p-3 ${
+      className={`rounded-none border p-3 ${
         highlight
-          ? "border-[#111111] bg-[#111111] text-white"
-          : "border-[#D9D6D1] bg-[#F7F6F2] text-[#111111]"
+          ? "border-[#111111] bg-[var(--nffc-black,#000000)] text-white"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]"
       }`}
     >
       <div className="text-[0.68rem] font-black uppercase tracking-wide opacity-65">
@@ -1044,10 +1149,10 @@ function ProjectionStat({
 }) {
   return (
     <div
-      className={`rounded-2xl border p-3 ${
+      className={`rounded-none border p-3 ${
         highlight
           ? "border-[#C8102E] bg-[#C8102E] text-white"
-          : "border-[#D9D6D1] bg-[#F7F6F2] text-[#111111]"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]"
       }`}
     >
       <div className="text-[0.68rem] font-black uppercase tracking-wide opacity-70">
@@ -1070,31 +1175,49 @@ function PredictionEntryRow({
   saving: boolean;
   onChange: (fixtureId: string, newPrediction: PredictionValue) => void;
 }) {
-  return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-3">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[#C8102E]">
-            {prediction.gameweek_label}
-          </div>
-          <div className="truncate text-lg font-black text-[#111111]">
-            {prediction.opponent_short} {prediction.venue}
-          </div>
-        </div>
+  const deadlineAt = prediction.prediction_lock_at ?? prediction.kickoff_at;
+  const countdown = getDeadlineCountdown(deadlineAt);
+  const locked =
+    prediction.is_locked || isConfirmedPrediction(prediction) || countdown.expired;
+  const deadline = formatCompactDateTime(deadlineAt);
 
-        <div className="text-right text-xs font-bold uppercase tracking-wide text-neutral-500">
-          Forest result
+  return (
+    <div
+      className={`grid items-center gap-0 border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-white last:border-b-0 lg:grid-cols-[100px_minmax(150px,1fr)_560px_230px] ${
+        locked ? "opacity-60" : ""
+      }`}
+    >
+      <div className="border-r border-[#242424] px-4 py-2 text-xl font-black uppercase tracking-[0.08em] text-[var(--nffc-red,#e50914)]">
+        {prediction.gameweek_label}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-3">
+        <div className="text-3xl font-black uppercase leading-none tracking-[0.04em]">
+          {prediction.opponent_short}
+          <span className="ml-3 text-white">{prediction.venue}</span>
         </div>
       </div>
 
-      <PredictionButtons
-        fixtureId={prediction.fixture_id}
-        selected={prediction.prediction}
-        locked={prediction.is_locked || isConfirmedPrediction(prediction)}
-        saving={saving}
-        onChange={onChange}
-        fullWidth
-      />
+      <div className="border-r border-[#242424] px-4 py-1.5">
+        <div className="whitespace-nowrap text-2xl font-black uppercase leading-none tracking-[0.06em] text-white">
+          {deadline}
+          <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+          <span className={countdownTextClass(countdown.tone)}>
+            {locked ? "LOCKED" : countdown.label}
+          </span>
+        </div>
+      </div>
+
+      <div className="px-4 py-1.5">
+        <PredictionButtons
+          fixtureId={prediction.fixture_id}
+          selected={prediction.prediction}
+          locked={locked}
+          saving={saving}
+          onChange={onChange}
+          fullWidth
+        />
+      </div>
     </div>
   );
 }
@@ -1117,7 +1240,7 @@ function PredictionButtons({
   const options: PredictionValue[] = ["W", "D", "L"];
 
   return (
-    <div className={`flex justify-center gap-2 ${fullWidth ? "w-full" : ""}`}>
+    <div className={`grid grid-cols-3 gap-1.5 ${fullWidth ? "w-full" : ""}`}>
       {options.map((option) => {
         const isSelected = selected === option;
 
@@ -1127,12 +1250,12 @@ function PredictionButtons({
             type="button"
             disabled={locked || saving}
             onClick={() => onChange(fixtureId, option)}
-            className={`h-11 rounded-full border text-sm font-black transition ${
-              fullWidth ? "flex-1" : "w-11"
+            className={`h-11 border text-2xl font-black uppercase tracking-[0.12em] transition ${
+              fullWidth ? "w-full" : "w-12"
             } ${predictionButtonClass(option, isSelected)} ${
               locked || saving
-                ? "cursor-not-allowed opacity-50"
-                : "cursor-pointer"
+                ? "cursor-not-allowed opacity-60"
+                : "cursor-pointer hover:brightness-125"
             }`}
           >
             {saving && isSelected ? "…" : option}
@@ -1145,18 +1268,18 @@ function PredictionButtons({
 
 function predictionButtonClass(option: PredictionValue, isSelected: boolean) {
   if (!isSelected) {
-    return "border-[#D9D6D1] bg-white text-[#111111] hover:border-[#C8102E]";
+    return "border-[#444444] bg-[var(--nffc-black,#000000)] text-white";
   }
 
   if (option === "W") {
-    return "border-green-600 bg-green-600 text-white";
+    return "border-[var(--stat-green,#22e55e)] bg-[var(--stat-green,#22e55e)] text-black";
   }
 
-  if (option === "L") {
-    return "border-[#C8102E] bg-[#C8102E] text-white";
+  if (option === "D") {
+    return "border-[var(--stat-yellow,#ffe44d)] bg-[var(--stat-yellow,#ffe44d)] text-black";
   }
 
-  return "border-[#111111] bg-[#111111] text-white";
+  return "border-[var(--stat-wrong,#ff3030)] bg-[var(--stat-wrong,#ff3030)] text-white";
 }
 
 function ExpandableButton({
@@ -1174,16 +1297,16 @@ function ExpandableButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[#D9D6D1] bg-white px-4 py-4 text-left shadow-sm transition hover:border-[#C8102E]"
+      className="flex w-full items-center justify-between gap-4 rounded-none border border-[#242424] bg-[var(--nffc-black,#000000)] px-4 py-4 text-left shadow-none transition hover:border-[#C8102E]"
     >
       <div>
-        <div className="text-lg font-black uppercase text-[#111111]">{title}</div>
-        <div className="mt-1 text-xs font-bold uppercase tracking-wide text-neutral-500">
+        <div className="text-lg font-black uppercase text-[var(--nffc-white,#f5f5f5)]">{title}</div>
+        <div className="mt-1 text-xs font-bold uppercase tracking-wide text-white">
           {meta}
         </div>
       </div>
 
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#111111] text-2xl font-black leading-none text-white">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-[var(--nffc-red,#e50914)] text-2xl font-black leading-none text-white">
         {open ? "−" : "+"}
       </div>
     </button>
@@ -1201,10 +1324,10 @@ function ScoreStat({
 }) {
   return (
     <div
-      className={`rounded-2xl border p-3 ${
+      className={`rounded-none border p-3 ${
         highlight
-          ? "border-[#111111] bg-[#111111] text-white"
-          : "border-[#D9D6D1] bg-[#F7F6F2] text-[#111111]"
+          ? "border-[#111111] bg-[var(--nffc-black,#000000)] text-white"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]"
       }`}
     >
       <div className="text-[0.68rem] font-bold uppercase tracking-wide opacity-70">
@@ -1215,42 +1338,163 @@ function ScoreStat({
   );
 }
 
+function CupPredictionRow({
+  cup,
+  stageOptions,
+  saving,
+  onChange,
+}: {
+  cup: ExtraPredictionsData["cup_predictions"][number];
+  stageOptions: string[];
+  saving: boolean;
+  onChange: (competition: string, newValue: string) => void;
+}) {
+  return (
+    <div
+      className={`grid items-center border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-white last:border-b-0 lg:grid-cols-[minmax(260px,1fr)_240px_300px_260px_160px]`}
+    >
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-3xl font-black uppercase leading-none ${
+          cup.bonus_awarded > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-white"
+        }`}
+      >
+        {cup.display_name ?? cup.competition}
+        {cup.is_locked && (
+          <span className="ml-3 text-sm font-black uppercase tracking-[0.14em] text-[var(--stat-yellow,#ffe44d)]">
+            Locked
+          </span>
+        )}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-4 text-xl font-black uppercase tracking-[0.08em] text-white">
+        {formatCompactDateTime(cup.prediction_lock_at)}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-3">
+        <select
+          value={cup.predicted_round_reached ?? ""}
+          disabled={cup.is_locked || saving}
+          onChange={(event) => onChange(cup.competition, event.target.value)}
+          className="w-full rounded-none border border-[#444444] bg-[#151515] px-4 py-4 text-xl font-black uppercase text-white disabled:cursor-not-allowed disabled:bg-[#202020] disabled:text-white"
+        >
+          <option value="">No prediction</option>
+          {stageOptions.map((stage) => (
+            <option key={stage} value={stage}>
+              {stage}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-4 text-2xl font-black uppercase text-white">
+        {cup.actual_round_reached ?? "Not decided"}
+      </div>
+
+      <div
+        className={`px-4 py-4 text-center text-5xl font-black ${
+          cup.bonus_awarded > 0
+            ? "text-[var(--stat-green,#22e55e)]"
+            : "text-[var(--stat-wrong,#ff3030)]"
+        }`}
+      >
+        {formatPoints(cup.bonus_awarded)}
+      </div>
+    </div>
+  );
+}
+
+function getScoreRunningTotal(score: ScoreRowWithRunning) {
+  const source = score as ScoreRowWithRunning & {
+    running_total?: number | null;
+    runningTotal?: number | null;
+    running_total_points?: number | null;
+    runningTotalPoints?: number | null;
+  };
+
+  const value =
+    source.running_total ??
+    source.runningTotal ??
+    source.running_total_points ??
+    source.runningTotalPoints ??
+    0;
+
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : 0;
+}
+
+function bonusValueClass(value: number, tone: "yellow" | "cyan" | "pink" | "green") {
+  if (value <= 0) return "text-white";
+
+  if (tone === "yellow") return "text-[var(--stat-yellow,#ffe44d)]";
+  if (tone === "cyan") return "text-[var(--stat-cyan,#59efff)]";
+  if (tone === "pink") return "text-[var(--stat-pink,#ff4fd8)]";
+  return "text-[var(--stat-green,#22e55e)]";
+}
+
 function ScoreBreakdownRow({ score }: { score: ScoreRowWithRunning }) {
   const correct = score.prediction === score.actual_result;
+  const runningTotal = getScoreRunningTotal(score);
+  const resultTone = correct
+    ? "text-[var(--stat-green,#22e55e)]"
+    : "text-[var(--stat-wrong,#ff3030)]";
 
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[#C8102E]">
-            {score.gameweek_label}
-          </div>
-          <div className="mt-0.5 text-lg font-black">
-            {score.opponent_short} {score.venue}
-          </div>
-        </div>
-
-        <div className="text-right">
-          <div className="text-[0.68rem] font-black uppercase tracking-wide text-neutral-500">
-            Running
-          </div>
-          <div className="text-xl font-black">{score.runningTotal}</div>
-        </div>
+    <div className="grid items-center border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-white last:border-b-0 lg:grid-cols-[100px_minmax(240px,1fr)_170px_140px_110px_120px_120px_120px_100px_150px]">
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-2xl font-black uppercase ${resultTone}`}>
+        {score.gameweek_label}
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs font-black">
-        <MiniScore label="Pick" value={score.prediction} />
-        <MiniScore label="Result" value={score.actual_result} />
-        <MiniScore label="Correct" value={correct ? "✓" : "×"} />
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-3xl font-black uppercase leading-none ${resultTone}`}
+      >
+        {score.opponent_short}{" "}
+        <span className={resultTone}>
+          {score.venue}
+        </span>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        <BreakdownPart label="base" value={score.base_points} />
-        <BreakdownPart label="streak" value={score.streak_bonus} />
-        <BreakdownPart label="maverick" value={score.maverick_bonus} />
-        <BreakdownPart label="rogue" value={score.rogue_bonus} />
-        <BreakdownPart label="cup" value={score.cup_bonus} />
-        <BreakdownPart label="total" value={score.total_points} dark />
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${
+          correct ? "text-[var(--stat-green,#22e55e)]" : "text-white"
+        }`}
+      >
+        {score.prediction}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none text-white">
+        {score.actual_result}
+      </div>
+
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${
+          score.base_points > 0
+            ? "text-[var(--stat-green,#22e55e)]"
+            : "text-[var(--stat-wrong,#ff3030)]"
+        }`}
+      >
+        {formatPoints(score.base_points)}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${bonusValueClass(score.streak_bonus, "yellow")}`}>
+        {formatPoints(score.streak_bonus)}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${bonusValueClass(score.maverick_bonus, "cyan")}`}>
+        {formatPoints(score.maverick_bonus)}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${bonusValueClass(score.rogue_bonus, "pink")}`}>
+        {formatPoints(score.rogue_bonus)}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${bonusValueClass(score.cup_bonus, "green")}`}>
+        {formatPoints(score.cup_bonus)}
+      </div>
+
+      <div
+        className={`px-4 py-1.5 text-center text-4xl font-black leading-none ${resultTone}`}
+      >
+        {formatPoints(runningTotal)}
       </div>
     </div>
   );
@@ -1258,11 +1502,11 @@ function ScoreBreakdownRow({ score }: { score: ScoreRowWithRunning }) {
 
 function MiniScore({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#E7E2DA] bg-white px-3 py-2">
-      <div className="text-[0.62rem] uppercase tracking-wide text-neutral-500">
+    <div className="rounded-none border border-[rgba(245,245,245,0.35)] bg-[var(--nffc-black,#000000)] px-3 py-2">
+      <div className="text-[0.62rem] uppercase tracking-wide text-white">
         {label}
       </div>
-      <div className="mt-0.5 text-lg text-[#111111]">{value}</div>
+      <div className="mt-0.5 text-lg text-[var(--nffc-white,#f5f5f5)]">{value}</div>
     </div>
   );
 }
@@ -1278,12 +1522,12 @@ function BreakdownPart({
 }) {
   return (
     <span
-      className={`rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide ${
+      className={`rounded-none border px-3 py-1 text-xs font-black uppercase tracking-wide ${
         dark
-          ? "border-[#111111] bg-[#111111] text-white"
+          ? "border-[#111111] bg-[var(--nffc-black,#000000)] text-white"
           : value > 0
             ? "border-green-200 bg-green-50 text-green-700"
-            : "border-[#D9D6D1] bg-white text-neutral-500"
+            : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-white"
       }`}
     >
       {value} {label}
@@ -1294,7 +1538,7 @@ function BreakdownPart({
 function InlineInfoPill({
   label,
   value,
-  tone = "border-[#D9D6D1] bg-white text-[#111111]",
+  tone = "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]",
 }: {
   label: string;
   value: string;
@@ -1302,7 +1546,7 @@ function InlineInfoPill({
 }) {
   return (
     <span
-      className={`inline-flex flex-wrap items-center gap-2 rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide ${tone}`}
+      className={`inline-flex flex-wrap items-center gap-2 rounded-none border px-3 py-1 text-xs font-black uppercase tracking-wide ${tone}`}
     >
       <span className="opacity-60">{label}</span>
       <span>{value}</span>
@@ -1312,7 +1556,7 @@ function InlineInfoPill({
 
 function LockedBadge() {
   return (
-    <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-bold uppercase text-neutral-700">
+    <span className="rounded-none bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-bold uppercase text-white">
       Locked
     </span>
   );

@@ -3,6 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import HomepageLeaderboardTabs from "@/components/leaderboards/web/HomepageLeaderboardTabs";
 import LatestNewsGraphic from "@/components/social-graphics/LatestNewsGraphic";
 import RunInMoodGraphic from "@/components/social-graphics/RunInMoodGraphic";
+import PublicMasthead from "@/components/layout/PublicMasthead";
+import PublicPageShell from "@/components/layout/PublicPageShell";
 
 type AppSetting = {
   key: string;
@@ -57,6 +59,40 @@ type TeamLeaderboardRow = {
   latest_gameweek_label?: string | null;
   latest_opponent_short?: string | null;
   points_this_week?: number | null;
+};
+
+type InFormPlayer = {
+  playerName: string;
+  points: number;
+  fixturesCount?: number | null;
+  fromGameweek?: number | null;
+  toGameweek?: number | null;
+} | null;
+
+type InFormPlayerViewRow = {
+  player_id: string;
+  player_name: string;
+  points: number;
+  fixtures_count: number | null;
+  from_gameweek: number | null;
+  to_gameweek: number | null;
+};
+
+type InFormTeam = {
+  teamName: string;
+  points: number;
+  fixturesCount?: number | null;
+  fromGameweek?: number | null;
+  toGameweek?: number | null;
+} | null;
+
+type InFormTeamViewRow = {
+  team_id: string;
+  team_name: string;
+  points: number;
+  fixtures_count: number | null;
+  from_gameweek: number | null;
+  to_gameweek: number | null;
 };
 
 type FixtureRow = {
@@ -122,6 +158,12 @@ type InsightCard = {
   opponent_short?: string | null;
   venue?: "H" | "A" | null;
   text?: string | null;
+};
+
+type FixtureInsight = InsightCard & {
+  forest_win_count?: number | null;
+  draw_count?: number | null;
+  forest_loss_count?: number | null;
 };
 
 type HomepageInsights = {
@@ -290,6 +332,8 @@ export default async function HomePage() {
     { data: fixtureTableData },
     { data: insightsData },
     { data: remainingFixtureMoodData },
+    { data: inFormPlayerData },
+    { data: inFormTeamData },
   ] = await Promise.all([
     supabase
       .from("teams")
@@ -341,6 +385,14 @@ export default async function HomePage() {
       .from("remaining_fixture_mood_table")
       .select("*")
       .order("gameweek", { ascending: true }),
+    supabase
+      .from("in_form_player_last_5")
+      .select("*")
+      .limit(1),
+    supabase
+      .from("in_form_team_last_5")
+      .select("*")
+      .limit(1),
   ]);
 
   const settings = new Map(
@@ -358,6 +410,79 @@ export default async function HomePage() {
   const fixtureRows = (fixtureTableData ?? []) as FixtureTableRow[];
   const remainingFixtureMoodRows =
     (remainingFixtureMoodData ?? []) as RemainingFixtureMoodRow[];
+
+  const completedFixtureIds = new Set(
+    fixtureRows.map((fixture) => fixture.fixture_id)
+  );
+
+  const futureFixtureRows: FixtureTableRow[] = remainingFixtureMoodRows
+    .filter((fixture) => !completedFixtureIds.has(fixture.fixture_id))
+    .map((fixture) => ({
+      fixture_id: fixture.fixture_id,
+      gameweek: fixture.gameweek,
+      gameweek_label: fixture.gameweek_label,
+      opponent: fixture.opponent,
+      opponent_short: fixture.opponent_short,
+      venue: fixture.venue,
+      home_team: fixture.venue === "H" ? "Nottingham Forest" : fixture.opponent,
+      away_team: fixture.venue === "H" ? fixture.opponent : "Nottingham Forest",
+      home_score: null,
+      away_score: null,
+      forest_result: null,
+      total_predictions: fixture.total_predictions,
+      forest_win_count: fixture.forest_win_count,
+      draw_count: fixture.draw_count,
+      forest_loss_count: fixture.forest_loss_count,
+      correct_count: 0,
+      forest_win_percent: fixture.forest_win_percent,
+      draw_percent: fixture.draw_percent,
+      forest_loss_percent: fixture.forest_loss_percent,
+      rogue_applied: false,
+      maverick_applied: false,
+    }));
+
+  const allFixtureRows = [...fixtureRows, ...futureFixtureRows].sort(
+    (a, b) => Number(b.gameweek ?? 0) - Number(a.gameweek ?? 0)
+  );
+
+  const nextFixtureIndex = allFixtureRows.findIndex(
+    (fixture) => fixture.forest_result === null
+  );
+
+  const fixtureSnapshotRows =
+    nextFixtureIndex >= 0
+      ? allFixtureRows.slice(
+          Math.max(0, nextFixtureIndex - 2),
+          Math.min(allFixtureRows.length, nextFixtureIndex + 3)
+        )
+      : allFixtureRows.slice(-5);
+
+  const inFormPlayerRow =
+    ((inFormPlayerData ?? []) as InFormPlayerViewRow[])[0] ?? null;
+
+  const inFormPlayer: InFormPlayer = inFormPlayerRow
+    ? {
+        playerName: inFormPlayerRow.player_name,
+        points: Number(inFormPlayerRow.points ?? 0),
+        fixturesCount: inFormPlayerRow.fixtures_count,
+        fromGameweek: inFormPlayerRow.from_gameweek,
+        toGameweek: inFormPlayerRow.to_gameweek,
+      }
+    : null;
+
+  const inFormTeamRow =
+    ((inFormTeamData ?? []) as InFormTeamViewRow[])[0] ?? null;
+
+  const inFormTeam: InFormTeam = inFormTeamRow
+    ? {
+        teamName: inFormTeamRow.team_name,
+        points: Number(inFormTeamRow.points ?? 0),
+        fixturesCount: inFormTeamRow.fixtures_count,
+        fromGameweek: inFormTeamRow.from_gameweek,
+        toGameweek: inFormTeamRow.to_gameweek,
+      }
+    : null;
+
   const nextFixture = (nextFixtureData?.[0] ?? null) as FixtureRow | null;
   const completedFixtureCount = completedFixturesData?.length ?? 0;
   const insights = insightsData as HomepageInsights | null;
@@ -373,32 +498,16 @@ export default async function HomePage() {
   const moodTracker = insights?.mood_tracker ?? null;
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-4 text-[#111111] sm:px-6 lg:px-8 lg:py-6">
-      <section className="mx-auto max-w-7xl">
-        <header className="mb-4 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
-          <div>
-            <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-1.5 text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#C8102E] md:text-xs">
-              🔮 NFFC Podcast Prediction League
-            </div>
-
-            <h1 className="max-w-4xl text-4xl font-black uppercase leading-[0.92] tracking-tight text-[#C8102E] md:text-6xl">
-              NFFC Podcast
-              <span className="block text-[#111111]">Prediction League</span>
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-neutral-700 md:text-base">
-              Individual and team score prediction game for the Forest podcast
-              community. Track the tables, follow the season mood, and see who
-              called it right.
-            </p>
-          </div>
-        </header>
+    <PublicPageShell topPadding="reduced">
+                <PublicMasthead active="home" title="Leaderboard Terminal" />
 
         <HomepageLeaderboardTabs
           individualRows={individualRows}
           teamRows={teamRows}
-          fixtureRows={fixtureRows}
+          fixtureRows={allFixtureRows}
         />
+
+        <div className="h-12 bg-[var(--nffc-black,#000000)]" />
 
         <section className="mb-4 grid gap-4 xl:grid-cols-2">
           <LatestNewsGraphic
@@ -410,6 +519,8 @@ export default async function HomePage() {
             leadingTeamPoints={leadingTeam?.total_team_points ?? null}
             latestNews={latestNews ?? null}
             moodTracker={moodTracker ?? null}
+            inFormPlayer={inFormPlayer}
+            inFormTeam={inFormTeam}
           />
 
           <RunInMoodGraphic
@@ -424,69 +535,147 @@ export default async function HomePage() {
           />
         </section>
 
-        <section className="mt-4 mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <TeamInsightCard
-            card={insights?.personality_cards.most_optimistic_team ?? null}
-          />
-          <TeamInsightCard
-            card={insights?.personality_cards.most_cautious_team ?? null}
-          />
-          <TeamInsightCard
-            card={insights?.personality_cards.draw_merchants ?? null}
-          />
-          <TeamInsightCard
-            card={insights?.personality_cards.most_volatile_team ?? null}
-          />
-          <TeamInsightCard
-            card={insights?.personality_cards.most_steady_team ?? null}
-          />
-        </section>
+        <FixtureSnapshotTable rows={fixtureSnapshotRows} />
 
-        <section className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <FixtureInsightCard
-            title="Most divided fixture"
-            card={insights?.fixture_insights.most_divided_fixture ?? null}
-          />
-          <FixtureInsightCard
-            title="Draw trap"
-            card={insights?.fixture_insights.draw_trap ?? null}
-          />
-          <LightPulseStat
-            label="Most accurate"
-            value={displayPlayerName(mostAccuratePlayer)}
-            helper={
-              mostAccuratePlayer
-                ? `${formatPercent(getAccuracyWhole(mostAccuratePlayer))} accuracy`
-                : undefined
-            }
-          />
-          <LightPulseStat
-            label="Bonus king"
-            value={displayPlayerName(bonusKing)}
-            helper={
-              bonusKing
-                ? `${formatPoints(getBonusPoints(bonusKing))} bonus pts`
-                : undefined
-            }
-          />
-        </section>
-
-
-
-        <footer className="mt-6 flex justify-center border-t border-[#D9D6D1] pt-4">
-          <Link
-            href="/admin/login"
-            className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400 transition hover:text-[#C8102E]"
-          >
-            Admin login
-          </Link>
+        <footer className="mt-12 border-t-4 border-[var(--nffc-red,#e50914)] pt-5">
+          <div className="flex justify-center">
+            <Link
+              href="/admin/login"
+              className="border border-white bg-[var(--nffc-black,#000000)] px-6 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] md:text-base"
+            >
+              Admin login
+            </Link>
+          </div>
         </footer>
-      </section>
-    </main>
+    </PublicPageShell>
   );
 }
 
 
+
+function snapshotResultClass(result: "W" | "D" | "L" | null) {
+  if (result === "W") return "text-[var(--stat-green,#22e55e)]";
+  if (result === "D") return "text-[var(--stat-yellow,#ffe44d)]";
+  if (result === "L") return "text-[var(--stat-wrong,#ff3030)]";
+  return "text-white";
+}
+
+function FixtureSnapshotTable({ rows }: { rows: FixtureTableRow[] }) {
+  const nextFixtureId =
+    rows.find((fixture) => fixture.forest_result === null)?.fixture_id ?? null;
+
+  return (
+    <section className="mb-8 bg-[var(--nffc-black,#000000)]">
+      <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-3 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+        Fixture Snapshot / NFFC Podcast Prediction League
+      </h2>
+
+      <div className="border border-[#242424] border-t-0 bg-[var(--nffc-black,#000000)]">
+        <div className="grid grid-cols-[100px_minmax(220px,1fr)_160px_340px] border-b-2 border-[var(--nffc-red,#e50914)] text-lg font-black uppercase tracking-[0.12em] text-white">
+          <div className="border-r border-[#242424] px-3 py-3">GW</div>
+          <div className="border-r border-[#242424] px-3 py-3">Fixture</div>
+          <div className="border-r border-[#242424] px-3 py-3 text-center">
+            Status
+          </div>
+          <div className="px-3 py-3 text-center">
+            Split{" "}
+            <span className="text-[var(--stat-green,#22e55e)]">W</span>
+            <span className="px-1 text-white">/</span>
+            <span className="text-[var(--stat-yellow,#ffe44d)]">D</span>
+            <span className="px-1 text-white">/</span>
+            <span className="text-[var(--stat-wrong,#ff3030)]">L</span>
+          </div>
+        </div>
+
+        {rows.length ? (
+          rows.map((fixture) => {
+            const isNext = fixture.fixture_id === nextFixtureId;
+            const hasResult = fixture.forest_result !== null;
+
+            return (
+              <div
+                key={fixture.fixture_id}
+                className={`grid grid-cols-[100px_minmax(220px,1fr)_160px_340px] items-center border-b border-[#242424] last:border-b-0 ${
+                  isNext ? "bg-[#050505]" : "bg-[var(--nffc-black,#000000)]"
+                }`}
+              >
+                <div className="border-r border-[#242424] px-3 py-2 text-xl font-black uppercase text-[var(--nffc-red,#e50914)]">
+                  {fixture.gameweek_label}
+                </div>
+
+                <div
+                  className={`border-r border-[#242424] px-3 py-2 text-2xl font-black uppercase leading-none ${
+                    hasResult ? snapshotResultClass(fixture.forest_result) : "text-white"
+                  }`}
+                >
+                  {fixture.opponent_short}
+                  <span className="ml-3">{fixture.venue}</span>
+                </div>
+
+                <div className="border-r border-[#242424] px-3 py-2 text-center">
+                  {isNext ? (
+                    <span className="text-xl font-black uppercase text-[var(--stat-yellow,#ffe44d)]">
+                      Next
+                    </span>
+                  ) : hasResult ? (
+                    <span
+                      className={`text-2xl font-black uppercase ${snapshotResultClass(
+                        fixture.forest_result
+                      )}`}
+                    >
+                      {fixture.forest_result}
+                    </span>
+                  ) : (
+                    <span className="text-xl font-black uppercase text-white">
+                      Future
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-0 px-3 py-2 text-center">
+                  <SnapshotSplit
+                    value={fixture.forest_win_percent}
+                    tone="green"
+                  />
+                  <SnapshotSplit value={fixture.draw_percent} tone="yellow" />
+                  <SnapshotSplit
+                    value={fixture.forest_loss_percent}
+                    tone="red"
+                  />
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="px-5 py-4 text-base font-black uppercase tracking-[0.12em] text-white">
+            Fixture snapshot not available.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function SnapshotSplit({
+  value,
+  tone,
+}: {
+  value: number;
+  tone: "green" | "yellow" | "red";
+}) {
+  const toneClass =
+    tone === "green"
+      ? "text-[var(--stat-green,#22e55e)]"
+      : tone === "yellow"
+        ? "text-[var(--stat-yellow,#ffe44d)]"
+        : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <div className={`text-xl font-black uppercase leading-none ${toneClass}`}>
+      {formatPercent(value)}
+    </div>
+  );
+}
 
 function LatestNewsBlock({
   nextFixture,
@@ -504,7 +693,7 @@ function LatestNewsBlock({
   moodTracker: HomepageInsights["mood_tracker"];
 }) {
   return (
-    <section className="mb-4 overflow-hidden rounded-3xl border border-[#111111] bg-[#111111] text-white shadow-sm">
+    <section className="mb-4 overflow-hidden rounded-none border border-[#111111] bg-[#111111] text-white shadow-none">
       <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_#C8102E_0,_#7A0719_34%,_#111111_74%)] p-4 md:p-5">
         <div className="absolute inset-0 opacity-[0.08]">
           <div className="h-full w-full bg-[linear-gradient(135deg,_transparent_0,_transparent_47%,_#ffffff_47%,_#ffffff_53%,_transparent_53%,_transparent_100%)]" />
@@ -538,7 +727,7 @@ function LatestNewsBlock({
               </p>
             </div>
 
-            <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-left backdrop-blur lg:min-w-[220px] lg:text-right">
+            <div className="rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 px-4 py-3 text-left  lg:min-w-[220px] lg:text-right">
               <div className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/55">
                 Average accuracy
               </div>
@@ -621,7 +810,7 @@ function LatestNewsStat({
   subValue?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+    <div className="rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 p-3 ">
       <div className="text-[0.68rem] font-black uppercase leading-tight tracking-[0.18em] text-white/55">
         {label}
       </div>
@@ -727,7 +916,7 @@ function RunInMoodTracker({
     })[0] ?? null;
 
   return (
-    <section className="mb-4 mt-4 overflow-hidden rounded-3xl border border-[#111111] bg-[#111111] text-white shadow-sm">
+    <section className="mb-4 mt-4 overflow-hidden rounded-none border border-[#111111] bg-[#111111] text-white shadow-none">
       <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_#C8102E_0,_#7A0719_34%,_#111111_74%)] p-4 md:p-5">
         <div className="absolute inset-0 opacity-[0.08]">
           <div className="h-full w-full bg-[linear-gradient(135deg,_transparent_0,_transparent_47%,_#ffffff_47%,_#ffffff_53%,_transparent_53%,_transparent_100%)]" />
@@ -744,7 +933,7 @@ function RunInMoodTracker({
               </h2>
             </div>
 
-            <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-left backdrop-blur md:text-right">
+            <div className="rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 px-4 py-3 text-left  md:text-right">
               <div className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/55">
                 Current mood
               </div>
@@ -755,7 +944,7 @@ function RunInMoodTracker({
           </div>
 
           <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr] xl:items-stretch">
-            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+            <div className="rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 p-4 ">
               <div className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/55">
                 Projected from remaining games
               </div>
@@ -768,7 +957,7 @@ function RunInMoodTracker({
                 points expected from {moodTracker.remaining_fixture_count} games
               </div>
 
-              <div className="mt-4 rounded-2xl border border-white/15 bg-black/20 p-3 text-xs font-semibold leading-5 text-white/70">
+              <div className="mt-4 rounded-none border border-white/15 bg-black/20 p-3 text-xs font-semibold leading-5 text-white/70">
                 Aggregate remaining predictions only. No individual future picks
                 shown.
               </div>
@@ -793,7 +982,7 @@ function RunInMoodTracker({
                 />
               </div>
 
-              <div className="overflow-hidden rounded-3xl border border-white/15 bg-white/10">
+              <div className="overflow-hidden rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10">
                 <div
                   className="grid h-8"
                   style={{
@@ -861,7 +1050,7 @@ function MoodPercentCard({
         : "border-red-300/40 bg-red-500/15 text-red-100";
 
   return (
-    <div className={`rounded-2xl border p-3 text-center backdrop-blur ${toneClass}`}>
+    <div className={`rounded-none border p-3 text-center  ${toneClass}`}>
       <div className="text-[0.68rem] font-black uppercase tracking-wide opacity-70">
         {label}
       </div>
@@ -887,7 +1076,7 @@ function MoodFixtureStoryCard({
       : Number(fixture?.forest_loss_percent ?? 0);
 
   return (
-    <div className="h-full rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+    <div className="h-full rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 p-3 ">
       <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/55">
         {label}
       </div>
@@ -915,7 +1104,7 @@ function MoodTeamStoryCard({
   const href = insightTeamHref(card);
 
   const content = (
-    <div className="h-full rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur transition hover:border-white/35">
+    <div className="h-full rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 p-3  transition hover:border-white/35">
       <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/55">
         {label}
       </div>
@@ -944,8 +1133,8 @@ function DarkPulseStat({
   subValue?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-3">
-      <div className="text-[0.68rem] font-black uppercase leading-tight tracking-wide text-neutral-400">
+    <div className="rounded-none border border-neutral-800 bg-neutral-950 p-3">
+      <div className="text-[0.68rem] font-black uppercase leading-tight tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
       <div className="mt-1 text-lg font-black leading-tight text-white">
@@ -966,38 +1155,72 @@ function LightPulseStat({
   helper,
 }: {
   label: string;
-  value: string | number;
+  value: string;
   helper?: string;
 }) {
+  const tone =
+    label.toLowerCase().includes("optimistic") ||
+    label.toLowerCase().includes("accurate")
+      ? "text-[var(--stat-green,#22e55e)]"
+      : label.toLowerCase().includes("cautious") ||
+          label.toLowerCase().includes("volatile")
+        ? "text-[var(--stat-wrong,#ff3030)]"
+        : label.toLowerCase().includes("draw") ||
+            label.toLowerCase().includes("steady")
+          ? "text-[var(--stat-yellow,#ffe44d)]"
+          : label.toLowerCase().includes("bonus")
+            ? "text-[var(--stat-pink,#ff4fd8)]"
+            : "text-[var(--nffc-red,#e50914)]";
+
+  const helperMatch = helper?.match(/^([+-]?\d+(?:\.\d+)?%?|[+-]?\d+(?:\.\d+)?)/);
+  const helperValue = helperMatch?.[1] ?? null;
+  const helperLabel = helperValue
+    ? helper?.replace(helperValue, "").trim()
+    : helper;
+
   return (
-    <div className="rounded-3xl border border-[#D9D6D1] bg-white p-4 text-[#111111] shadow-sm">
-      <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+    <div className="border border-[#242424] bg-[var(--nffc-black,#000000)] px-5 py-4">
+      <div className={`text-sm font-black uppercase tracking-[0.14em] ${tone}`}>
         {label}
       </div>
-      <div className="mt-1 text-2xl font-black">{value}</div>
-      {helper && (
-        <div className="mt-1 text-xs font-bold uppercase tracking-wide text-[#C8102E]">
+
+      <div className="mt-2 min-h-[2.5rem] text-2xl font-black uppercase leading-none tracking-[0.03em] text-white md:text-3xl">
+        {value}
+      </div>
+
+      {helperValue ? (
+        <>
+          <div className={`mt-3 text-4xl font-black uppercase leading-none ${tone}`}>
+            {helperValue}
+          </div>
+          <div className="mt-2 text-sm font-black uppercase tracking-[0.12em] text-white">
+            {helperLabel}
+          </div>
+        </>
+      ) : helper ? (
+        <div className="mt-3 text-sm font-black uppercase tracking-[0.12em] text-white">
           {helper}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
 
+
 function TeamInsightCard({ card }: { card: InsightCard | null }) {
   const href = insightTeamHref(card);
   const content = (
-    <div className="h-full rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm transition hover:border-[#C8102E]">
+    <div className="h-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none transition hover:border-[#C8102E]">
       <div className="text-xs font-black uppercase tracking-wide text-[#C8102E]">
         {card?.label ?? "Team insight"}
       </div>
       <div className="mt-1 text-xl font-black">{card?.team_name ?? "TBC"}</div>
-      <div className="mt-2 text-3xl font-black text-[#111111]">
+      <div className="mt-2 text-3xl font-black text-[var(--nffc-white,#f5f5f5)]">
         {card?.value !== null && card?.value !== undefined
           ? formatSigned(card.value)
           : "—"}
       </div>
-      <div className="mt-1 text-xs font-bold uppercase tracking-wide text-neutral-500">
+      <div className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {card?.suffix ?? "Completed fixtures only"}
       </div>
     </div>
@@ -1017,29 +1240,47 @@ function FixtureInsightCard({
   card,
 }: {
   title: string;
-  card: InsightCard | null;
+  card: FixtureInsight | null;
 }) {
+  const tone =
+    title.toLowerCase().includes("draw")
+      ? "text-[var(--stat-yellow,#ffe44d)]"
+      : "text-[var(--stat-cyan,#59efff)]";
+
   return (
-    <div className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
-      <div className="text-xs font-black uppercase tracking-wide text-[#C8102E]">
+    <div className="border border-[#242424] bg-[var(--nffc-black,#000000)] px-5 py-4">
+      <div className={`text-sm font-black uppercase tracking-[0.14em] ${tone}`}>
         {title}
       </div>
-      <div className="mt-1 text-xl font-black">
-        {card
-          ? `${card.gameweek_label}: ${card.opponent_short} ${card.venue}`
-          : "TBC"}
+
+      <div className="mt-2 min-h-[2.5rem] text-2xl font-black uppercase leading-none tracking-[0.03em] text-white md:text-3xl">
+        {card ? `${card.gameweek_label}: ${card.opponent_short} ${card.venue}` : "TBC"}
       </div>
-      <div className="mt-2 text-xs font-bold uppercase tracking-wide text-neutral-500">
-        {card?.text ?? "Completed fixtures only"}
+
+      <div className="mt-3 grid grid-cols-3 gap-0 border border-[#242424] text-center">
+        <div className="border-r border-[#242424] px-2 py-2 text-xl font-black text-[var(--stat-green,#22e55e)]">
+          W {card?.forest_win_count ?? "—"}
+        </div>
+        <div className="border-r border-[#242424] px-2 py-2 text-xl font-black text-[var(--stat-yellow,#ffe44d)]">
+          D {card?.draw_count ?? "—"}
+        </div>
+        <div className="px-2 py-2 text-xl font-black text-[var(--stat-wrong,#ff3030)]">
+          L {card?.forest_loss_count ?? "—"}
+        </div>
+      </div>
+
+      <div className={`mt-2 text-sm font-black uppercase tracking-[0.12em] ${tone}`}>
+        Prediction split
       </div>
     </div>
   );
 }
 
+
 function MoodStat({ label, value }: { label: string | number; value: string | number }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4">
-      <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+    <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4">
+      <div className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
       <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>

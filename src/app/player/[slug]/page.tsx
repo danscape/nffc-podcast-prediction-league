@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import PublicPageShell from "@/components/layout/PublicPageShell";
+import PublicMasthead from "@/components/layout/PublicMasthead";
 
 type PredictionValue = "W" | "D" | "L";
 
@@ -31,7 +33,35 @@ type PlayerProfileRow = {
   team_logo_alt: string | null;
   team_brand_colour: string | null;
   team_id: string;
+  team_slug?: string | null;
+  slug?: string | null;
   player_slug: string;
+  player_profile?: string | null;
+  prediction_profile?: string | null;
+  profile_label?: string | null;
+  profile_tag?: string | null;
+  predicted_wins?: number | null;
+  predicted_draws?: number | null;
+  predicted_losses?: number | null;
+  projected_forest_points?: number | null;
+};
+
+type IndividualSnapshotRow = {
+  player_id: string;
+  player_name: string;
+  short_name: string | null;
+  team_name: string;
+  team_display_name: string | null;
+  team_abbreviation: string | null;
+  player_slug: string;
+  total_points: number;
+  correct_predictions: number;
+  fixtures_scored: number;
+  accuracy_percentage: number;
+  accuracy_whole_percentage: number | null;
+  bonus_points: number | null;
+  individual_rank?: number | null;
+  rank?: number | null;
 };
 
 type WeeklyScoreRow = {
@@ -119,6 +149,37 @@ function displayTeamName(player: PlayerProfileRow) {
   return player.team_display_name ?? player.team_name;
 }
 
+function displaySnapshotTeamName(row: IndividualSnapshotRow) {
+  return row.team_display_name ?? row.team_name;
+}
+
+
+function getTeamHref(player: PlayerProfileRow) {
+  const slug = player.team_slug ?? player.slug;
+
+  if (!slug) return "/";
+
+  return `/team/${slug}`;
+}
+
+function getPublicPlayerProfileTag(player: PlayerProfileRow) {
+  const explicitProfile =
+    player.prediction_profile ??
+    player.profile_tag ??
+    player.profile_label ??
+    player.player_profile;
+
+  if (explicitProfile) return explicitProfile.toUpperCase();
+
+  const projectedPoints = safeNumber(player.projected_forest_points);
+
+  if (projectedPoints >= 60) return "OPTIMIST";
+  if (projectedPoints >= 52) return "POSITIVE";
+  if (projectedPoints >= 45) return "REALIST";
+  if (projectedPoints >= 38) return "CAUTIOUS";
+  return "PESSIMIST";
+}
+
 function predictionTone(value: PredictionValue | null | undefined) {
   if (value === "W") return "bg-green-600 text-white";
   if (value === "L") return "bg-[#C8102E] text-white";
@@ -129,10 +190,10 @@ function scoreTone(value: number | string | null | undefined) {
   const points = safeNumber(value);
 
   if (points >= 5) return "border-green-200 bg-green-50 text-green-700";
-  if (points >= 3) return "border-[#D9D6D1] bg-white text-[#111111]";
+  if (points >= 3) return "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)]";
   if (points > 0) return "border-amber-200 bg-amber-50 text-amber-700";
 
-  return "border-neutral-200 bg-neutral-50 text-neutral-500";
+  return "border-neutral-200 bg-neutral-50 text-[var(--nffc-muted,#a7a7a7)]";
 }
 
 function accuracyTone(value: number | null | undefined) {
@@ -240,6 +301,7 @@ export default function PublicPlayerProfilePage() {
   const [profile, setProfile] = useState<PlayerProfileRow | null>(null);
   const [weeklyRows, setWeeklyRows] = useState<WeeklyScoreRow[]>([]);
   const [cupRows, setCupRows] = useState<CupPredictionRow[]>([]);
+  const [individualSnapshotRows, setIndividualSnapshotRows] = useState<IndividualSnapshotRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -273,6 +335,9 @@ export default function PublicPlayerProfilePage() {
     const [
       { data: weeklyData, error: weeklyError },
       { data: cupData, error: cupError },
+      { data: individualData, error: individualError },
+      { data: predictionProfileData, error: predictionProfileError },
+      { data: teamLookupData, error: teamLookupError },
     ] = await Promise.all([
       supabase
         .from("public_player_weekly_scores")
@@ -286,19 +351,54 @@ export default function PublicPlayerProfilePage() {
         )
         .eq("player_id", loadedProfile.player_id)
         .order("competition", { ascending: true }),
+      supabase
+        .from("individual_leaderboard")
+        .select("*")
+        .order("total_points", { ascending: false })
+        .order("correct_predictions", { ascending: false })
+        .order("accuracy_percentage", { ascending: false })
+        .order("player_name", { ascending: true })
+        .range(0, 500),
+      supabase
+        .from("player_prediction_profiles")
+        .select("*")
+        .eq("player_slug", cleanSlug)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("team_leaderboard")
+        .select("*")
+        .eq("team_id", loadedProfile.team_id)
+        .limit(1)
+        .maybeSingle(),
     ]);
 
-    if (weeklyError || cupError) {
+    if (weeklyError || cupError || individualError || predictionProfileError || teamLookupError) {
       setMessage(
-        weeklyError?.message ?? cupError?.message ?? "Could not load player data."
+        weeklyError?.message ??
+          cupError?.message ??
+          individualError?.message ??
+          predictionProfileError?.message ??
+          teamLookupError?.message ??
+          "Could not load player data."
       );
       setLoading(false);
       return;
     }
 
-    setProfile(loadedProfile);
+    const teamLookup = (teamLookupData ?? {}) as {
+      slug?: string | null;
+      team_slug?: string | null;
+    };
+
+    setProfile({
+      ...loadedProfile,
+      ...(predictionProfileData ?? {}),
+      team_slug: teamLookup.team_slug ?? teamLookup.slug ?? loadedProfile.team_slug ?? null,
+    } as PlayerProfileRow);
     setWeeklyRows((weeklyData ?? []) as WeeklyScoreRow[]);
     setCupRows((cupData ?? []) as CupPredictionRow[]);
+    setIndividualSnapshotRows((individualData ?? []) as IndividualSnapshotRow[]);
     setLoading(false);
   }
 
@@ -319,6 +419,27 @@ export default function PublicPlayerProfilePage() {
   }, [weeklyRows]);
 
   const latestWeeklyRow = derivedWeeklyRows[derivedWeeklyRows.length - 1] ?? null;
+
+  const individualSnapshot = useMemo(() => {
+    if (!profile || !individualSnapshotRows.length) return [];
+
+    const currentIndex = individualSnapshotRows.findIndex(
+      (row) => row.player_slug === profile.player_slug
+    );
+
+    if (currentIndex === -1) return [];
+
+    return individualSnapshotRows
+      .slice(Math.max(0, currentIndex - 1), currentIndex + 2)
+      .map((row, index) => ({
+        ...row,
+        displayRank:
+          row.individual_rank ??
+          row.rank ??
+          Math.max(0, currentIndex - 1) + index + 1,
+        isCurrent: row.player_slug === profile.player_slug,
+      }));
+  }, [individualSnapshotRows, profile]);
 
   const summary = useMemo(() => {
     const fixturePoints =
@@ -359,390 +480,518 @@ export default function PublicPlayerProfilePage() {
     };
   }, [latestWeeklyRow, profile]);
 
+  const playerProfileTag = profile
+    ? getPublicPlayerProfileTag(profile)
+    : "PROFILE TBC";
+
   if (!routeSlug) {
     return (
-      <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
-        <section className="mx-auto max-w-7xl">
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-sm font-bold text-red-800">
+      <PublicPageShell topPadding="reduced">
+        <PublicMasthead active="none" title="Player Terminal" />
+        <section className="w-full">
+          <div className="rounded-none border border-red-200 bg-red-50 p-6 text-sm font-bold text-red-800">
             Player slug missing from URL.
           </div>
 
           <Link
             href="/"
-            className="mt-4 inline-flex rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+            className="mt-4 inline-flex rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
           >
             Back to leaderboards
           </Link>
         </section>
-      </main>
+      </PublicPageShell>
     );
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
-        <section className="mx-auto max-w-7xl">
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-6 text-xl font-black uppercase text-[#C8102E] shadow-sm">
+      <PublicPageShell topPadding="reduced">
+        <PublicMasthead active="none" title="Player Terminal" />
+        <section className="w-full">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[#C8102E] shadow-none">
             Loading player profile…
           </div>
         </section>
-      </main>
+      </PublicPageShell>
     );
   }
 
   if (message || !profile) {
     return (
-      <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
-        <section className="mx-auto max-w-7xl">
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-sm font-bold text-red-800">
+      <PublicPageShell topPadding="reduced">
+        <PublicMasthead active="none" title="Player Terminal" />
+        <section className="w-full">
+          <div className="rounded-none border border-red-200 bg-red-50 p-6 text-sm font-bold text-red-800">
             {message ?? "Player not found."}
           </div>
 
           <Link
             href="/"
-            className="mt-4 inline-flex rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+            className="mt-4 inline-flex rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
           >
             Back to leaderboards
           </Link>
         </section>
-      </main>
+      </PublicPageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
-      <section className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
-                🔮 Player profile
-              </div>
+    <PublicPageShell topPadding="reduced">
+        <PublicMasthead active="none" title="Player Terminal" />
+      <section className="w-full">
+        <section className="mb-6 grid gap-[2px] bg-[#444444]">
+          <header className="grid gap-[2px] bg-[#444444] xl:grid-cols-[minmax(0,1.05fr)_minmax(520px,0.95fr)]">
+            <section className="bg-[var(--nffc-black,#000000)] p-5 md:p-6">
+              <div className="mt-5 flex min-w-0 flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <div className="min-w-0">
+                  <h1 className="truncate text-[clamp(3.2rem,6.8vw,7.6rem)] font-black uppercase leading-none tracking-[-0.06em] text-white">
+                    {displayPlayerName(profile)}
+                  </h1>
 
-              <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-6xl">
-                {displayPlayerName(profile)}
-              </h1>
+                  <div className="mt-4 flex flex-wrap items-center gap-3 text-3xl font-black uppercase leading-none tracking-[0.04em] md:text-4xl">
+                    <Link
+                      href={getTeamHref(profile)}
+                      className="text-[var(--nffc-red,#e50914)] transition hover:text-[var(--stat-green,#22e55e)]"
+                    >
+                      {displayTeamName(profile)}
+                    </Link>
 
-              <div className="mt-4 flex items-center gap-3">
-                {profile.team_logo_url ? (
-                  <img
-                    src={profile.team_logo_url}
-                    alt={profile.team_logo_alt ?? displayTeamName(profile)}
-                    className="h-12 w-12 rounded-2xl border border-[#D9D6D1] bg-white object-cover"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] text-sm font-black text-[#C8102E]">
-                    {profile.team_name.slice(0, 2).toUpperCase()}
                   </div>
-                )}
 
-                <div>
-                  <div className="text-lg font-black">
-                    {displayTeamName(profile)}
-                  </div>
-                  <div className="text-sm font-semibold text-neutral-500">
-                    {profile.player_name}
-                  </div>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-4">
+                  {profile.team_logo_url ? (
+                    <img
+                      src={profile.team_logo_url}
+                      alt={profile.team_logo_alt ?? displayTeamName(profile)}
+                      className="h-20 w-20 border border-[#444444] bg-[var(--nffc-black,#000000)] object-contain"
+                    />
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center border border-[#444444] bg-[var(--nffc-black,#000000)] text-2xl font-black text-[var(--nffc-red,#e50914)]">
+                      {profile.team_name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:min-w-[680px]">
-              <HeroStat
-                label="Total score"
-                value={formatPoints(summary.totalScore)}
-                highlight
-              />
-              <HeroStat
-                label="Fixture points"
-                value={formatPoints(summary.fixturePoints)}
-              />
-              <HeroStat
-                label="Cup bonus"
-                value={formatPoints(summary.runningCupBonus)}
-              />
-              <HeroStat label="Accuracy" value={formatPercent(summary.accuracy)} />
-              <HeroStat label="Best streak" value={profile.best_streak ?? 0} />
-              <HeroStat label="Current streak" value={profile.current_streak ?? 0} />
-            </div>
-          </div>
+            </section>
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/#leaderboards"
-              className="rounded-full bg-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
-            >
-              View leaderboards
-            </Link>
-            <Link
-              href="/"
-              className="rounded-full border border-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
-            >
-              League homepage
-            </Link>
-          </div>
-        </header>
+            <section className="grid gap-[2px] bg-[#444444] sm:grid-cols-2 xl:grid-cols-3">
+              <PlayerTerminalStat label="Total Score" value={formatPoints(summary.totalScore)} tone="green" />
+              <PlayerTerminalStat label="Accuracy" value={formatPercent(summary.accuracy)} tone={safeNumber(summary.accuracy) >= 40 ? "green" : "red"} />
+              <PlayerTerminalStat label="Base Points" value={formatPoints(profile.base_points)} tone="green" />
+              <PlayerTerminalStat label="Bonus Points" value={formatPoints(summary.bonusPoints)} tone={safeNumber(summary.bonusPoints) > 0 ? "cyan" : "white"} />
+              <PlayerTerminalStat label="Best Streak" value={profile.best_streak ?? 0} tone={safeNumber(profile.best_streak) > 0 ? "yellow" : "white"} />
+              <PlayerTerminalStat label="Current Streak" value={profile.current_streak ?? 0} tone={safeNumber(profile.current_streak) > 0 ? "yellow" : "white"} />
+            </section>
+          </header>
 
-        <section className="mb-6 grid gap-4 lg:grid-cols-3">
-          <InfoCard
-            title="Scoring profile"
-            stats={[
-              ["Base points", formatPoints(profile.base_points)],
-              ["Bonus points", formatPoints(summary.bonusPoints)],
-              ["Streaker bonus", formatPoints(profile.streak_bonus)],
-              ["Maverick bonus", formatPoints(profile.maverick_bonus)],
-              ["Rogue bonus", formatPoints(profile.rogue_bonus)],
-              ["Cup bonus", formatPoints(summary.runningCupBonus)],
-            ]}
-          />
+          <section className="grid gap-[2px] bg-[#444444] lg:grid-cols-3">
+            <TerminalInfoPanel
+              title="Scoring Profile"
+              rows={[
+                ["Profile", playerProfileTag, "cyan", "cyan"],
+                ["Projected Pts", formatPoints(profile.projected_forest_points), "green", "green"],
+                ["Predicted W", formatPoints(profile.predicted_wins), "green", "green"],
+                ["Predicted D", formatPoints(profile.predicted_draws), "yellow", "yellow"],
+                ["Predicted L", formatPoints(profile.predicted_losses), "red", "red"],
+                ["Base Points", formatPoints(profile.base_points), "green", "green"],
+                ["Streaker Bonus", formatPoints(profile.streak_bonus), safeNumber(profile.streak_bonus) > 0 ? "yellow" : "white", "yellow"],
+                ["Maverick Bonus", formatPoints(profile.maverick_bonus), safeNumber(profile.maverick_bonus) > 0 ? "cyan" : "white", "cyan"],
+                ["Rogue Bonus", formatPoints(profile.rogue_bonus), safeNumber(profile.rogue_bonus) > 0 ? "pink" : "white", "pink"],
+                ["Cup Bonus", formatPoints(summary.runningCupBonus), safeNumber(summary.runningCupBonus) > 0 ? "green" : "white", "green"],
+              ]}
+            />
 
-          <InfoCard
-            title="Prediction record"
-            stats={[
-              [
-                "Correct",
-                `${
-                  latestWeeklyRow?.derived_running_correct_predictions ??
-                  profile.correct_predictions
-                }/${
-                  latestWeeklyRow?.derived_running_fixtures_scored ??
-                  profile.fixtures_scored
-                }`,
-              ],
-              ["Accuracy", formatPercent(summary.accuracy)],
-              ["Best streak", String(profile.best_streak ?? 0)],
-              ["Current streak", String(profile.current_streak ?? 0)],
-              ["Latest GW", summary.latestGameweek],
-              ["Latest running total", formatPoints(summary.latestRunningTotal)],
-            ]}
-          />
+            <section className="bg-[var(--nffc-black,#000000)] p-4 md:p-5 lg:col-span-2">
+              <h2 className="bg-[var(--nffc-red,#e50914)] px-4 py-2 text-2xl font-black uppercase tracking-[0.08em] text-white">
+                Cup Predictions
+              </h2>
 
-          <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
-            <h2 className="text-2xl font-black uppercase">Cup predictions</h2>
-            <p className="mt-1 text-sm text-neutral-600">
-              Cup Specialist bonuses are added to the selected GW total.
-            </p>
+              <div className="mt-4 grid gap-[2px] bg-[#444444]">
+                {cupRows.length ? (
+                  cupRows.map((cup) => (
+                    <div
+                      key={cup.id}
+                      className="grid items-center gap-3 bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-black uppercase leading-none text-white xl:grid-cols-[minmax(180px,0.8fr)_minmax(180px,1fr)_minmax(180px,1fr)_120px_170px]"
+                    >
+                      <div className="truncate text-[var(--nffc-red,#e50914)]">
+                        {cup.competition}
+                      </div>
 
-            <div className="mt-4 grid gap-3">
-              {cupRows.length ? (
-                cupRows.map((cup) => (
-                  <div
-                    key={cup.id}
-                    className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4"
-                  >
-                    <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
-                      {cup.competition}
-                    </div>
-                    <div className="mt-2 grid gap-1 text-sm font-bold text-neutral-700">
-                      <div>Predicted: {cup.predicted_round_reached ?? "—"}</div>
-                      <div>Actual: {cup.actual_round_reached ?? "Not decided"}</div>
+                      <div className="truncate">
+                        <span className="text-[var(--nffc-muted,#a7a7a7)]">Predicted </span>
+                        {cup.predicted_round_reached ?? "—"}
+                      </div>
+
+                      <div className="truncate">
+                        <span className="text-[var(--nffc-muted,#a7a7a7)]">Actual </span>
+                        {cup.actual_round_reached ?? "Not decided"}
+                      </div>
+
                       <div>
-                        Bonus:{" "}
-                        <span
-                          className={
-                            cup.bonus_awarded > 0
-                              ? "text-green-700"
-                              : "text-neutral-500"
-                          }
-                        >
+                        <span className="text-[var(--nffc-muted,#a7a7a7)]">Bonus </span>
+                        <span className={cup.bonus_awarded > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-white"}>
                           {cup.bonus_awarded}
                         </span>
                       </div>
-                      <div>
-                        GW total: {cup.awarded_gameweek_label ?? "Not applied yet"}
+
+                      <div className="truncate">
+                        <span className="text-[var(--nffc-muted,#a7a7a7)]">GW </span>
+                        {cup.awarded_gameweek_label ?? "Not applied"}
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-[var(--nffc-muted,#a7a7a7)]">
+                    No cup predictions found.
                   </div>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
-                  No cup predictions found.
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+
+              <IndividualSnapshotTable rows={individualSnapshot} />
+            </section>
           </section>
         </section>
 
-        <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-2xl font-black uppercase">Weekly score record</h2>
-              <p className="text-sm text-neutral-600">
-                Fixture points, cup bonuses and running totals after each confirmed
-                GW.
-              </p>
+        <section className="mt-10 bg-[var(--nffc-black,#000000)]">
+          <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-4 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+            Score Breakdown
+          </h2>
+
+          <div className="overflow-hidden bg-[var(--nffc-black,#000000)]">
+            <div className="hidden grid-cols-[100px_minmax(240px,1fr)_170px_140px_110px_120px_120px_120px_100px_150px] border-b border-[var(--nffc-red,#e50914)] text-base font-black uppercase tracking-[0.16em] text-white lg:grid">
+              <div className="border-r border-[#242424] px-4 py-3">GW</div>
+              <div className="border-r border-[#242424] px-4 py-3">Fixture</div>
+              <div className="border-r border-[#242424] px-4 py-3 text-center">Your Prediction</div>
+              <div className="border-r border-[#242424] px-4 py-3 text-center">Result</div>
+              <div className="border-r border-[#242424] px-4 py-3 text-center">Pts</div>
+              <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-yellow,#ffe44d)]">Streak</div>
+              <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-cyan,#59efff)]">Maverick</div>
+              <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-pink,#ff4fd8)]">Rogue</div>
+              <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-green,#22e55e)]">Cup</div>
+              <div className="px-4 py-3 text-left">Running Total</div>
             </div>
 
-            <div className="text-sm font-bold uppercase tracking-wide text-[#C8102E]">
-              {derivedWeeklyRows.length} scored GWs
-            </div>
-          </div>
-
-          <div className="hidden overflow-hidden rounded-2xl border border-[#D9D6D1] xl:block">
-            <table className="w-full border-collapse text-left text-sm">
-              <thead className="bg-[#111111] text-white">
-                <tr>
-                  <th className="px-4 py-3">GW</th>
-                  <th className="px-4 py-3">Fixture</th>
-                  <th className="px-4 py-3 text-center">Pick</th>
-                  <th className="px-4 py-3 text-center">Result</th>
-                  <th className="px-4 py-3 text-center">Fixture</th>
-                  <th className="px-4 py-3 text-center">Breakdown</th>
-                  <th className="px-4 py-3 text-center">GW total</th>
-                  <th className="px-4 py-3 text-center">Running total</th>
-                  <th className="px-4 py-3 text-center">Accuracy</th>
-                </tr>
-              </thead>
-              <tbody>
-                {derivedWeeklyRows.length ? (
-                  derivedWeeklyRows.map((row) => (
-                    <tr
-                      key={row.fixture_id}
-                      className="border-b border-[#E7E2DA] last:border-b-0"
-                    >
-                      <td className="px-4 py-4 text-xl font-black text-[#C8102E]">
-                        {row.gameweek_label}
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="text-base font-black">
-                          {row.opponent_short} {row.venue}
-                        </div>
-                        <div className="text-xs font-semibold text-neutral-500">
-                          {fixtureScore(row)}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <PredictionPill value={row.prediction} />
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <PredictionPill value={row.actual_result} />
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <span
-                          className={`inline-flex min-w-[64px] items-center justify-center rounded-xl border px-3 py-2 text-xl font-black ${scoreTone(
-                            row.derived_fixture_points_this_week
-                          )}`}
-                        >
-                          {formatPoints(row.derived_fixture_points_this_week)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-center text-sm font-bold text-neutral-700">
-                        {buildScoreBreakdown(row)}
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <span
-                          className={`inline-flex min-w-[64px] items-center justify-center rounded-xl border px-3 py-2 text-xl font-black ${scoreTone(
-                            row.derived_total_points_this_week
-                          )}`}
-                        >
-                          {formatPoints(row.derived_total_points_this_week)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-center text-2xl font-black text-[#111111]">
-                        {formatPoints(row.derived_running_total)}
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <span
-                          className={`inline-flex min-w-[74px] items-center justify-center rounded-xl border px-3 py-2 text-lg font-black ${accuracyTone(
-                            row.derived_running_accuracy_percentage
-                          )}`}
-                        >
-                          {formatPercent(row.derived_running_accuracy_percentage)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className="px-4 py-6 text-neutral-600" colSpan={9}>
-                      No scored fixtures yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="grid gap-3 xl:hidden">
-            {derivedWeeklyRows.length ? (
-              derivedWeeklyRows.map((row) => (
-                <div
-                  key={row.fixture_id}
-                  className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
-                        {row.gameweek_label}
-                      </div>
-                      <div className="mt-1 text-xl font-black">
-                        {row.opponent_short} {row.venue}
-                      </div>
-                      <div className="text-sm font-semibold text-neutral-500">
-                        Score: {fixtureScore(row)}
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="text-xs font-black uppercase text-neutral-500">
-                        Running total
-                      </div>
-                      <div className="text-3xl font-black text-[#111111]">
-                        {formatPoints(row.derived_running_total)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <PredictionPill value={row.prediction} />
-                    <span className="text-xs font-bold uppercase text-neutral-500">
-                      Pick
-                    </span>
-                    <PredictionPill value={row.actual_result} />
-                    <span className="text-xs font-bold uppercase text-neutral-500">
-                      Result
-                    </span>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-2 text-sm font-bold">
-                    <MiniStat
-                      label="Fixture"
-                      value={formatPoints(row.derived_fixture_points_this_week)}
-                    />
-                    <MiniStat
-                      label="Cup"
-                      value={formatPoints(row.derived_cup_bonus_this_week)}
-                    />
-                    <MiniStat
-                      label="GW total"
-                      value={formatPoints(row.derived_total_points_this_week)}
-                      tone={scoreTone(row.derived_total_points_this_week)}
-                    />
-                    <MiniStat
-                      label="Accuracy"
-                      value={formatPercent(
-                        row.derived_running_accuracy_percentage
-                      )}
-                      tone={accuracyTone(row.derived_running_accuracy_percentage)}
-                    />
-                  </div>
-
-                  <div className="mt-3 rounded-xl border border-[#D9D6D1] bg-white p-3 text-sm font-semibold text-neutral-700">
-                    {buildScoreBreakdown(row)}
-                  </div>
+            <div className="hidden lg:block">
+              {derivedWeeklyRows.length ? (
+                derivedWeeklyRows
+                  .slice()
+                  .reverse()
+                  .map((row) => <PlayerScoreBreakdownRow key={row.fixture_id} row={row} />)
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  No scored fixtures yet.
                 </div>
-              ))
-            ) : (
-              <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
-                No scored fixtures yet.
-              </div>
-            )}
+              )}
+            </div>
+
+            <div className="grid gap-3 lg:hidden">
+              {derivedWeeklyRows.length ? (
+                derivedWeeklyRows
+                  .slice()
+                  .reverse()
+                  .map((row) => <PlayerMobileScoreBreakdownRow key={row.fixture_id} row={row} />)
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  No scored fixtures yet.
+                </div>
+              )}
+            </div>
           </div>
         </section>
       </section>
-    </main>
+    </PublicPageShell>
   );
 }
+
+function playerBonusValueClass(value: number, tone: "yellow" | "cyan" | "pink" | "green") {
+  if (value <= 0) return "text-white";
+
+  if (tone === "yellow") return "text-[var(--stat-yellow,#ffe44d)]";
+  if (tone === "cyan") return "text-[var(--stat-cyan,#59efff)]";
+  if (tone === "pink") return "text-[var(--stat-pink,#ff4fd8)]";
+  return "text-[var(--stat-green,#22e55e)]";
+}
+
+function playerScoreResultTone(row: DerivedWeeklyScoreRow) {
+  return row.prediction === row.actual_result
+    ? "text-[var(--stat-green,#22e55e)]"
+    : "text-[var(--stat-wrong,#ff3030)]";
+}
+
+function PlayerScoreBreakdownRow({ row }: { row: DerivedWeeklyScoreRow }) {
+  const correct = row.prediction === row.actual_result;
+  const resultTone = playerScoreResultTone(row);
+
+  return (
+    <div className="grid items-center border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-white last:border-b-0 lg:grid-cols-[100px_minmax(240px,1fr)_170px_140px_110px_120px_120px_120px_100px_150px]">
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-2xl font-black uppercase ${resultTone}`}>
+        {row.gameweek_label}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-3xl font-black uppercase leading-none ${resultTone}`}>
+        {row.opponent_short}{" "}
+        <span className={resultTone}>{row.venue}</span>
+      </div>
+
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${
+          correct ? "text-[var(--stat-green,#22e55e)]" : "text-white"
+        }`}
+      >
+        {row.prediction}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none text-white">
+        {row.actual_result}
+      </div>
+
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${
+          safeNumber(row.base_points) > 0
+            ? "text-[var(--stat-green,#22e55e)]"
+            : "text-[var(--stat-wrong,#ff3030)]"
+        }`}
+      >
+        {formatPoints(row.base_points)}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${playerBonusValueClass(safeNumber(row.streak_bonus), "yellow")}`}>
+        {formatPoints(row.streak_bonus)}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${playerBonusValueClass(safeNumber(row.maverick_bonus), "cyan")}`}>
+        {formatPoints(row.maverick_bonus)}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${playerBonusValueClass(safeNumber(row.rogue_bonus), "pink")}`}>
+        {formatPoints(row.rogue_bonus)}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${playerBonusValueClass(safeNumber(row.derived_cup_bonus_this_week), "green")}`}>
+        {formatPoints(row.derived_cup_bonus_this_week)}
+      </div>
+
+      <div className={`px-4 py-1.5 text-center text-4xl font-black leading-none ${resultTone}`}>
+        {formatPoints(row.derived_running_total)}
+      </div>
+    </div>
+  );
+}
+
+function PlayerMobileScoreBreakdownRow({ row }: { row: DerivedWeeklyScoreRow }) {
+  const resultTone = playerScoreResultTone(row);
+
+  return (
+    <div className="border border-[#242424] bg-[var(--nffc-black,#000000)] p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className={`text-sm font-black uppercase tracking-[0.2em] ${resultTone}`}>
+            {row.gameweek_label}
+          </div>
+          <div className={`mt-1 text-3xl font-black uppercase leading-none ${resultTone}`}>
+            {row.opponent_short} {row.venue}
+          </div>
+        </div>
+
+        <div className="text-right">
+          <div className="text-xs font-black uppercase tracking-[0.16em] text-[var(--nffc-muted,#a7a7a7)]">
+            Running total
+          </div>
+          <div className={`text-4xl font-black leading-none ${resultTone}`}>
+            {formatPoints(row.derived_running_total)}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-px bg-[#242424] text-center">
+        <MiniScore label="Pick" value={row.prediction} />
+        <MiniScore label="Result" value={row.actual_result} />
+        <MiniScore label="Pts" value={formatPoints(row.base_points)} />
+      </div>
+
+      <div className="mt-3 grid grid-cols-4 gap-px bg-[#242424] text-center">
+        <MiniScore label="Streak" value={formatPoints(row.streak_bonus)} />
+        <MiniScore label="Maverick" value={formatPoints(row.maverick_bonus)} />
+        <MiniScore label="Rogue" value={formatPoints(row.rogue_bonus)} />
+        <MiniScore label="Cup" value={formatPoints(row.derived_cup_bonus_this_week)} />
+      </div>
+    </div>
+  );
+}
+
+
+function terminalToneClass(tone: string) {
+  if (tone === "green") return "text-[var(--stat-green,#22e55e)]";
+  if (tone === "yellow") return "text-[var(--stat-yellow,#ffe44d)]";
+  if (tone === "cyan") return "text-[var(--stat-cyan,#59efff)]";
+  if (tone === "pink") return "text-[var(--stat-pink,#ff4fd8)]";
+  if (tone === "red") return "text-[var(--stat-wrong,#ff3030)]";
+  if (tone === "muted") return "text-[var(--nffc-muted,#a7a7a7)]";
+  return "text-white";
+}
+
+function PlayerTerminalStat({
+  label,
+  value,
+  tone = "white",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "green" | "yellow" | "cyan" | "pink" | "red" | "white";
+}) {
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] p-5 md:p-6">
+      <div className="text-base font-black uppercase tracking-[0.16em] text-[var(--nffc-muted,#a7a7a7)]">
+        {label}
+      </div>
+      <div className={`mt-3 text-5xl font-black uppercase leading-none ${terminalToneClass(tone)}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function PlayerTerminalLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="bg-[var(--nffc-black,#000000)] px-4 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white transition hover:text-[var(--stat-green,#22e55e)]"
+    >
+      {label}
+    </Link>
+  );
+}
+
+function TerminalInfoPanel({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: [string, string | number, string, string?][];
+}) {
+  return (
+    <section className="bg-[var(--nffc-black,#000000)] p-4 md:p-5">
+      <h2 className="bg-[var(--nffc-red,#e50914)] px-4 py-2 text-2xl font-black uppercase tracking-[0.08em] text-white">
+        {title}
+      </h2>
+
+      <div className="mt-4 grid gap-[2px] bg-[#444444]">
+        {rows.map(([label, value, tone, labelTone]) => (
+          <div
+            key={label}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 bg-[var(--nffc-black,#000000)] px-4 py-3"
+          >
+            <div className={`text-sm font-black uppercase tracking-[0.18em] ${terminalToneClass(labelTone ?? "muted")}`}>
+              {label}
+            </div>
+            <div className={`text-[1.65rem] font-black uppercase leading-none ${terminalToneClass(tone)}`}>
+              {value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+
+function IndividualSnapshotTable({
+  rows,
+}: {
+  rows: (IndividualSnapshotRow & { displayRank: number; isCurrent: boolean })[];
+}) {
+  return (
+    <section className="mt-5 bg-[var(--nffc-black,#000000)]">
+      <h3 className="bg-[var(--nffc-red,#e50914)] px-4 py-2 text-2xl font-black uppercase tracking-[0.08em] text-white">
+        <Link
+          href="/#leaderboards"
+          className="transition hover:text-[var(--stat-green,#22e55e)]"
+        >
+          Player Table
+        </Link>
+      </h3>
+
+      <div className="mt-4 grid gap-[2px] bg-[#444444]">
+        <div className="hidden bg-[var(--nffc-black,#000000)] text-sm font-black uppercase tracking-[0.16em] text-white md:grid md:grid-cols-[90px_minmax(180px,1fr)_minmax(150px,0.75fr)_120px_120px_120px]">
+          <div className="px-4 py-3 text-[var(--nffc-red,#e50914)]">Rank</div>
+          <div className="px-4 py-3">Player</div>
+          <div className="px-4 py-3 text-left">Team</div>
+          <div className="px-4 py-3 text-left">Score</div>
+          <div className="px-4 py-3 text-left">Accuracy</div>
+          <div className="px-4 py-3 text-left">Correct</div>
+        </div>
+
+        {rows.length ? (
+          rows.map((row) => {
+            const tone = row.isCurrent
+              ? "text-[var(--stat-cyan,#59efff)]"
+              : "text-white";
+
+            return (
+              <div
+                key={row.player_slug}
+                className={`grid gap-2 bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-black uppercase leading-none md:grid-cols-[90px_minmax(180px,1fr)_minmax(150px,0.75fr)_120px_120px_120px] md:items-center ${
+                  row.isCurrent ? "shadow-[inset_0_0_0_2px_var(--stat-cyan,#59efff)]" : ""
+                }`}
+              >
+                <div className={`text-2xl ${row.isCurrent ? "text-[var(--stat-cyan,#59efff)]" : "text-[var(--nffc-red,#e50914)]"}`}>
+                  {String(row.displayRank).padStart(2, "0")}
+                </div>
+
+                <div className={`truncate text-2xl ${tone}`}>
+                  {row.short_name ?? row.player_name}
+                </div>
+
+                <div className="truncate text-left text-white">
+                  {row.team_abbreviation ?? row.team_display_name ?? row.team_name}
+                </div>
+
+                <div className="text-left text-3xl text-[var(--stat-green,#22e55e)] md:text-center">
+                  {formatPoints(row.total_points)}
+                </div>
+
+                <div className="text-left text-3xl text-[var(--stat-green,#22e55e)] md:text-center">
+                  {formatPercent(row.accuracy_whole_percentage ?? row.accuracy_percentage)}
+                </div>
+
+                <div className="text-left text-3xl text-white md:text-center">
+                  {formatPoints(row.correct_predictions)}
+                  <span className="text-base text-[var(--nffc-muted,#a7a7a7)]">
+                    /{formatPoints(row.fixtures_scored)}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-[var(--nffc-muted,#a7a7a7)]">
+            Snapshot unavailable.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+
+function MiniScore({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] px-3 py-2">
+      <div className="text-[0.62rem] font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
+        {label}
+      </div>
+      <div className="mt-0.5 text-lg font-black uppercase text-[var(--nffc-white,#f5f5f5)]">
+        {value}
+      </div>
+    </div>
+  );
+}
+
 
 function HeroStat({
   label,
@@ -755,10 +1004,10 @@ function HeroStat({
 }) {
   return (
     <div
-      className={`rounded-2xl border p-4 ${
+      className={`rounded-none border p-4 ${
         highlight
           ? "border-[#111111] bg-[#111111] text-white"
-          : "border-[#D9D6D1] bg-[#F7F6F2] text-[#111111]"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]"
       }`}
     >
       <div className="text-xs font-bold uppercase tracking-wide opacity-70">
@@ -777,18 +1026,18 @@ function InfoCard({
   stats: [string, string][];
 }) {
   return (
-    <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+    <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
       <h2 className="text-2xl font-black uppercase">{title}</h2>
       <div className="mt-4 grid gap-2">
         {stats.map(([label, value]) => (
           <div
             key={label}
-            className="flex items-center justify-between gap-4 rounded-2xl border border-[#E7E2DA] bg-[#F7F6F2] px-4 py-3"
+            className="flex items-center justify-between gap-4 rounded-none border border-[rgba(245,245,245,0.35)] bg-[var(--nffc-black,#000000)] px-4 py-3"
           >
-            <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+            <div className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
               {label}
             </div>
-            <div className="text-xl font-black text-[#111111]">{value}</div>
+            <div className="text-xl font-black text-[var(--nffc-white,#f5f5f5)]">{value}</div>
           </div>
         ))}
       </div>
@@ -819,11 +1068,11 @@ function MiniStat({
 }) {
   return (
     <div
-      className={`rounded-2xl border p-3 text-center ${
-        tone ?? "border-[#E7E2DA] bg-white text-[#111111]"
+      className={`rounded-none border p-3 text-center ${
+        tone ?? "border-[rgba(245,245,245,0.35)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)]"
       }`}
     >
-      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+      <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
       <div className="mt-1 text-lg font-black">{value}</div>
