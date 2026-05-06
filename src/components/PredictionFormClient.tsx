@@ -788,77 +788,274 @@ export default function PredictionFormClient({
   const teamDisplayName = player.team_display_name ?? player.team_name;
   const scoreTotal = scoreSummary?.total_points ?? rankings?.individual_points ?? 0;
   const playerProfileTag = getPlayerProfileTag(predictions);
+  const mobileNextDeadline =
+    openPredictions[0]?.prediction_lock_at ?? openPredictions[0]?.kickoff_at ?? null;
 
   return (
-    <main className="w-full bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]">
+    <>
+      <main className="min-h-screen w-full overflow-x-hidden bg-[var(--nffc-black,#000000)] px-1 py-1 text-[var(--nffc-white,#f5f5f5)] md:hidden">
+        <section className="w-full">
+          <header className="border-b-2 border-[var(--nffc-red,#e50914)] pb-1.5">
+            <div className="flex justify-center">
+              <Image
+                src="/brand/nffc-podcast-prediction-league-banner.png"
+                alt="NFFC Podcast Prediction League"
+                width={420}
+                height={180}
+                priority
+                className="h-10 w-auto max-w-[78%] object-contain"
+              />
+            </div>
+
+            <nav className="mt-2 grid grid-cols-2 gap-[2px] bg-[var(--nffc-red,#e50914)]">
+              <Link
+                href="/"
+                className="bg-[var(--nffc-black,#000000)] px-3 py-1.5 text-center text-[0.66rem] font-black uppercase tracking-[0.16em] text-white"
+              >
+                Home
+              </Link>
+              <Link
+                href="/weekly-results"
+                className="bg-[var(--nffc-black,#000000)] px-3 py-1.5 text-center text-[0.66rem] font-black uppercase tracking-[0.16em] text-white"
+              >
+                GW Results
+              </Link>
+            </nav>
+          </header>
+
+          <section className="py-1.5">
+            <h1 className="text-[1.85rem] font-black uppercase leading-none tracking-[0.02em] text-white">
+              {playerDisplayName}
+            </h1>
+            <div className="mt-1 text-sm font-black uppercase leading-tight tracking-[0.08em] text-[var(--nffc-red,#e50914)]">
+              {teamDisplayName}
+            </div>
+
+            <div className="mt-3 space-y-1 text-sm font-black uppercase leading-tight tracking-[0.08em] text-white">
+              <div>
+                Pos <span className="text-white">{formatOrdinal(rankings?.individual_rank)}</span>
+                <span className="px-2 text-[var(--nffc-red,#e50914)]">/</span>
+                Score <span className="text-[var(--stat-green,#22e55e)]">{formatPoints(scoreTotal)}</span>
+              </div>
+              <div>
+                Accuracy{" "}
+                <span className="text-[var(--stat-green,#22e55e)]">
+                  {formatPercent(performanceStats.accuracyPercentage ?? rankings?.individual_accuracy_percentage)}
+                </span>
+                <span className="px-2 text-[var(--nffc-red,#e50914)]">/</span>
+                Profile <span className="text-[var(--stat-cyan,#59efff)]">{playerProfileTag}</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="mb-4">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-3 py-1.5 text-lg font-black uppercase tracking-[0.08em] text-white">
+              Make Predictions
+            </h2>
+
+            {mobileNextDeadline ? (
+              <div className="mt-2 text-[0.68rem] font-black uppercase leading-4 tracking-[0.08em] text-white">
+                Next deadline{" "}
+                <span className="text-[var(--stat-yellow,#ffe44d)]">
+                  {formatCompactDateTime(mobileNextDeadline)}
+                </span>
+              </div>
+            ) : null}
+
+            <div className="mt-1.5 grid gap-0">
+              {openPredictions.length ? (
+                openPredictions.map((prediction) => (
+                  <MobilePredictionEntry
+                    key={`${prediction.fixture_id}-mobile-clean`}
+                    prediction={prediction}
+                    saving={savingFixtureId === prediction.fixture_id}
+                    onChange={updatePrediction}
+                  />
+                ))
+              ) : (
+                <div className="border border-[#242424] px-3 py-4 text-sm font-black uppercase tracking-[0.1em] text-white">
+                  No unlocked predictions available.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="mb-4">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-3 py-1.5 text-lg font-black uppercase tracking-[0.08em] text-white">
+              Score Breakdown
+            </h2>
+
+            <div className="mt-2 grid gap-2">
+              {scoreRows.length ? (
+                scoreRows.map((score) => (
+                  <MobileCleanScoreRow
+                    key={`${score.gameweek}-${score.opponent_short}-clean-mobile`}
+                    score={score}
+                  />
+                ))
+              ) : (
+                <div className="border border-[#242424] px-3 py-4 text-sm font-black uppercase tracking-[0.1em] text-white">
+                  No scored fixtures yet.
+                </div>
+              )}
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <main className="hidden w-full bg-[var(--nffc-black,#000000)] px-1 text-[var(--nffc-white,#f5f5f5)] md:block md:px-0">
       <section className="w-full px-0 py-0">
-        <header className="mb-12 bg-[var(--nffc-black,#000000)] p-0">
-          <div className="mb-5">
-            <PublicMasthead active="none" title="Prediction Terminal" />
+        <header className="mb-3 bg-[var(--nffc-black,#000000)] p-0 md:mb-12">
+          <div className="mb-2 md:mb-5">
+            <div className="md:hidden">
+              <div className="flex w-full justify-center">
+                <Image
+                  src="/brand/nffc-podcast-prediction-league-banner.png"
+                  alt="NFFC Podcast Prediction League"
+                  width={420}
+                  height={180}
+                  priority
+                  className="h-14 w-auto object-contain"
+                />
+              </div>
+
+              <nav className="mt-2 grid w-full grid-cols-2 gap-[2px] border-y-2 border-[var(--nffc-red,#e50914)] bg-[var(--nffc-red,#e50914)]">
+                <Link
+                  href="/"
+                  className="bg-[var(--nffc-black,#000000)] px-3 py-2 text-center text-[0.7rem] font-black uppercase tracking-[0.16em] text-white"
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/weekly-results"
+                  className="bg-[var(--nffc-black,#000000)] px-3 py-2 text-center text-[0.7rem] font-black uppercase tracking-[0.16em] text-white"
+                >
+                  GW Results
+                </Link>
+              </nav>
+            </div>
+
+            <div className="hidden md:block">
+              <PublicMasthead active="none" title="Prediction Terminal" />
+            </div>
           </div>
 
-          <div className="mb-1 bg-[var(--nffc-black,#000000)] px-4 pb-2 pt-4">
-            <h1 className="text-4xl font-black uppercase leading-none tracking-[0.04em] md:text-6xl">
-              <span className="text-[var(--nffc-white,#f5f5f5)]">{playerDisplayName}</span>
-              <span className="px-3 text-[var(--nffc-white,#f5f5f5)]">/</span>
-              <span className="align-middle text-[0.72em] text-[var(--nffc-red,#e50914)]">{teamDisplayName}</span>
+          <div className="mb-2 bg-[var(--nffc-black,#000000)] px-0 pb-1 pt-2 md:px-4 md:pb-2 md:pt-4">
+            <h1 className="text-3xl font-black uppercase leading-none tracking-[0.02em] md:text-6xl">
+              <span className="block text-[var(--nffc-white,#f5f5f5)] md:inline">{playerDisplayName}</span>
+              <span className="hidden px-3 text-[var(--nffc-white,#f5f5f5)] md:inline">/</span>
+              <span className="mt-1 block text-xl leading-none text-[var(--nffc-red,#e50914)] md:mt-0 md:inline md:text-[0.72em]">
+                {teamDisplayName}
+              </span>
             </h1>
           </div>
 
-          <div className="bg-[var(--nffc-black,#000000)] px-4 py-2 text-2xl font-black uppercase leading-tight tracking-[0.08em] text-white md:text-4xl">
-            Pos {formatOrdinal(rankings?.individual_rank)}
-            <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
-            Score {formatPoints(scoreTotal)}
-            <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
-            Accuracy {formatPercent(performanceStats.accuracyPercentage ?? rankings?.individual_accuracy_percentage)}
-            <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
-            Profile <span className="text-[var(--stat-cyan,#59efff)]">{playerProfileTag}</span>
+          <div className="bg-[var(--nffc-black,#000000)] px-0 py-1 text-base font-black uppercase leading-tight tracking-[0.08em] text-white md:px-4 md:py-2 md:text-4xl">
+            <div className="space-y-1 md:hidden">
+              <div>
+                Pos <span className="text-white">{formatOrdinal(rankings?.individual_rank)}</span>
+              </div>
+              <div>
+                Score <span className="text-[var(--stat-green,#22e55e)]">{formatPoints(scoreTotal)}</span>
+              </div>
+              <div>
+                Accuracy{" "}
+                <span className="text-[var(--stat-green,#22e55e)]">
+                  {formatPercent(performanceStats.accuracyPercentage ?? rankings?.individual_accuracy_percentage)}
+                </span>
+              </div>
+              <div>
+                Profile <span className="text-[var(--stat-cyan,#59efff)]">{playerProfileTag}</span>
+              </div>
+            </div>
+
+            <span className="hidden md:inline">
+              Pos {formatOrdinal(rankings?.individual_rank)}
+              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+              Score {formatPoints(scoreTotal)}
+              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+              Accuracy {formatPercent(performanceStats.accuracyPercentage ?? rankings?.individual_accuracy_percentage)}
+              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+              Profile <span className="text-[var(--stat-cyan,#59efff)]">{playerProfileTag}</span>
+            </span>
           </div>
 
-          <div className="mt-4 bg-[var(--nffc-black,#000000)] px-4 py-3">
-            <div className="text-2xl font-black uppercase leading-tight tracking-[0.06em] text-white md:text-3xl">
-              GW1 Prediction{" "}
-              <span className="text-[var(--stat-yellow,#ffe44d)]">
-                {formatNullablePoints(projection.original_prediction_points)} pts
-              </span>
-              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
-              Current{" "}
-              <span className="text-[var(--stat-green,#22e55e)]">
-                {formatPoints(projection.total_now_predicted)} pts
-              </span>
-              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
-              Perfect Picks{" "}
-              <span className="text-[var(--stat-cyan,#59efff)]">
-                {formatPoints(projection.full_prediction_set_points)} pts
-              </span>
-              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
-              Reality Check{" "}
-              <span
-                className={
-                  projection.actual_vs_predicted >= 0
-                    ? "text-[var(--stat-green,#22e55e)]"
-                    : "text-[var(--stat-wrong,#ff3030)]"
-                }
-              >
-                {formatSignedNumber(projection.actual_vs_predicted)} pts
+          <div className="mt-4 hidden bg-[var(--nffc-black,#000000)] px-3 py-3 md:block md:px-4">
+            <div className="grid grid-cols-2 gap-[2px] bg-[#444444] md:block md:bg-[var(--nffc-black,#000000)] md:text-3xl md:font-black md:uppercase md:leading-tight md:tracking-[0.06em] md:text-white">
+              <MobileHeaderStat
+                label="GW1"
+                value={`${formatNullablePoints(projection.original_prediction_points)} pts`}
+                tone="yellow"
+              />
+              <MobileHeaderStat
+                label="Current"
+                value={`${formatPoints(projection.total_now_predicted)} pts`}
+                tone="green"
+              />
+              <MobileHeaderStat
+                label="Perfect"
+                value={`${formatPoints(projection.full_prediction_set_points)} pts`}
+                tone="cyan"
+              />
+              <MobileHeaderStat
+                label="Reality"
+                value={`${formatSignedNumber(projection.actual_vs_predicted)} pts`}
+                tone={projection.actual_vs_predicted >= 0 ? "green" : "red"}
+              />
+
+              <span className="hidden md:inline">
+                GW1 Prediction{" "}
+                <span className="text-[var(--stat-yellow,#ffe44d)]">
+                  {formatNullablePoints(projection.original_prediction_points)} pts
+                </span>
+                <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+                Current{" "}
+                <span className="text-[var(--stat-green,#22e55e)]">
+                  {formatPoints(projection.total_now_predicted)} pts
+                </span>
+                <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+                Perfect Picks{" "}
+                <span className="text-[var(--stat-cyan,#59efff)]">
+                  {formatPoints(projection.full_prediction_set_points)} pts
+                </span>
+                <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+                Reality Check{" "}
+                <span
+                  className={
+                    projection.actual_vs_predicted >= 0
+                      ? "text-[var(--stat-green,#22e55e)]"
+                      : "text-[var(--stat-wrong,#ff3030)]"
+                  }
+                >
+                  {formatSignedNumber(projection.actual_vs_predicted)} pts
+                </span>
               </span>
             </div>
 
-            <div className="mt-2 text-sm font-black uppercase leading-5 tracking-[0.08em] text-[#8f8f8f] md:text-base">
+            <div className="mt-3 text-[0.68rem] font-black uppercase leading-4 tracking-[0.08em] text-[#8f8f8f] md:text-base">
               GW1 = original call / Current = actual + remaining picks / Perfect Picks = all correct / Reality Check = completed picks v reality
             </div>
           </div>
         </header>
 
-        <section className="mb-12 rounded-none border border-[#242424] bg-[var(--nffc-black,#000000)] p-4 shadow-none md:p-5">
+        <section className="mb-6 bg-[var(--nffc-black,#000000)] p-0 shadow-none md:mb-12 md:border md:border-[#242424] md:p-5">
           <div className="mb-4">
-            <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-3 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">Make Your Predictions Here</h2>
-            <p className="mt-1 text-sm font-semibold text-white">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-3 py-2 text-xl font-black uppercase tracking-[0.08em] text-white md:px-5 md:py-3 md:text-4xl"><span className="md:hidden">Make Predictions</span><span className="hidden md:inline">Make Your Predictions Here</span></h2>
+            <p className="mt-1 hidden text-sm font-semibold text-white md:block">
               Select W, D or L for each unlocked fixture.
             </p>
           </div>
 
-          <div className="overflow-hidden border border-[#242424]">
+          {openPredictions[0] ? (
+            <div className="mb-2 bg-[var(--nffc-black,#000000)] text-sm font-black uppercase tracking-[0.08em] text-white md:hidden">
+              Next deadline{" "}
+              <span className="text-[var(--stat-yellow,#ffe44d)]">
+                {formatCompactDateTime(openPredictions[0].prediction_lock_at ?? openPredictions[0].kickoff_at)}
+              </span>
+            </div>
+          ) : null}
+
+          <div className="overflow-visible border-0 md:overflow-hidden md:border md:border-[#242424]">
             <div className="hidden grid-cols-[100px_minmax(150px,1fr)_560px_230px] border-b border-[var(--nffc-red,#e50914)] bg-[var(--nffc-black,#000000)] text-base font-black uppercase tracking-[0.16em] text-white lg:grid">
               <div className="border-r border-[#242424] px-4 py-3">GW</div>
               <div className="border-r border-[#242424] px-4 py-3">Fixture</div>
@@ -907,7 +1104,7 @@ export default function PredictionFormClient({
               Score Breakdown
             </h2>
 
-            <div className="overflow-hidden bg-[var(--nffc-black,#000000)]">
+            <div className="hidden overflow-hidden bg-[var(--nffc-black,#000000)] lg:block">
               <div className="hidden grid-cols-[100px_minmax(240px,1fr)_170px_140px_110px_120px_120px_120px_100px_150px] border-b border-[var(--nffc-red,#e50914)] text-base font-black uppercase tracking-[0.16em] text-white lg:grid">
                 <div className="border-r border-[#242424] px-4 py-3">GW</div>
                 <div className="border-r border-[#242424] px-4 py-3">Fixture</div>
@@ -934,10 +1131,25 @@ export default function PredictionFormClient({
                 </div>
               )}
             </div>
+
+            <div className="grid gap-[2px] bg-[#444444] lg:hidden">
+              {scoreRows.length ? (
+                scoreRows.map((score) => (
+                  <MobileScoreBreakdownRow
+                    key={`${score.gameweek}-${score.opponent_short}-mobile`}
+                    score={score}
+                  />
+                ))
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  No scored fixtures yet.
+                </div>
+              )}
+            </div>
           </section>
 
-          <section className="mt-12 bg-[var(--nffc-black,#000000)]">
-            <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-4 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+          <section className="mt-8 bg-[var(--nffc-black,#000000)] md:mt-12">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-4 py-3 text-2xl font-black uppercase tracking-[0.08em] text-white md:px-5 md:py-4 md:text-4xl">
               Cup Predictions
             </h2>
 
@@ -1024,7 +1236,126 @@ export default function PredictionFormClient({
           </section>
         </section>
       </section>
-    </main>
+      </main>
+    </>
+  );
+}
+
+function MobilePredictionEntry({
+  prediction,
+  saving,
+  onChange,
+}: {
+  prediction: PlayerPageData["predictions"][number];
+  saving: boolean;
+  onChange: (fixtureId: string, newPrediction: PredictionValue) => void;
+}) {
+  const deadlineAt = prediction.prediction_lock_at ?? prediction.kickoff_at;
+  const countdown = getDeadlineCountdown(deadlineAt);
+  const locked =
+    prediction.is_locked || isConfirmedPrediction(prediction) || countdown.expired;
+
+  return (
+    <article className={`py-1 ${locked ? "opacity-60" : ""}`}>
+      <div className="grid grid-cols-[minmax(0,1fr)_70px] items-baseline gap-2">
+        <span className="truncate text-left text-lg font-black uppercase leading-none tracking-[0.01em] text-white">
+          {prediction.opponent_short}{" "}
+          <span className="text-white">{prediction.venue}</span>
+        </span>
+
+        <span className="text-right text-lg font-black uppercase tracking-[0.06em] text-[var(--nffc-red,#e50914)]">
+          {prediction.gameweek_label}
+        </span>
+      </div>
+
+      {locked ? (
+        <div className="mt-1 text-right text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--stat-wrong,#ff3030)]">
+          Locked
+        </div>
+      ) : null}
+
+      <div className="mt-1">
+        <PredictionButtons
+          fixtureId={prediction.fixture_id}
+          selected={prediction.prediction}
+          locked={locked}
+          saving={saving}
+          onChange={onChange}
+          fullWidth
+          mobileLarge
+        />
+      </div>
+    </article>
+  );
+}
+
+function mobileBonusValueClass(value: number, tone: "yellow" | "cyan" | "pink" | "green") {
+  if (value <= 0) return "text-[var(--stat-wrong,#ff3030)]";
+  return bonusValueClass(value, tone);
+}
+
+function MobileCleanScoreRow({ score }: { score: ScoreRowWithRunning }) {
+  const correct = score.prediction === score.actual_result;
+  const runningTotal = getScoreRunningTotal(score);
+  const bonusTotal =
+    score.streak_bonus + score.maverick_bonus + score.rogue_bonus + score.cup_bonus;
+  const fixtureTotal = score.base_points + bonusTotal;
+  const resultTone = correct
+    ? "text-[var(--stat-green,#22e55e)]"
+    : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <article className="border-b border-[#242424] py-2">
+      <div className="grid grid-cols-[72px_minmax(0,1fr)_auto] items-baseline gap-2">
+        <div className={`text-lg font-black uppercase tracking-[0.06em] ${resultTone}`}>
+          {score.gameweek_label}
+        </div>
+
+        <div className={`truncate text-right text-lg font-black uppercase leading-none ${resultTone}`}>
+          {score.opponent_short} <span className={resultTone}>{score.venue}</span>
+        </div>
+
+        <div className={`pl-2 text-right text-xl font-black leading-none ${resultTone}`}>
+          {formatPoints(runningTotal)}
+        </div>
+      </div>
+
+      <div className="mt-2 text-sm font-black uppercase tracking-[0.08em] text-white">
+        Pick <span className="text-white">{score.prediction}</span>
+        <span className="px-2 text-[var(--nffc-red,#e50914)]">/</span>
+        Result <span className="text-white">{score.actual_result}</span>
+      </div>
+
+      <div className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-white">
+        Base{" "}
+        <span className={score.base_points > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>
+          {formatPoints(score.base_points)}
+        </span>
+        <span className="px-2 text-[var(--nffc-red,#e50914)]">+</span>
+        Bonus <span className={bonusTotal > 0 ? "text-[var(--stat-cyan,#59efff)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(bonusTotal)}</span>
+        <span className="px-2 text-[var(--nffc-red,#e50914)]">=</span>
+        GW <span className={fixtureTotal > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(fixtureTotal)}</span>
+      </div>
+
+      {(score.streak_bonus > 0 ||
+        score.maverick_bonus > 0 ||
+        score.rogue_bonus > 0 ||
+        score.cup_bonus > 0) && (
+        <div className="mt-1 text-xs font-black uppercase tracking-[0.08em] text-white">
+          <span className="text-[var(--stat-yellow,#ffe44d)]">S</span>{" "}
+          <span className={mobileBonusValueClass(score.streak_bonus, "yellow")}>{formatPoints(score.streak_bonus)}</span>
+          <span className="px-1 text-[#666666]">/</span>
+          <span className="text-[var(--stat-cyan,#59efff)]">M</span>{" "}
+          <span className={mobileBonusValueClass(score.maverick_bonus, "cyan")}>{formatPoints(score.maverick_bonus)}</span>
+          <span className="px-1 text-[#666666]">/</span>
+          <span className="text-[var(--stat-pink,#ff4fd8)]">R</span>{" "}
+          <span className={mobileBonusValueClass(score.rogue_bonus, "pink")}>{formatPoints(score.rogue_bonus)}</span>
+          <span className="px-1 text-[#666666]">/</span>
+          <span className="text-[var(--stat-green,#22e55e)]">Cup</span>{" "}
+          <span className={mobileBonusValueClass(score.cup_bonus, "green")}>{formatPoints(score.cup_bonus)}</span>
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -1166,6 +1497,38 @@ function ProjectionStat({
   );
 }
 
+function MobileHeaderStat({
+  label,
+  value,
+  tone = "white",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "green" | "yellow" | "cyan" | "red" | "white";
+}) {
+  const toneClass =
+    tone === "green"
+      ? "text-[var(--stat-green,#22e55e)]"
+      : tone === "yellow"
+        ? "text-[var(--stat-yellow,#ffe44d)]"
+        : tone === "cyan"
+          ? "text-[var(--stat-cyan,#59efff)]"
+          : tone === "red"
+            ? "text-[var(--stat-wrong,#ff3030)]"
+            : "text-white";
+
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] px-3 py-2 md:hidden">
+      <div className="text-[0.65rem] font-black uppercase tracking-[0.16em] text-[var(--nffc-muted,#a7a7a7)]">
+        {label}
+      </div>
+      <div className={`mt-1 text-xl font-black uppercase leading-none ${toneClass}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
 function PredictionEntryRow({
   prediction,
   saving,
@@ -1229,6 +1592,7 @@ function PredictionButtons({
   saving,
   onChange,
   fullWidth = false,
+  mobileLarge = false,
 }: {
   fixtureId: string;
   selected: PredictionValue;
@@ -1236,11 +1600,12 @@ function PredictionButtons({
   saving: boolean;
   onChange: (fixtureId: string, newPrediction: PredictionValue) => void;
   fullWidth?: boolean;
+  mobileLarge?: boolean;
 }) {
   const options: PredictionValue[] = ["W", "D", "L"];
 
   return (
-    <div className={`grid grid-cols-3 gap-1.5 ${fullWidth ? "w-full" : ""}`}>
+    <div className={`grid max-w-full grid-cols-3 gap-[2px] overflow-hidden ${fullWidth ? "w-full" : ""}`}>
       {options.map((option) => {
         const isSelected = selected === option;
 
@@ -1495,6 +1860,93 @@ function ScoreBreakdownRow({ score }: { score: ScoreRowWithRunning }) {
         className={`px-4 py-1.5 text-center text-4xl font-black leading-none ${resultTone}`}
       >
         {formatPoints(runningTotal)}
+      </div>
+    </div>
+  );
+}
+
+function MobileScoreBreakdownRow({ score }: { score: ScoreRowWithRunning }) {
+  const correct = score.prediction === score.actual_result;
+  const runningTotal = getScoreRunningTotal(score);
+  const resultTone = correct
+    ? "text-[var(--stat-green,#22e55e)]"
+    : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <article className="bg-[var(--nffc-black,#000000)] p-3 text-white">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+        <div className="min-w-0">
+          <div className={`text-sm font-black uppercase tracking-[0.16em] ${resultTone}`}>
+            {score.gameweek_label}
+          </div>
+          <div className={`mt-1 truncate text-2xl font-black uppercase leading-none ${resultTone}`}>
+            {score.opponent_short} {score.venue}
+          </div>
+        </div>
+
+        <div className={`text-right text-4xl font-black leading-none ${resultTone}`}>
+          {formatPoints(runningTotal)}
+          <div className="mt-1 text-[0.65rem] font-black uppercase tracking-[0.14em] text-white">
+            Running
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-[2px] bg-[#444444] text-center">
+        <div className="bg-[var(--nffc-black,#000000)] px-2 py-2">
+          <div className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-[var(--nffc-muted,#a7a7a7)]">
+            Pick
+          </div>
+          <div className={`mt-1 text-3xl font-black leading-none ${correct ? "text-[var(--stat-green,#22e55e)]" : "text-white"}`}>
+            {score.prediction}
+          </div>
+        </div>
+
+        <div className="bg-[var(--nffc-black,#000000)] px-2 py-2">
+          <div className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-[var(--nffc-muted,#a7a7a7)]">
+            Result
+          </div>
+          <div className="mt-1 text-3xl font-black leading-none text-white">
+            {score.actual_result}
+          </div>
+        </div>
+
+        <div className="bg-[var(--nffc-black,#000000)] px-2 py-2">
+          <div className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-[var(--nffc-muted,#a7a7a7)]">
+            Pts
+          </div>
+          <div className={`mt-1 text-3xl font-black leading-none ${score.base_points > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}`}>
+            {formatPoints(score.base_points)}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-[2px] grid grid-cols-4 gap-[2px] bg-[#444444] text-center">
+        <MobileBonusCell label="S" value={score.streak_bonus} tone="yellow" />
+        <MobileBonusCell label="M" value={score.maverick_bonus} tone="cyan" />
+        <MobileBonusCell label="R" value={score.rogue_bonus} tone="pink" />
+        <MobileBonusCell label="Cup" value={score.cup_bonus} tone="green" />
+      </div>
+    </article>
+  );
+}
+
+function MobileBonusCell({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "yellow" | "cyan" | "pink" | "green";
+}) {
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] px-2 py-2">
+      <div className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-[var(--nffc-muted,#a7a7a7)]">
+        {label}
+      </div>
+      <div className={`mt-1 text-2xl font-black leading-none ${bonusValueClass(value, tone)}`}>
+        {formatPoints(value)}
       </div>
     </div>
   );
