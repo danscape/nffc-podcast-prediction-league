@@ -86,9 +86,9 @@ export default function AdminPlayersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
+        <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
@@ -97,14 +97,14 @@ export default function AdminPlayersPage() {
               <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
                 Players
               </h1>
-              <p className="mt-3 text-sm font-semibold text-neutral-600">
+              <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                 Review player records, teams and prediction links.
               </p>
             </div>
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -130,9 +130,9 @@ export default function AdminPlayersPage() {
           />
         </section>
 
-        <section className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+        <section className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
           <label className="block">
-            <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+            <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
               Search players
             </span>
             <input
@@ -140,18 +140,18 @@ export default function AdminPlayersPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by name, team, email or PPL code"
-              className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+              className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
             />
           </label>
         </section>
 
         {loading ? (
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-6 text-xl font-black uppercase text-[#C8102E] shadow-sm">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[#C8102E] shadow-none">
             Loading players…
           </div>
         ) : (
           <>
-            <div className="hidden overflow-hidden rounded-3xl border border-[#D9D6D1] bg-white shadow-sm xl:block">
+            <div className="hidden overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] shadow-none xl:block">
               <table className="w-full border-collapse text-left text-sm">
                 <thead className="bg-[#111111] text-white">
                   <tr>
@@ -168,7 +168,7 @@ export default function AdminPlayersPage() {
                   {filteredPlayers.map((player) => (
                     <tr
                       key={player.player_id}
-                      className="border-b border-[#E7E2DA] last:border-b-0"
+                      className="border-b border-[rgba(245,245,245,0.35)] last:border-b-0"
                     >
                       <td className="px-4 py-3 font-black">
                         {player.legacy_code}
@@ -177,18 +177,18 @@ export default function AdminPlayersPage() {
                         <div className="font-black">
                           {player.table_display_name ?? player.player_name}
                         </div>
-                        <div className="text-xs text-neutral-500">
+                        <div className="text-xs text-[var(--nffc-muted,#a7a7a7)]">
                           {player.player_name}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-neutral-700">
+                      <td className="px-4 py-3 text-[var(--nffc-muted,#a7a7a7)]">
                         {player.email}
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-bold">
                           {player.team_display_name ?? player.team_name}
                         </div>
-                        <div className="text-xs text-neutral-500">
+                        <div className="text-xs text-[var(--nffc-muted,#a7a7a7)]">
                           {player.parent_podcast}
                         </div>
                       </td>
@@ -219,7 +219,7 @@ export default function AdminPlayersPage() {
               {filteredPlayers.map((player) => (
                 <div
                   key={player.player_id}
-                  className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm"
+                  className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -229,7 +229,7 @@ export default function AdminPlayersPage() {
                       <div className="mt-1 text-xl font-black">
                         {player.table_display_name ?? player.player_name}
                       </div>
-                      <div className="text-sm text-neutral-600">
+                      <div className="text-sm text-[var(--nffc-muted,#a7a7a7)]">
                         {player.email}
                       </div>
                     </div>
@@ -239,17 +239,17 @@ export default function AdminPlayersPage() {
                     </div>
                   </div>
 
-                  <div className="mt-4 rounded-2xl bg-[#F7F6F2] p-3">
+                  <div className="mt-4 rounded-none bg-[var(--nffc-black,#000000)] p-3">
                     <div className="text-sm font-black">
                       {player.team_display_name ?? player.team_name}
                     </div>
-                    <div className="text-xs text-neutral-600">
+                    <div className="text-xs text-[var(--nffc-muted,#a7a7a7)]">
                       {player.parent_podcast}
                     </div>
                   </div>
 
                   <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-sm font-bold text-neutral-600">
+                    <div className="text-sm font-bold text-[var(--nffc-muted,#a7a7a7)]">
                       {player.prediction_rows} prediction rows
                     </div>
                     <button
@@ -274,8 +274,8 @@ export default function AdminPlayersPage() {
 
 function AdminStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
-      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+    <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none">
+      <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
       <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>

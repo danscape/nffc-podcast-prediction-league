@@ -7,10 +7,10 @@ export default async function TestSupabasePage() {
     .order("key");
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] p-8 text-[#111111]">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] p-8 text-[var(--nffc-white,#f5f5f5)]">
       <h1 className="mb-6 text-3xl font-bold">Supabase Connection Test</h1>
 
-      <div className="mb-6 rounded-lg border border-[#D9D6D1] bg-white p-4">
+      <div className="mb-6 rounded-lg border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4">
         <div className="font-semibold">Status</div>
         <div className="text-sm">
           {error
@@ -27,7 +27,7 @@ export default async function TestSupabasePage() {
         </pre>
       )}
 
-      <pre className="rounded-lg border border-[#D9D6D1] bg-white p-4 text-xs">
+      <pre className="rounded-lg border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 text-xs">
         {JSON.stringify(data, null, 2)}
       </pre>
     </main>

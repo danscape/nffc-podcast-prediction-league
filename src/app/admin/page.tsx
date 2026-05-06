@@ -124,9 +124,9 @@ export default async function AdminPage() {
       : 0;
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
+        <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
@@ -137,7 +137,7 @@ export default async function AdminPage() {
                 Control Centre
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-neutral-600 md:text-base">
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[var(--nffc-muted,#a7a7a7)] md:text-base">
                 Manage fixtures, predictions, players, teams, cup outcomes,
                 reminders, social posts and leaderboard checks for the NFFC
                 Podcast Prediction League.
@@ -147,7 +147,7 @@ export default async function AdminPage() {
             <div className="flex flex-col gap-2 sm:flex-row">
               <Link
                 href="/"
-                className="rounded-full border border-[#111111] px-5 py-3 text-center text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+                className="rounded-full border border-[#111111] px-5 py-3 text-center text-xs font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
               >
                 Public homepage
               </Link>
@@ -162,7 +162,7 @@ export default async function AdminPage() {
         </header>
 
         {errors.length > 0 && (
-          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+          <div className="mb-6 rounded-none border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
             Some dashboard data could not be loaded: {errors.join(" · ")}
           </div>
         )}
@@ -286,11 +286,11 @@ export default async function AdminPage() {
           />
         </section>
 
-        <section className="mt-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-6">
+        <section className="mt-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-2xl font-black uppercase">Reminder emails</h2>
-              <p className="mt-1 text-sm font-semibold leading-6 text-neutral-600">
+              <p className="mt-1 text-sm font-semibold leading-6 text-[var(--nffc-muted,#a7a7a7)]">
                 Fixture reminders are currently sent through the API route after
                 a dry-run check. Test mode should be used before sending to all
                 players.
@@ -321,15 +321,15 @@ function AdminStat({
 }) {
   return (
     <div
-      className={`rounded-2xl border p-4 shadow-sm ${
+      className={`rounded-none border p-4 shadow-none ${
         highlight
           ? "border-[#C8102E] bg-[#C8102E] text-white"
-          : "border-[#D9D6D1] bg-white text-[#111111]"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)]"
       }`}
     >
       <div
         className={`text-xs font-black uppercase tracking-wide ${
-          highlight ? "text-white/75" : "text-neutral-500"
+          highlight ? "text-white/75" : "text-[var(--nffc-muted,#a7a7a7)]"
         }`}
       >
         {label}
@@ -349,11 +349,11 @@ function FixturePanel({
   rows: [string, string][];
 }) {
   return (
-    <div className="rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-6">
+    <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-6">
       <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
         {eyebrow}
       </div>
-      <h2 className="mt-2 text-2xl font-black uppercase tracking-tight text-[#111111]">
+      <h2 className="mt-2 text-2xl font-black uppercase tracking-tight text-[var(--nffc-white,#f5f5f5)]">
         {title}
       </h2>
 
@@ -361,12 +361,12 @@ function FixturePanel({
         {rows.map(([label, value]) => (
           <div
             key={label}
-            className="flex items-center justify-between gap-4 rounded-2xl border border-[#E7E2DA] bg-[#F7F6F2] px-4 py-3"
+            className="flex items-center justify-between gap-4 rounded-none border border-[rgba(245,245,245,0.35)] bg-[var(--nffc-black,#000000)] px-4 py-3"
           >
-            <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+            <div className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
               {label}
             </div>
-            <div className="text-right text-sm font-black text-[#111111]">
+            <div className="text-right text-sm font-black text-[var(--nffc-white,#f5f5f5)]">
               {value}
             </div>
           </div>
@@ -392,10 +392,10 @@ function AdminCard({
   return (
     <Link
       href={href}
-      className={`rounded-3xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+      className={`rounded-none border p-5 shadow-none transition hover:-translate-y-0.5 hover:shadow-md ${
         accent
           ? "border-[#111111] bg-[#111111] text-white"
-          : "border-[#D9D6D1] bg-white text-[#111111]"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)]"
       }`}
     >
       <div className="text-xs font-black uppercase tracking-[0.22em] text-[#C8102E]">
@@ -408,7 +408,7 @@ function AdminCard({
 
       <p
         className={`mt-3 text-sm font-semibold leading-6 ${
-          accent ? "text-neutral-300" : "text-neutral-600"
+          accent ? "text-[var(--nffc-muted,#a7a7a7)]" : "text-[var(--nffc-muted,#a7a7a7)]"
         }`}
       >
         {description}
@@ -417,8 +417,8 @@ function AdminCard({
       <div
         className={`mt-5 inline-flex rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${
           accent
-            ? "bg-white text-[#111111]"
-            : "border border-[#111111] text-[#111111]"
+            ? "bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)]"
+            : "border border-[#111111] text-[var(--nffc-white,#f5f5f5)]"
         }`}
       >
         {cta}

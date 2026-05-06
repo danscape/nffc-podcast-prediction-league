@@ -178,9 +178,9 @@ export default function AdminLeaderboardsPage() {
   }, [teamRows, query]);
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
+        <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
@@ -189,7 +189,7 @@ export default function AdminLeaderboardsPage() {
               <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
                 Leaderboards
               </h1>
-              <p className="mt-3 text-sm font-semibold text-neutral-600">
+              <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                 Review individual and team tables after confirmed results.
               </p>
             </div>
@@ -204,7 +204,7 @@ export default function AdminLeaderboardsPage() {
               </button>
               <Link
                 href="/admin"
-                className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+                className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
               >
                 Back to admin
               </Link>
@@ -213,7 +213,7 @@ export default function AdminLeaderboardsPage() {
         </header>
 
         {message && (
-          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+          <div className="mb-6 rounded-none border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
             {message}
           </div>
         )}
@@ -229,7 +229,7 @@ export default function AdminLeaderboardsPage() {
         </section>
 
         {lastConfirmedFixture && (
-          <section className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+          <section className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
             <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
               Last confirmed result
             </div>
@@ -237,7 +237,7 @@ export default function AdminLeaderboardsPage() {
               {lastConfirmedFixture.gameweek_label} —{" "}
               {lastConfirmedFixture.opponent_short} {lastConfirmedFixture.venue}
             </div>
-            <div className="mt-1 text-sm font-semibold text-neutral-600">
+            <div className="mt-1 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
               Score:{" "}
               {lastConfirmedFixture.home_score === null ||
               lastConfirmedFixture.away_score === null
@@ -248,10 +248,10 @@ export default function AdminLeaderboardsPage() {
           </section>
         )}
 
-        <section className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+        <section className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
             <label className="block">
-              <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+              <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                 Search
               </span>
               <input
@@ -259,7 +259,7 @@ export default function AdminLeaderboardsPage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search players, teams or MVPs"
-                className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
               />
             </label>
 
@@ -270,7 +270,7 @@ export default function AdminLeaderboardsPage() {
                 className={`rounded-full px-5 py-3 text-xs font-black uppercase tracking-wide transition ${
                   tab === "individual"
                     ? "bg-[#111111] text-white"
-                    : "border border-[#111111] text-[#111111] hover:border-[#C8102E] hover:text-[#C8102E]"
+                    : "border border-[#111111] text-[var(--nffc-white,#f5f5f5)] hover:border-[#C8102E] hover:text-[#C8102E]"
                 }`}
               >
                 Individual
@@ -281,7 +281,7 @@ export default function AdminLeaderboardsPage() {
                 className={`rounded-full px-5 py-3 text-xs font-black uppercase tracking-wide transition ${
                   tab === "teams"
                     ? "bg-[#111111] text-white"
-                    : "border border-[#111111] text-[#111111] hover:border-[#C8102E] hover:text-[#C8102E]"
+                    : "border border-[#111111] text-[var(--nffc-white,#f5f5f5)] hover:border-[#C8102E] hover:text-[#C8102E]"
                 }`}
               >
                 Teams
@@ -291,7 +291,7 @@ export default function AdminLeaderboardsPage() {
         </section>
 
         {loading ? (
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-6 text-xl font-black uppercase text-[#C8102E] shadow-sm">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[#C8102E] shadow-none">
             Loading leaderboards…
           </div>
         ) : tab === "individual" ? (
@@ -306,8 +306,8 @@ export default function AdminLeaderboardsPage() {
 
 function AdminStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
-      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+    <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none">
+      <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
       <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>

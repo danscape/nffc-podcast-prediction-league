@@ -17,7 +17,7 @@ export default function SocialGraphicFrame({
 }: SocialGraphicFrameProps) {
   return (
     <article
-      className={`mx-auto w-full overflow-hidden rounded-3xl border border-[#111111] bg-[#111111] text-white shadow-sm ${className}`}
+      className={`mx-auto w-full overflow-hidden rounded-none border border-[#111111] bg-[#111111] text-white shadow-none ${className}`}
     >
       <div className="relative flex min-h-[640px] flex-col justify-between overflow-hidden bg-[radial-gradient(circle_at_top_left,_#C8102E_0,_#7A0719_34%,_#111111_74%)] p-5">
         <div className="absolute inset-0 opacity-[0.08]">

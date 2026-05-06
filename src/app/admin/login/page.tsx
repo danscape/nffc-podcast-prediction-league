@@ -32,9 +32,9 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-8 text-[#111111] sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-8 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8">
       <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl flex-col justify-center">
-        <div className="rounded-3xl border border-[#D9D6D1] bg-white p-6 shadow-sm md:p-8">
+        <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 shadow-none md:p-8">
           <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
             🔮 Admin
           </div>
@@ -43,33 +43,33 @@ export default function AdminLoginPage() {
             Admin login
           </h1>
 
-          <p className="mt-4 text-sm leading-6 text-neutral-600">
+          <p className="mt-4 text-sm leading-6 text-[var(--nffc-muted,#a7a7a7)]">
             Sign in with the admin email and password.
           </p>
 
           <form onSubmit={signIn} className="mt-6 space-y-4">
             <label className="block">
-              <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+              <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                 Email address
               </span>
               <input
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
                 required
               />
             </label>
 
             <label className="block">
-              <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+              <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                 Password
               </span>
               <input
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
                 required
               />
             </label>
@@ -84,7 +84,7 @@ export default function AdminLoginPage() {
           </form>
 
           {errorMessage && (
-            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+            <div className="mt-5 rounded-none border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
               {errorMessage}
             </div>
           )}

@@ -1,0 +1,137 @@
+import { createClient } from "@supabase/supabase-js";
+import PredictionFormClient from "@/components/PredictionFormClient";
+
+type PredictionValue = "W" | "D" | "L";
+
+type PlayerPageData = {
+  found: boolean;
+  player: {
+    id: string;
+    legacy_code: string;
+    player_name: string;
+    short_name: string | null;
+    team_name: string;
+    team_display_name: string | null;
+    team_abbreviation: string | null;
+    parent_podcast: string | null;
+    parent_podcast_abbreviation: string | null;
+    joined_gameweek: number;
+  };
+  projection: {
+    actual_points_so_far: number;
+    remaining_predicted_points: number;
+    total_now_predicted: number;
+    full_prediction_set_points: number;
+    gw1_predicted_points?: number | string | null;
+  } | null;
+  rankings: {
+    individual_rank: number;
+    individual_points: number;
+    individual_accuracy_percentage: number;
+    team_rank: number;
+    team_points: number;
+    team_clean_sweeps: number;
+    team_blanks: number;
+    individual_rank_out_of?: number | null;
+    team_rank_out_of?: number | null;
+  } | null;
+  predictions: {
+    fixture_id: string;
+    gameweek: number;
+    gameweek_label: string;
+    opponent: string;
+    opponent_short: string;
+    venue: "H" | "A";
+    kickoff_at: string | null;
+    prediction_lock_at: string | null;
+    status: string;
+    home_score: number | null;
+    away_score: number | null;
+    forest_result: PredictionValue | null;
+    prediction: PredictionValue;
+    predicted_forest_points: number;
+    is_locked: boolean;
+  }[];
+};
+
+type RawPlayerPageData = Omit<
+  PlayerPageData,
+  "projection" | "rankings" | "predictions"
+> & {
+  projection?: PlayerPageData["projection"];
+  rankings?: PlayerPageData["rankings"];
+  predictions?: PlayerPageData["predictions"];
+};
+
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing Supabase environment variables.");
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
+
+function normalisePageData(data: RawPlayerPageData): PlayerPageData {
+  return {
+    ...data,
+    rankings: data.rankings ?? null,
+    projection: data.projection ?? null,
+    predictions: data.predictions ?? [],
+  };
+}
+
+export default async function PredictPage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const resolvedParams = await params;
+  const token = resolvedParams.token;
+
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase.rpc("get_player_prediction_page", {
+    target_token: token,
+  });
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-8 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl flex-col justify-center">
+          <div className="rounded-none border border-red-200 bg-red-50 p-6 text-center shadow-none md:p-8">
+            <h1 className="text-3xl font-black uppercase text-red-800">
+              Prediction page error
+            </h1>
+            <p className="mt-3 text-sm text-red-700">{error.message}</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const rawPageData = data as RawPlayerPageData | null;
+
+  if (!rawPageData?.found) {
+    return (
+      <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-8 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl flex-col justify-center">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-center shadow-none md:p-8">
+            <h1 className="text-3xl font-black uppercase text-[#C8102E]">
+              Prediction page not found
+            </h1>
+            <p className="mt-3 text-sm text-[var(--nffc-muted,#a7a7a7)]">
+              This prediction link is invalid or no longer active.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const pageData = normalisePageData(rawPageData);
+
+  return <PredictionFormClient token={token} initialData={pageData} />;
+}

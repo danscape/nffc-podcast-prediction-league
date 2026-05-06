@@ -342,9 +342,9 @@ export default function AdminFixturesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
+        <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
@@ -353,14 +353,14 @@ export default function AdminFixturesPage() {
               <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
                 Fixtures
               </h1>
-              <p className="mt-3 text-sm font-semibold text-neutral-600">
+              <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                 Edit fixture dates, lock times, status, snapshots and confirmed scoring results.
               </p>
             </div>
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -369,7 +369,7 @@ export default function AdminFixturesPage() {
 
         {message && (
           <div
-            className={`mb-6 rounded-2xl border p-4 text-sm font-semibold ${
+            className={`mb-6 rounded-none border p-4 text-sm font-semibold ${
               message.type === "success"
                 ? "border-green-200 bg-green-50 text-green-800"
                 : "border-red-200 bg-red-50 text-red-800"
@@ -390,9 +390,9 @@ export default function AdminFixturesPage() {
           />
         </section>
 
-        <section className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+        <section className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
           <label className="block">
-            <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+            <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
               Search fixtures
             </span>
             <input
@@ -400,13 +400,13 @@ export default function AdminFixturesPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by GW, opponent, status or result"
-              className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+              className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
             />
           </label>
         </section>
 
         {loading ? (
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-6 text-xl font-black uppercase text-[#C8102E] shadow-sm">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[#C8102E] shadow-none">
             Loading fixtures…
           </div>
         ) : (
@@ -430,7 +430,7 @@ export default function AdminFixturesPage() {
               return (
                 <div
                   key={fixture.id}
-                  className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5"
+                  className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5"
                 >
                   {!isEditing ? (
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -441,7 +441,7 @@ export default function AdminFixturesPage() {
                         <div className="mt-1 text-2xl font-black">
                           {fixture.opponent_short} {fixture.venue}
                         </div>
-                        <div className="mt-1 text-sm font-semibold text-neutral-600">
+                        <div className="mt-1 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                           {fixture.home_team} v {fixture.away_team}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2 text-xs font-black uppercase">
@@ -452,7 +452,7 @@ export default function AdminFixturesPage() {
                             </span>
                           )}
                           {isLocked && !fixture.result_confirmed && (
-                            <span className="rounded-full bg-neutral-200 px-3 py-1 text-neutral-700">
+                            <span className="rounded-full bg-neutral-200 px-3 py-1 text-[var(--nffc-muted,#a7a7a7)]">
                               Locked
                             </span>
                           )}
@@ -464,23 +464,23 @@ export default function AdminFixturesPage() {
                         </div>
                       </div>
 
-                      <div className="grid gap-2 text-sm font-semibold text-neutral-700 lg:min-w-[420px]">
+                      <div className="grid gap-2 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)] lg:min-w-[420px]">
                         <div>
-                          <span className="text-neutral-500">Kick-off: </span>
+                          <span className="text-[var(--nffc-muted,#a7a7a7)]">Kick-off: </span>
                           {formatDateTime(fixture.kickoff_at)}
                         </div>
                         <div>
-                          <span className="text-neutral-500">Lock: </span>
+                          <span className="text-[var(--nffc-muted,#a7a7a7)]">Lock: </span>
                           {formatDateTime(fixture.prediction_lock_at)}
                         </div>
                         <div>
-                          <span className="text-neutral-500">
+                          <span className="text-[var(--nffc-muted,#a7a7a7)]">
                             Score ({scoreSource}):{" "}
                           </span>
                           {displayScore(displayedHomeScore, displayedAwayScore)}
                         </div>
                         <div>
-                          <span className="text-neutral-500">API says: </span>
+                          <span className="text-[var(--nffc-muted,#a7a7a7)]">API says: </span>
                           {apiResultLabel(fixture)}
                         </div>
                       </div>
@@ -508,7 +508,7 @@ export default function AdminFixturesPage() {
                         <div className="flex flex-wrap gap-2">
                           <StatusBadge status={draft.status} />
                           {isLocked && (
-                            <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-neutral-700">
+                            <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
                               Locked
                             </span>
                           )}
@@ -520,14 +520,14 @@ export default function AdminFixturesPage() {
                         </div>
                       </div>
 
-                      <div className="mb-4 rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4">
-                        <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                      <div className="mb-4 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4">
+                        <div className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                           API imported result
                         </div>
-                        <div className="mt-2 flex flex-col gap-2 text-sm font-semibold text-neutral-700 md:flex-row md:items-center md:justify-between">
+                        <div className="mt-2 flex flex-col gap-2 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)] md:flex-row md:items-center md:justify-between">
                           <div>
                             {apiResultLabel(draft)}
-                            <span className="ml-2 text-neutral-500">
+                            <span className="ml-2 text-[var(--nffc-muted,#a7a7a7)]">
                               · Last synced {formatDateTime(draft.api_last_synced_at)}
                             </span>
                           </div>
@@ -536,7 +536,7 @@ export default function AdminFixturesPage() {
                             type="button"
                             onClick={useApiScore}
                             disabled={!hasApiScore(draft)}
-                            className="rounded-full border border-[#111111] px-4 py-2 text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-40"
+                            className="rounded-full border border-[#111111] px-4 py-2 text-xs font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             Use API score
                           </button>
@@ -566,7 +566,7 @@ export default function AdminFixturesPage() {
                         />
 
                         <label className="block">
-                          <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                          <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                             Venue
                           </span>
                           <select
@@ -574,7 +574,7 @@ export default function AdminFixturesPage() {
                             onChange={(event) =>
                               updateDraft({ venue: event.target.value as "H" | "A" })
                             }
-                            className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
                           >
                             <option value="H">H</option>
                             <option value="A">A</option>
@@ -582,7 +582,7 @@ export default function AdminFixturesPage() {
                         </label>
 
                         <label className="block">
-                          <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                          <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                             Status
                           </span>
                           <select
@@ -590,7 +590,7 @@ export default function AdminFixturesPage() {
                             onChange={(event) =>
                               updateDraft({ status: event.target.value })
                             }
-                            className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
                           >
                             <option value="scheduled">scheduled</option>
                             <option value="postponed">postponed</option>
@@ -601,19 +601,19 @@ export default function AdminFixturesPage() {
                         </label>
 
                         <label className="block md:col-span-2 xl:col-span-2">
-                          <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                          <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                             Kick-off UK time
                           </span>
                           <input
                             type="datetime-local"
                             value={toDatetimeLocal(draft.kickoff_at)}
                             onChange={(event) => setKickoff(event.target.value)}
-                            className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
                           />
                         </label>
 
                         <label className="block md:col-span-2 xl:col-span-2">
-                          <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                          <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                             Prediction lock UK time
                           </span>
                           <input
@@ -626,13 +626,13 @@ export default function AdminFixturesPage() {
                                 ),
                               })
                             }
-                            className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
                           />
                         </label>
 
                         <div className="md:col-span-2 xl:col-span-2">
-                          <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4">
-                            <div className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4">
+                            <div className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                               Official scoring result
                             </div>
                             <div className="mt-3 grid grid-cols-2 gap-3">
@@ -693,7 +693,7 @@ export default function AdminFixturesPage() {
                               type="button"
                               onClick={() => resetResult(draft)}
                               disabled={savingKey === `reset-${draft.id}`}
-                              className="rounded-full bg-neutral-200 px-5 py-3 text-sm font-black uppercase tracking-wide text-neutral-700 transition hover:bg-neutral-300 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-full bg-neutral-200 px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)] transition hover:bg-neutral-300 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {savingKey === `reset-${draft.id}`
                                 ? "Resetting…"
@@ -703,13 +703,13 @@ export default function AdminFixturesPage() {
                             <button
                               type="button"
                               onClick={cancelEdit}
-                              className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+                              className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
                             >
                               Cancel
                             </button>
                           </div>
 
-                          <p className="px-1 text-xs font-semibold text-neutral-500">
+                          <p className="px-1 text-xs font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                             Create snapshot should be used at/after the prediction lock
                             and before confirming the result for future gameweeks.
                           </p>
@@ -729,8 +729,8 @@ export default function AdminFixturesPage() {
 
 function AdminStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
-      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+    <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none">
+      <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
       <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
@@ -751,14 +751,14 @@ function TextField({
 }) {
   return (
     <label className={`block ${className}`}>
-      <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+      <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </span>
       <input
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
       />
     </label>
   );
@@ -775,7 +775,7 @@ function NumberField({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+      <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </span>
       <input
@@ -785,7 +785,7 @@ function NumberField({
         onChange={(event) =>
           onChange(event.target.value === "" ? null : Number(event.target.value))
         }
-        className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
       />
     </label>
   );
@@ -802,7 +802,7 @@ function StatusBadge({ status }: { status: string }) {
 
   if (status === "postponed") {
     return (
-      <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-neutral-700">
+      <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
         Postponed
       </span>
     );

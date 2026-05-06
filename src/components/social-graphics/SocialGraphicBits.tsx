@@ -61,7 +61,7 @@ export function GraphicStatCard({
   subValue?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+    <div className="rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 p-3 ">
       <div className="text-[0.64rem] font-black uppercase leading-tight tracking-[0.18em] text-white/55">
         {label}
       </div>
@@ -87,7 +87,7 @@ export function GraphicHeroStat({
   subValue?: string;
 }) {
   return (
-    <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+    <div className="rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 p-4 ">
       <div className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/55">
         {label}
       </div>
@@ -120,7 +120,7 @@ export function GraphicPercentCard({
         : "border-red-300/40 bg-red-500/15 text-red-100";
 
   return (
-    <div className={`rounded-2xl border p-3 text-center backdrop-blur ${toneClass}`}>
+    <div className={`rounded-none border p-3 text-center  ${toneClass}`}>
       <div className="text-[0.62rem] font-black uppercase tracking-wide opacity-70">
         {label}
       </div>
@@ -141,7 +141,7 @@ export function GraphicTeamCard({
   href?: string | null;
 }) {
   const content = (
-    <div className="h-full rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur transition hover:border-white/35">
+    <div className="h-full rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 p-3  transition hover:border-white/35">
       <div className="text-[0.64rem] font-black uppercase tracking-[0.18em] text-white/55">
         {label}
       </div>

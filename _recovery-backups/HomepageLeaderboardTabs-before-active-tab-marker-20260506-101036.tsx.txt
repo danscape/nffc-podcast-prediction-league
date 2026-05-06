@@ -1,0 +1,426 @@
+"use client";
+
+import Image from "next/image";
+
+
+import { useState } from "react";
+import CompactIndividualLeaderboard from "@/components/leaderboards/web/CompactIndividualLeaderboard";
+import CompactTeamLeaderboard from "@/components/leaderboards/web/CompactTeamLeaderboard";
+import IndividualLeaderboard from "@/components/leaderboards/web/IndividualLeaderboard";
+import TeamLeaderboard from "@/components/leaderboards/web/TeamLeaderboard";
+
+type IndividualLeaderboardRow = {
+ player_id: string;
+ player_name: string;
+ short_name: string | null;
+ table_display_name?: string | null;
+ team_name: string;
+ team_display_name?: string | null;
+ team_abbreviation?: string | null;
+ base_points: number;
+ streak_bonus: number;
+ maverick_bonus: number;
+ rogue_bonus: number;
+ cup_bonus: number;
+ total_points: number;
+ correct_predictions: number;
+ fixtures_scored: number;
+ accuracy_percentage: number;
+ bonus_points: number | null;
+ accuracy_whole_percentage: number | null;
+ best_streak: number | null;
+ current_streak: number | null;
+ team_logo_url?: string | null;
+ team_logo_alt?: string | null;
+ team_brand_colour?: string | null;
+};
+
+type TeamLeaderboardRow = {
+ team_id: string;
+ team_name: string;
+ display_name: string | null;
+ slug?: string | null;
+ x_handle: string | null;
+ total_team_points: number;
+ clean_sweeps: number;
+ blanks: number;
+ best_player_accuracy_percentage: number;
+ logo_url: string | null;
+ logo_alt: string | null;
+ brand_colour: string | null;
+ mvp_player_id?: string | null;
+ mvp_player_name?: string | null;
+ mvp_short_name?: string | null;
+ mvp_accuracy_percentage?: number | null;
+ latest_gameweek?: number | null;
+ latest_gameweek_label?: string | null;
+ latest_opponent_short?: string | null;
+ points_this_week?: number | null;
+};
+
+type FixtureTableRow = {
+ fixture_id: string;
+ gameweek: number;
+ gameweek_label: string;
+ opponent: string;
+ opponent_short: string;
+ venue: "H" | "A";
+ home_team: string;
+ away_team: string;
+ home_score: number | null;
+ away_score: number | null;
+ forest_result: "W" | "D" | "L" | null;
+ total_predictions: number;
+ forest_win_count: number;
+ draw_count: number;
+ forest_loss_count: number;
+ correct_count: number;
+ forest_win_percent: number;
+ draw_percent: number;
+ forest_loss_percent: number;
+ rogue_applied: boolean;
+ maverick_applied: boolean;
+};
+
+type ActiveTab = "teams" | "players" | "fixtures";
+
+function formatPercent(value: number | null | undefined) {
+ return `${Math.round(Number(value ?? 0))}%`;
+}
+
+function resultLabel(result: "W" | "D" | "L" | null) {
+ return result ?? "—";
+}
+
+function resultTextClass(result: "W" | "D" | "L" | null) {
+ if (result === "W") return "text-[var(--stat-green,#22e55e)]";
+ if (result === "D") return "text-[var(--stat-yellow,#ffe44d)]";
+ if (result === "L") return "text-[var(--stat-wrong,#ff3030)]";
+ return "text-white";
+}
+
+function hasFixtureResult(row: FixtureTableRow) {
+ return row.forest_result !== null;
+}
+
+export default function HomepageLeaderboardTabs({
+ individualRows,
+ teamRows,
+ fixtureRows,
+}: {
+ individualRows: IndividualLeaderboardRow[];
+ teamRows: TeamLeaderboardRow[];
+ fixtureRows: FixtureTableRow[];
+}) {
+ const [activeTab, setActiveTab] = useState<ActiveTab>("teams");
+ const [showFullMobileStats, setShowFullMobileStats] = useState(false);
+
+ function changeTab(nextTab: ActiveTab) {
+ setActiveTab(nextTab);
+ setShowFullMobileStats(false);
+ }
+
+ return (
+ <section id="leaderboards" className="scroll-mt-6">
+ <div className="mb-2 grid grid-cols-3 gap-2 bg-[var(--nffc-black,#000000)] pb-1">
+ <TableButton
+ label="Team Table"
+ active={activeTab === "teams"}
+ onClick={() => changeTab("teams")}
+ />
+ <TableButton
+ label="Player Table"
+ active={activeTab === "players"}
+ onClick={() => changeTab("players")}
+ />
+ <TableButton
+ label="Fixture Table"
+ active={activeTab === "fixtures"}
+ onClick={() => changeTab("fixtures")}
+ />
+ </div>
+
+ <div className="2xl:hidden">
+ {activeTab === "teams" ? (
+ <CompactTeamLeaderboard rows={teamRows} />
+ ) : activeTab === "players" ? (
+ <CompactIndividualLeaderboard rows={individualRows} />
+ ) : (
+ <FixtureTable rows={fixtureRows} compact />
+ )}
+
+ {activeTab !== "fixtures" && (
+ <button
+ type="button"
+ onClick={() => setShowFullMobileStats((current) => !current)}
+ className="mt-5 w-full border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-5 py-4 text-lg font-black uppercase tracking-[0.14em] text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)]"
+ >
+ {showFullMobileStats ? "Hide full stats" : "Show full stats"}
+ </button>
+ )}
+
+ {showFullMobileStats && (
+ <div className="mt-4">
+ {activeTab === "teams" ? (
+ <TeamLeaderboard rows={teamRows} />
+ ) : activeTab === "players" ? (
+ <IndividualLeaderboard rows={individualRows} />
+ ) : null}
+ </div>
+ )}
+ </div>
+
+ <div className="hidden 2xl:block">
+ {activeTab === "teams" ? (
+ <TeamLeaderboard rows={teamRows} />
+ ) : activeTab === "players" ? (
+ <IndividualLeaderboard rows={individualRows} />
+ ) : (
+ <FixtureTable rows={fixtureRows} />
+ )}
+ </div>
+ </section>
+ );
+}
+
+function TableButton({
+ label,
+ active,
+ onClick,
+}: {
+ label: string;
+ active: boolean;
+ onClick: () => void;
+}) {
+ return (
+ <button
+ type="button"
+ onClick={onClick}
+ className={`border px-5 py-4 text-center text-lg font-black uppercase tracking-[0.14em] transition md:text-lg ${
+ active
+ ? "border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] text-[var(--stat-green,#22e55e)]"
+ : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)] hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)]"
+ }`}
+ >
+ {active ? `ACTIVE / ${label}` : `> ${label}`}
+ </button>
+ );
+}
+
+function FixtureTable({
+ rows,
+ compact = false,
+}: {
+ rows: FixtureTableRow[];
+ compact?: boolean;
+}) {
+ if (!rows.length) {
+ return (
+ <div className="border border-[#242424] bg-[var(--nffc-black,#000000)] p-4 text-base font-black uppercase tracking-[0.12em] text-white">
+ Fixture table not available yet.
+ </div>
+ );
+ }
+
+ const tableRows = (
+ <div className="overflow-hidden border border-[#242424]">
+ <div className="hidden grid-cols-[100px_minmax(190px,1fr)_80px_28px_360px_28px_190px_220px] bg-[var(--nffc-black,#000000)] text-xl font-black uppercase tracking-[0.12em] text-white lg:grid">
+ <div className="flex items-center border-r border-[#242424] px-3 py-1.5">GW</div>
+ <div className="flex items-center border-r border-[#242424] px-3 py-1.5">Fixture</div>
+ <div className="flex items-center justify-center border-r border-[#242424] px-2 py-2.5 text-center">Result</div>
+ <div className="bg-[var(--nffc-black,#000000)]" />
+ <div className="flex flex-col items-center justify-center border-r border-[#242424] px-3 py-1.5 text-center leading-none">
+ <span>Prediction Split</span>
+ <span className="mt-1">
+ <span className="text-[var(--stat-green,#22e55e)]">W</span>
+ <span className="px-1 text-white">/</span>
+ <span className="text-[var(--stat-yellow,#ffe44d)]">D</span>
+ <span className="px-1 text-white">/</span>
+ <span className="text-[var(--stat-wrong,#ff3030)]">L</span>
+ </span>
+ </div>
+ <div className="bg-[var(--nffc-black,#000000)]" />
+ <div className="flex items-center justify-center whitespace-nowrap border-r border-[#242424] px-3 py-1.5 text-center text-[var(--stat-green,#22e55e)]">Accuracy %</div>
+ <div className="flex items-center justify-center px-3 py-1.5 text-center">Bonus</div>
+ </div>
+
+ {rows.map((row) => (
+ <FixtureTableRowEntry key={row.fixture_id} row={row} />
+ ))}
+ </div>
+ );
+
+ if (compact) {
+ return tableRows;
+ }
+
+ return (
+ <section className="bg-[var(--nffc-black,#000000)]">
+ <div className="mb-5">
+ <LeaderboardTableHeader title="Fixture Table" />
+
+ <div className="mt-3 flex flex-col gap-2 text-base font-black uppercase tracking-[0.08em] text-white sm:flex-row sm:items-center sm:justify-between">
+ </div>
+ </div>
+
+ {tableRows}
+ </section>
+ );
+}
+
+function FixtureTableRowEntry({ row }: { row: FixtureTableRow }) {
+ const hasResult = hasFixtureResult(row);
+ const accuracy =
+ hasResult && Number(row.total_predictions ?? 0) > 0
+ ? Math.round((Number(row.correct_count ?? 0) / Number(row.total_predictions ?? 0)) * 100)
+ : null;
+
+ return (
+ <div className="grid grid-cols-[100px_minmax(190px,1fr)_80px_28px_360px_28px_190px_220px] items-center border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-white last:border-b-0">
+ <div className="border-r border-[#242424] px-2.5 py-0.5 text-xl font-black uppercase text-[var(--nffc-red,#e50914)]">
+ {row.gameweek_label}
+ </div>
+
+ <div
+ className={`border-r border-[#242424] px-2.5 py-0.5 text-3xl font-black uppercase leading-none ${
+ hasResult ? resultTextClass(row.forest_result) : "text-white"
+ }`}
+ >
+ {row.opponent_short}
+ <span className={`ml-3 ${hasResult ? resultTextClass(row.forest_result) : "text-white"}`}>
+ {row.venue}
+ </span>
+ </div>
+
+ <div className="flex items-center justify-center border-r border-[#242424] px-2.5 py-0.5 text-center">
+ {hasResult ? <ResultPill result={row.forest_result} /> : <span className="text-xl font-black text-white">—</span>}
+ </div>
+
+ <div className="bg-[var(--nffc-black,#000000)]" />
+
+ <div className="border-r border-[#242424] px-2 py-0.5">
+ <div className="grid grid-cols-3 gap-0">
+ <SplitPill value={row.forest_win_percent} tone="win" />
+ <SplitPill value={row.draw_percent} tone="draw" />
+ <SplitPill value={row.forest_loss_percent} tone="loss" />
+ </div>
+ </div>
+
+ <div className="bg-[var(--nffc-black,#000000)]" />
+
+ <div className="flex items-center justify-center border-r border-[#242424] px-2.5 py-0.5 text-center text-2xl font-black text-[var(--stat-green,#22e55e)]">
+ {accuracy === null ? "—" : formatPercent(accuracy)}
+ </div>
+
+ <div className="px-2 py-0.5 text-center">
+ {hasResult ? (
+ <BonusPills
+ maverick={row.maverick_applied}
+ rogue={row.rogue_applied}
+ />
+ ) : (
+ <span className="text-xl font-black text-white">—</span>
+ )}
+ </div>
+ </div>
+ );
+}
+
+function ResultPill({ result }: { result: "W" | "D" | "L" | null }) {
+ return (
+ <span
+ className={`inline-flex items-center justify-center text-3xl font-black uppercase leading-none ${resultTextClass(result)}`}
+ >
+ {resultLabel(result)}
+ </span>
+ );
+}
+
+function SplitPill({
+ value,
+ tone,
+}: {
+ value: number;
+ tone: "win" | "draw" | "loss";
+}) {
+ const className =
+ tone === "win"
+ ? "text-[var(--stat-green,#22e55e)]"
+ : tone === "draw"
+ ? "text-[var(--stat-yellow,#ffe44d)]"
+ : "text-[var(--stat-wrong,#ff3030)]";
+
+ return (
+ <div className={`flex h-7 min-w-0 items-center justify-center bg-[var(--nffc-black,#000000)] px-2 py-0 text-center ${className}`}>
+ <div className="text-[1.45rem] font-black uppercase leading-none tracking-[0.02em]">
+ {formatPercent(value)}
+ </div>
+ </div>
+ );
+}
+
+function CorrectPill({
+ correct,
+ total,
+}: {
+ correct: number;
+ total: number;
+}) {
+ return (
+ <span className="inline-flex min-w-[110px] items-center justify-center border border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] px-2.5 py-0.5 text-lg font-black uppercase tracking-[0.1em] text-[var(--stat-green,#22e55e)]">
+ {correct}/{total}
+ </span>
+ );
+}
+
+function BonusPills({
+ maverick,
+ rogue,
+}: {
+ maverick: boolean;
+ rogue: boolean;
+}) {
+ if (!maverick && !rogue) {
+ return (
+ <span className="inline-flex border border-[#444444] bg-[var(--nffc-black,#000000)] px-2.5 py-0.5 text-lg font-black uppercase tracking-[0.1em] text-white">
+ —
+ </span>
+ );
+ }
+
+ return (
+ <span className="inline-flex flex-wrap gap-2">
+ {maverick && (
+ <span className="border border-[var(--stat-cyan,#59efff)] bg-[var(--nffc-black,#000000)] px-2.5 py-0.5 text-lg font-black uppercase tracking-[0.1em] text-[var(--stat-cyan,#59efff)]">
+ Maverick
+ </span>
+ )}
+ {rogue && (
+ <span className="border border-[var(--stat-pink,#ff4fd8)] bg-[var(--nffc-black,#000000)] px-2.5 py-0.5 text-lg font-black uppercase tracking-[0.1em] text-[var(--stat-pink,#ff4fd8)]">
+ Rogue
+ </span>
+ )}
+ </span>
+ );
+}
+
+
+function LeaderboardTableHeader({ title }: { title: string }) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_250px] items-center bg-[var(--nffc-red,#e50914)]">
+      <h2 className="px-5 py-2.5 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+        {title}
+      </h2>
+
+      <div className="flex h-full items-center justify-end bg-[var(--nffc-red,#e50914)] px-2">
+        <Image
+          src="/brand/nffc-podcast-prediction-league-banner.png"
+          alt="NFFC Podcast Prediction League"
+          width={520}
+          height={145}
+          className="h-14 w-auto object-contain"
+        />
+      </div>
+    </div>
+  );
+}

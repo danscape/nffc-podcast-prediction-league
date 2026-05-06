@@ -1,0 +1,1573 @@
+"use client";
+
+import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabaseClient";
+
+type PredictionValue = "W" | "D" | "L";
+
+type PlayerPageData = {
+  found: boolean;
+  player: {
+    id: string;
+    legacy_code: string;
+    player_name: string;
+    short_name: string | null;
+    team_name: string;
+    team_display_name: string | null;
+    team_abbreviation: string | null;
+    parent_podcast: string | null;
+    parent_podcast_abbreviation: string | null;
+    joined_gameweek: number;
+  };
+  projection: {
+    actual_points_so_far: number;
+    remaining_predicted_points: number;
+    total_now_predicted: number;
+    full_prediction_set_points: number;
+    gw1_predicted_points?: number | string | null;
+  } | null;
+  rankings: {
+    individual_rank: number;
+    individual_points: number;
+    individual_accuracy_percentage: number;
+    team_rank: number;
+    team_points: number;
+    team_clean_sweeps: number;
+    team_blanks: number;
+    individual_rank_out_of?: number | null;
+    team_rank_out_of?: number | null;
+  } | null;
+  predictions: {
+    fixture_id: string;
+    gameweek: number;
+    gameweek_label: string;
+    opponent: string;
+    opponent_short: string;
+    venue: "H" | "A";
+    kickoff_at: string | null;
+    prediction_lock_at: string | null;
+    status: string;
+    home_score: number | null;
+    away_score: number | null;
+    forest_result: PredictionValue | null;
+    prediction: PredictionValue;
+    predicted_forest_points: number;
+    is_locked: boolean;
+  }[];
+};
+
+type ExtraPredictionsData = {
+  found: boolean;
+  cup_predictions: {
+    id: string | null;
+    competition: string;
+    display_name: string;
+    predicted_round_reached: string | null;
+    actual_round_reached: string | null;
+    bonus_awarded: number;
+    prediction_lock_at: string | null;
+    is_locked: boolean;
+  }[];
+  custom_answers: {
+    id: string | null;
+    question_key: string;
+    question_text: string;
+    answer: string | null;
+    locked_at: string | null;
+    is_locked: boolean;
+  }[];
+};
+
+type ScoreBreakdownData = {
+  found: boolean;
+  summary: {
+    base_points: number;
+    streak_bonus: number;
+    maverick_bonus: number;
+    rogue_bonus: number;
+    fixture_points: number;
+    cup_bonus: number;
+    total_points: number;
+    completed_fixtures: number;
+  } | null;
+  fixture_scores: {
+    gameweek: number;
+    gameweek_label: string;
+    opponent_short: string;
+    opponent: string;
+    venue: "H" | "A";
+    prediction: PredictionValue;
+    actual_result: PredictionValue;
+    base_points: number;
+    streak_bonus: number;
+    maverick_bonus: number;
+    rogue_bonus: number;
+    cup_bonus: number;
+    total_points: number;
+    correct_streak_after_fixture: number;
+  }[];
+  cup_scores: {
+    competition: string;
+    predicted_round_reached: string | null;
+    actual_round_reached: string | null;
+    bonus_awarded: number;
+  }[];
+};
+
+type RankingTotals = {
+  individualTotal: number | null;
+  teamTotal: number | null;
+};
+
+type ChangedFixture = {
+  gameweek: number;
+  gameweek_label: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  old_prediction?: PredictionValue;
+  new_prediction?: PredictionValue;
+};
+
+type ScoreRowWithRunning = ScoreBreakdownData["fixture_scores"][number] & {
+  runningTotal: number;
+};
+
+const domesticCupStageOptions = [
+  "1st Round",
+  "2nd Round",
+  "3rd Round",
+  "4th Round",
+  "5th Round",
+  "Quarter Finals",
+  "Semi Finals",
+  "Final",
+  "Winners",
+];
+
+const europaLeagueStageOptions = [
+  "League Phase",
+  "Knockout/Playoff Round",
+  "Round of 16",
+  "Quarter Finals",
+  "Semi Finals",
+  "Final",
+  "Winners",
+];
+
+const genericCupStageOptions = [
+  "1st Round",
+  "2nd Round",
+  "3rd Round",
+  "4th Round",
+  "5th Round",
+  "League Phase",
+  "Knockout/Playoff Round",
+  "Round of 16",
+  "Quarter Finals",
+  "Semi Finals",
+  "Final",
+  "Winners",
+];
+
+const confirmationEmailDelayMs = 3 * 60 * 1000;
+
+function predictionToPoints(prediction: PredictionValue) {
+  if (prediction === "W") return 3;
+  if (prediction === "D") return 1;
+  return 0;
+}
+
+function formatSignedNumber(value: number) {
+  if (value > 0) return `+${value}`;
+  return String(value);
+}
+
+function isConfirmedPrediction(prediction: PlayerPageData["predictions"][number]) {
+  return prediction.status === "finished" && prediction.forest_result !== null;
+}
+
+function formatOrdinal(value: number | null | undefined) {
+  const numberValue = Number(value ?? 0);
+
+  if (!numberValue || numberValue <= 0) return "—";
+
+  const lastTwoDigits = numberValue % 100;
+  const lastDigit = numberValue % 10;
+
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 13) return `${numberValue}th`;
+  if (lastDigit === 1) return `${numberValue}st`;
+  if (lastDigit === 2) return `${numberValue}nd`;
+  if (lastDigit === 3) return `${numberValue}rd`;
+
+  return `${numberValue}th`;
+}
+
+function formatRank(value: number | null | undefined, total?: number | null) {
+  if (!value || value <= 0) return "—";
+  if (total && total > 0) return `${value}/${total}`;
+  return `${value}`;
+}
+
+function formatPoints(value: number | null | undefined) {
+  return Number(value ?? 0).toFixed(1).replace(".0", "");
+}
+
+function formatTeamPoints(value: number | null | undefined) {
+  return Number(value ?? 0).toFixed(2);
+}
+
+function formatNullablePoints(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") return "N/A";
+
+  const numericValue = Number(value);
+
+  if (Number.isNaN(numericValue)) return "N/A";
+
+  return numericValue.toFixed(0);
+}
+
+function formatPercent(value: number | null | undefined) {
+  if (value === null || value === undefined) return "N/A";
+  return `${Math.round(Number(value))}%`;
+}
+
+function getCupStageOptions(competition: string, displayName?: string | null) {
+  const label = `${competition} ${displayName ?? ""}`.toLowerCase();
+
+  if (label.includes("europa league") || label.includes("uefa europa league")) {
+    return europaLeagueStageOptions;
+  }
+
+  if (
+    label.includes("fa cup") ||
+    label.includes("efl cup") ||
+    label.includes("carabao")
+  ) {
+    return domesticCupStageOptions;
+  }
+
+  return genericCupStageOptions;
+}
+
+function formatCompactDateTime(value: string | null) {
+  if (!value) return "DATE TBC";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/London",
+  })
+    .format(new Date(value))
+    .replace(",", "")
+    .toUpperCase();
+}
+
+function getDeadlineCountdown(value: string | null) {
+  if (!value) {
+    return {
+      label: "DATE TBC",
+      tone: "white" as const,
+      expired: false,
+    };
+  }
+
+  const target = new Date(value).getTime();
+  const now = Date.now();
+  const diffMs = target - now;
+
+  if (!Number.isFinite(target) || diffMs <= 0) {
+    return {
+      label: "LOCKED",
+      tone: "red" as const,
+      expired: true,
+    };
+  }
+
+  const totalMinutes = Math.ceil(diffMs / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  const label =
+    days > 0
+      ? `${days}D ${String(hours).padStart(2, "0")}H LEFT`
+      : hours > 0
+        ? `${hours}H ${String(minutes).padStart(2, "0")}M LEFT`
+        : `${minutes}M LEFT`;
+
+  return {
+    label,
+    tone: totalMinutes <= 120 ? ("red" as const) : totalMinutes <= 1440 ? ("yellow" as const) : ("green" as const),
+    expired: false,
+  };
+}
+
+function countdownTextClass(tone: "green" | "yellow" | "red" | "white") {
+  if (tone === "green") return "text-[var(--stat-green,#22e55e)]";
+  if (tone === "yellow") return "text-[var(--stat-yellow,#ffe44d)]";
+  if (tone === "red") return "text-[var(--stat-wrong,#ff3030)]";
+  return "text-white";
+}
+
+function getPlayerProfileTag(predictions: PlayerPageData["predictions"]) {
+  const total = predictions.length || 1;
+  const winCount = predictions.filter((prediction) => prediction.prediction === "W").length;
+  const drawCount = predictions.filter((prediction) => prediction.prediction === "D").length;
+  const lossCount = predictions.filter((prediction) => prediction.prediction === "L").length;
+
+  const winRate = winCount / total;
+  const drawRate = drawCount / total;
+  const lossRate = lossCount / total;
+
+  if (drawRate >= 0.35) return "Draw Specialist";
+  if (winRate >= 0.5) return "Optimist";
+  if (lossRate >= 0.35) return "Cautious";
+  return "Balanced";
+}
+
+function getOriginalPredictionPoints(projection: PlayerPageData["projection"]) {
+  return projection?.gw1_predicted_points ?? null;
+}
+
+export default function PredictionFormClient({
+  token,
+  initialData,
+}: {
+  token: string;
+  initialData: PlayerPageData;
+}) {
+  const [predictions, setPredictions] = useState(initialData.predictions);
+  const [extraData, setExtraData] = useState<ExtraPredictionsData | null>(null);
+  const [scoreData, setScoreData] = useState<ScoreBreakdownData | null>(null);
+  const [rankingTotals, setRankingTotals] = useState<RankingTotals>({
+    individualTotal: initialData.rankings?.individual_rank_out_of ?? null,
+    teamTotal: initialData.rankings?.team_rank_out_of ?? null,
+  });
+  const [savingFixtureId, setSavingFixtureId] = useState<string | null>(null);
+  const [savingExtraKey, setSavingExtraKey] = useState<string | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [emailMessage, setEmailMessage] = useState<{
+    type: "success" | "error" | "pending";
+    text: string;
+  } | null>(null);
+
+  const emailTimerRef = useRef<number | null>(null);
+  const pendingChangedFixturesRef = useRef<Map<number, ChangedFixture>>(new Map());
+
+  useEffect(() => {
+    async function loadExtraPredictionsAndCounts() {
+      const [
+        { data: extras, error: extrasError },
+        { data: scores, error: scoresError },
+        { count: individualCount },
+        { count: teamCount },
+      ] = await Promise.all([
+        supabase.rpc("get_player_extra_predictions", {
+          target_token: token,
+        }),
+        supabase.rpc("get_player_score_breakdown", {
+          target_token: token,
+        }),
+        supabase
+          .from("individual_leaderboard")
+          .select("*", { count: "exact", head: true }),
+        supabase
+          .from("team_leaderboard")
+          .select("*", { count: "exact", head: true }),
+      ]);
+
+      if (!extrasError && extras) {
+        setExtraData(extras as ExtraPredictionsData);
+      }
+
+      if (!scoresError && scores) {
+        setScoreData(scores as ScoreBreakdownData);
+      }
+
+      setRankingTotals({
+        individualTotal:
+          initialData.rankings?.individual_rank_out_of ??
+          individualCount ??
+          null,
+        teamTotal:
+          initialData.rankings?.team_rank_out_of ?? teamCount ?? null,
+      });
+    }
+
+    loadExtraPredictionsAndCounts();
+  }, [
+    token,
+    initialData.rankings?.individual_rank_out_of,
+    initialData.rankings?.team_rank_out_of,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (emailTimerRef.current) {
+        window.clearTimeout(emailTimerRef.current);
+      }
+    };
+  }, []);
+
+  const sortedPredictions = useMemo(() => {
+    return [...predictions].sort((a, b) => a.gameweek - b.gameweek);
+  }, [predictions]);
+
+  const openPredictions = useMemo(() => {
+    return sortedPredictions.filter((prediction) => {
+      return !prediction.is_locked && !isConfirmedPrediction(prediction);
+    });
+  }, [sortedPredictions]);
+
+  const completedPredictions = useMemo(() => {
+    return sortedPredictions.filter((prediction) => isConfirmedPrediction(prediction));
+  }, [sortedPredictions]);
+
+  const performanceStats = useMemo(() => {
+    const correctCount = completedPredictions.filter(
+      (prediction) => prediction.prediction === prediction.forest_result
+    ).length;
+
+    const actualPointsSoFar = completedPredictions.reduce((total, prediction) => {
+      if (!prediction.forest_result) return total;
+      return total + predictionToPoints(prediction.forest_result);
+    }, 0);
+
+    const predictedCompletedPoints = completedPredictions.reduce(
+      (total, prediction) => total + predictionToPoints(prediction.prediction),
+      0
+    );
+
+    const actualVsPredicted = actualPointsSoFar - predictedCompletedPoints;
+
+    const accuracyPercentage =
+      completedPredictions.length > 0
+        ? Math.round((correctCount / completedPredictions.length) * 100)
+        : null;
+
+    return {
+      correctCount,
+      completedCount: completedPredictions.length,
+      actualPointsSoFar,
+      predictedCompletedPoints,
+      actualVsPredicted,
+      accuracyPercentage,
+    };
+  }, [completedPredictions]);
+
+  const projection = useMemo(() => {
+    const actualPoints = performanceStats.actualPointsSoFar;
+
+    const remainingPredictedPoints = predictions.reduce((total, prediction) => {
+      if (isConfirmedPrediction(prediction)) return total;
+      return total + predictionToPoints(prediction.prediction);
+    }, 0);
+
+    const fullPredictionSetPoints = predictions.reduce(
+      (total, prediction) => total + predictionToPoints(prediction.prediction),
+      0
+    );
+
+    return {
+      actual_points_so_far: actualPoints,
+      remaining_predicted_points: remainingPredictedPoints,
+      total_now_predicted: actualPoints + remainingPredictedPoints,
+      full_prediction_set_points: fullPredictionSetPoints,
+      actual_vs_predicted: performanceStats.actualVsPredicted,
+      original_prediction_points: getOriginalPredictionPoints(initialData.projection),
+    };
+  }, [
+    initialData.projection,
+    performanceStats.actualPointsSoFar,
+    performanceStats.actualVsPredicted,
+    predictions,
+  ]);
+
+  const scoreRows = useMemo<ScoreRowWithRunning[]>(() => {
+    const sortedScores = [...(scoreData?.fixture_scores ?? [])].sort(
+      (a, b) => a.gameweek - b.gameweek
+    );
+
+    return sortedScores.reduce<{
+      rows: ScoreRowWithRunning[];
+      runningTotal: number;
+    }>(
+      (state, score) => {
+        const nextRunningTotal = state.runningTotal + score.total_points;
+
+        return {
+          rows: [
+            ...state.rows,
+            {
+              ...score,
+              runningTotal: nextRunningTotal,
+            },
+          ],
+          runningTotal: nextRunningTotal,
+        };
+      },
+      {
+        rows: [],
+        runningTotal: 0,
+      }
+    ).rows.reverse();
+  }, [scoreData]);
+
+  function scheduleConfirmationEmail(changedFixture?: ChangedFixture) {
+    if (changedFixture) {
+      const existing = pendingChangedFixturesRef.current.get(
+        changedFixture.gameweek
+      );
+
+      pendingChangedFixturesRef.current.set(changedFixture.gameweek, {
+        ...changedFixture,
+        old_prediction: existing?.old_prediction ?? changedFixture.old_prediction,
+        new_prediction: changedFixture.new_prediction,
+      });
+    }
+
+    if (emailTimerRef.current) {
+      window.clearTimeout(emailTimerRef.current);
+    }
+
+    setEmailMessage({
+      type: "pending",
+      text: "Confirmation email scheduled. It will send after 3 minutes with no further changes.",
+    });
+
+    emailTimerRef.current = window.setTimeout(() => {
+      sendDelayedConfirmationEmail();
+    }, confirmationEmailDelayMs);
+  }
+
+  async function sendDelayedConfirmationEmail() {
+    const changedFixtures = Array.from(pendingChangedFixturesRef.current.values());
+
+    try {
+      setEmailMessage({
+        type: "pending",
+        text: "Sending confirmation email…",
+      });
+
+      const response = await fetch("/api/email/prediction-confirmation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token,
+          updatedBy: "player",
+          changedFixtures,
+        }),
+      });
+
+      const result = (await response.json()) as {
+        success?: boolean;
+        message?: string;
+      };
+
+      if (!response.ok || !result.success) {
+        setEmailMessage({
+          type: "error",
+          text: result.message ?? "Could not send confirmation email.",
+        });
+        return;
+      }
+
+      pendingChangedFixturesRef.current.clear();
+
+      setEmailMessage({
+        type: "success",
+        text: "Confirmation email sent.",
+      });
+    } catch (error) {
+      setEmailMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? `Could not send confirmation email: ${error.message}`
+            : "Could not send confirmation email.",
+      });
+    }
+  }
+
+  async function updatePrediction(
+    fixtureId: string,
+    newPrediction: PredictionValue
+  ) {
+    const fixture = predictions.find(
+      (prediction) => prediction.fixture_id === fixtureId
+    );
+
+    if (!fixture || fixture.is_locked || isConfirmedPrediction(fixture)) return;
+    if (fixture.prediction === newPrediction) return;
+
+    const oldPrediction = fixture.prediction;
+    const oldPredictions = predictions;
+
+    setPredictions((current) =>
+      current.map((prediction) =>
+        prediction.fixture_id === fixtureId
+          ? {
+              ...prediction,
+              prediction: newPrediction,
+              predicted_forest_points: predictionToPoints(newPrediction),
+            }
+          : prediction
+      )
+    );
+
+    setSavingFixtureId(fixtureId);
+    setMessage(null);
+
+    const { data, error } = await supabase.rpc("player_update_prediction", {
+      target_token: token,
+      target_fixture_id: fixtureId,
+      new_prediction: newPrediction,
+    });
+
+    setSavingFixtureId(null);
+
+    if (error) {
+      setPredictions(oldPredictions);
+      setMessage({
+        type: "error",
+        text: "Could not save prediction. Please try again.",
+      });
+      return;
+    }
+
+    const result = data as { success?: boolean; message?: string } | null;
+
+    if (!result?.success) {
+      setPredictions(oldPredictions);
+      setMessage({
+        type: "error",
+        text: result?.message ?? "Could not save prediction.",
+      });
+      return;
+    }
+
+    setMessage({
+      type: "success",
+      text: "Prediction saved.",
+    });
+
+    scheduleConfirmationEmail({
+      gameweek: fixture.gameweek,
+      gameweek_label: fixture.gameweek_label,
+      opponent_short: fixture.opponent_short,
+      venue: fixture.venue,
+      old_prediction: oldPrediction,
+      new_prediction: newPrediction,
+    });
+  }
+
+  async function updateCupPrediction(competition: string, newValue: string) {
+    if (!extraData) return;
+
+    const cup = extraData.cup_predictions.find(
+      (item) => item.competition === competition
+    );
+
+    if (!cup || cup.is_locked) return;
+    if ((cup.predicted_round_reached ?? "") === newValue) return;
+
+    const oldData = extraData;
+
+    setExtraData({
+      ...extraData,
+      cup_predictions: extraData.cup_predictions.map((item) =>
+        item.competition === competition
+          ? { ...item, predicted_round_reached: newValue }
+          : item
+      ),
+    });
+
+    setSavingExtraKey(`cup-${competition}`);
+    setMessage(null);
+
+    const { data, error } = await supabase.rpc("player_update_cup_prediction", {
+      target_token: token,
+      target_competition: competition,
+      new_predicted_round_reached: newValue,
+    });
+
+    setSavingExtraKey(null);
+
+    const result = data as { success?: boolean; message?: string } | null;
+
+    if (error || !result?.success) {
+      setExtraData(oldData);
+      setMessage({
+        type: "error",
+        text: result?.message ?? "Could not save cup prediction.",
+      });
+      return;
+    }
+
+    setMessage({
+      type: "success",
+      text: "Cup prediction saved.",
+    });
+
+    scheduleConfirmationEmail();
+  }
+
+  async function updateCustomAnswer(questionKey: string, newValue: string) {
+    if (!extraData) return;
+
+    const answer = extraData.custom_answers.find(
+      (item) => item.question_key === questionKey
+    );
+
+    if (!answer || answer.is_locked) return;
+    if ((answer.answer ?? "") === newValue) return;
+
+    const oldData = extraData;
+
+    setExtraData({
+      ...extraData,
+      custom_answers: extraData.custom_answers.map((item) =>
+        item.question_key === questionKey
+          ? { ...item, answer: newValue }
+          : item
+      ),
+    });
+
+    setSavingExtraKey(`custom-${questionKey}`);
+    setMessage(null);
+
+    const { data, error } = await supabase.rpc("player_update_custom_answer", {
+      target_token: token,
+      target_question_key: questionKey,
+      new_answer: newValue,
+    });
+
+    setSavingExtraKey(null);
+
+    const result = data as { success?: boolean; message?: string } | null;
+
+    if (error || !result?.success) {
+      setExtraData(oldData);
+      setMessage({
+        type: "error",
+        text: result?.message ?? "Could not save answer.",
+      });
+      return;
+    }
+
+    setMessage({
+      type: "success",
+      text: "Answer saved.",
+    });
+
+    scheduleConfirmationEmail();
+  }
+
+  const player = initialData.player;
+  const rankings = initialData.rankings;
+  const scoreSummary = scoreData?.summary;
+
+  const individualRankLabel = formatRank(
+    rankings?.individual_rank,
+    rankingTotals.individualTotal
+  );
+
+  const teamRankLabel = formatRank(rankings?.team_rank, rankingTotals.teamTotal);
+  const playerDisplayName = player.short_name ?? player.player_name;
+  const teamDisplayName = player.team_display_name ?? player.team_name;
+  const scoreTotal = scoreSummary?.total_points ?? rankings?.individual_points ?? 0;
+  const playerProfileTag = getPlayerProfileTag(predictions);
+
+  return (
+    <main className="w-full bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]">
+      <section className="w-full px-0 py-0">
+        <header className="mb-12 bg-[var(--nffc-black,#000000)] p-0">
+          <div className="mb-5 grid gap-4 border-b-4 border-[var(--nffc-red,#e50914)] pb-5 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-stretch">
+            <div className="flex items-center justify-start">
+              <Image
+                src="/brand/nffc-podcast-prediction-league-banner.png"
+                alt="NFFC Podcast Prediction League"
+                width={640}
+                height={180}
+                priority
+                className="h-20 w-auto object-contain md:h-24"
+              />
+            </div>
+
+            <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_500px] xl:items-stretch">
+              <div className="flex items-center bg-[var(--nffc-red,#e50914)] px-8 py-4">
+                <div className="truncate whitespace-nowrap text-[clamp(2rem,3.1vw,4rem)] font-black uppercase leading-none tracking-[0.06em] text-white">
+                  Prediction Terminal
+                </div>
+              </div>
+
+              <nav className="grid grid-cols-3 gap-2 bg-[var(--nffc-black,#000000)]">
+                <div className="flex items-center justify-center border border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] px-3 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-[var(--stat-green,#22e55e)] md:text-base">
+                  Predictions
+                </div>
+
+                <Link
+                  href="/weekly-results"
+                  className="flex items-center justify-center border border-white bg-[var(--nffc-black,#000000)] px-3 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-white transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] md:text-base"
+                >
+                  GW Results
+                </Link>
+
+                <Link
+                  href="/"
+                  className="flex items-center justify-center border border-white bg-[var(--nffc-black,#000000)] px-3 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-white transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] md:text-base"
+                >
+                  Home / Leaderboards
+                </Link>
+              </nav>
+            </div>
+          </div>
+
+          <div className="mb-1 bg-[var(--nffc-black,#000000)] px-4 pb-2 pt-4">
+            <h1 className="text-4xl font-black uppercase leading-none tracking-[0.04em] md:text-6xl">
+              <span className="text-[var(--nffc-white,#f5f5f5)]">{playerDisplayName}</span>
+              <span className="px-3 text-[var(--nffc-white,#f5f5f5)]">/</span>
+              <span className="align-middle text-[0.72em] text-[var(--nffc-red,#e50914)]">{teamDisplayName}</span>
+            </h1>
+          </div>
+
+          <div className="bg-[var(--nffc-black,#000000)] px-4 py-2 text-2xl font-black uppercase leading-tight tracking-[0.08em] text-white md:text-4xl">
+            Pos {formatOrdinal(rankings?.individual_rank)}
+            <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+            Score {formatPoints(scoreTotal)}
+            <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+            Accuracy {formatPercent(performanceStats.accuracyPercentage ?? rankings?.individual_accuracy_percentage)}
+            <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+            Profile <span className="text-[var(--stat-cyan,#59efff)]">{playerProfileTag}</span>
+          </div>
+
+          <div className="mt-4 bg-[var(--nffc-black,#000000)] px-4 py-3">
+            <div className="text-2xl font-black uppercase leading-tight tracking-[0.06em] text-white md:text-3xl">
+              GW1 Prediction{" "}
+              <span className="text-[var(--stat-yellow,#ffe44d)]">
+                {formatNullablePoints(projection.original_prediction_points)} pts
+              </span>
+              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+              Current{" "}
+              <span className="text-[var(--stat-green,#22e55e)]">
+                {formatPoints(projection.total_now_predicted)} pts
+              </span>
+              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+              Perfect Picks{" "}
+              <span className="text-[var(--stat-cyan,#59efff)]">
+                {formatPoints(projection.full_prediction_set_points)} pts
+              </span>
+              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+              Reality Check{" "}
+              <span
+                className={
+                  projection.actual_vs_predicted >= 0
+                    ? "text-[var(--stat-green,#22e55e)]"
+                    : "text-[var(--stat-wrong,#ff3030)]"
+                }
+              >
+                {formatSignedNumber(projection.actual_vs_predicted)} pts
+              </span>
+            </div>
+
+            <div className="mt-2 text-sm font-black uppercase leading-5 tracking-[0.08em] text-[#8f8f8f] md:text-base">
+              GW1 = original call / Current = actual + remaining picks / Perfect Picks = all correct / Reality Check = completed picks v reality
+            </div>
+          </div>
+        </header>
+
+        <section className="mb-12 rounded-none border border-[#242424] bg-[var(--nffc-black,#000000)] p-4 shadow-none md:p-5">
+          <div className="mb-4">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-3 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">Make Your Predictions Here</h2>
+            <p className="mt-1 text-sm font-semibold text-white">
+              Select W, D or L for each unlocked fixture.
+            </p>
+          </div>
+
+          <div className="overflow-hidden border border-[#242424]">
+            <div className="hidden grid-cols-[100px_minmax(150px,1fr)_560px_230px] border-b border-[var(--nffc-red,#e50914)] bg-[var(--nffc-black,#000000)] text-base font-black uppercase tracking-[0.16em] text-white lg:grid">
+              <div className="border-r border-[#242424] px-4 py-3">GW</div>
+              <div className="border-r border-[#242424] px-4 py-3">Fixture</div>
+              <div className="border-r border-[#242424] px-4 py-3">Deadline</div>
+              <div className="px-4 py-3 text-center">Prediction</div>
+            </div>
+
+            {openPredictions.length ? (
+              openPredictions.map((prediction) => (
+                <PredictionEntryRow
+                  key={prediction.fixture_id}
+                  prediction={prediction}
+                  saving={savingFixtureId === prediction.fixture_id}
+                  onChange={updatePrediction}
+                />
+              ))
+            ) : (
+              <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-white">
+                No unlocked fixture predictions are currently available.
+              </div>
+            )}
+          </div>
+
+          <CurrentPredictedPointsStrip value={projection.total_now_predicted} />
+
+          {(message || emailMessage) && (
+            <div className="mt-5 bg-[var(--nffc-black,#000000)]">
+              <div className="bg-[var(--nffc-red,#e50914)] px-4 py-2 text-xl font-black uppercase tracking-[0.12em] text-white">
+                Status
+              </div>
+
+              <div className="grid gap-px bg-[#242424]">
+                {message && <AlertMessage type={message.type} text={message.text} />}
+
+                {emailMessage && (
+                  <AlertMessage type={emailMessage.type} text={emailMessage.text} />
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="grid gap-3">
+          <section className="bg-[var(--nffc-black,#000000)]">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-4 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+              Score Breakdown
+            </h2>
+
+            <div className="overflow-hidden bg-[var(--nffc-black,#000000)]">
+              <div className="hidden grid-cols-[100px_minmax(240px,1fr)_170px_140px_110px_120px_120px_120px_100px_150px] border-b border-[var(--nffc-red,#e50914)] text-base font-black uppercase tracking-[0.16em] text-white lg:grid">
+                <div className="border-r border-[#242424] px-4 py-3">GW</div>
+                <div className="border-r border-[#242424] px-4 py-3">Fixture</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center">Your Prediction</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center">Result</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center">Pts</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-yellow,#ffe44d)]">Streak</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-cyan,#59efff)]">Maverick</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-pink,#ff4fd8)]">Rogue</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-green,#22e55e)]">Cup</div>
+                <div className="px-4 py-3 text-center">Running Total</div>
+              </div>
+
+              {scoreRows.length ? (
+                scoreRows.map((score) => (
+                  <ScoreBreakdownRow
+                    key={`${score.gameweek}-${score.opponent_short}`}
+                    score={score}
+                  />
+                ))
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  No scored fixtures yet.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="mt-12 bg-[var(--nffc-black,#000000)]">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-4 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+              Cup Predictions
+            </h2>
+
+            <div className="overflow-hidden bg-[var(--nffc-black,#000000)]">
+              <div className="hidden grid-cols-[minmax(260px,1fr)_240px_300px_260px_160px] border-b border-[var(--nffc-red,#e50914)] text-xl font-black uppercase tracking-[0.16em] text-white lg:grid">
+                <div className="border-r border-[#242424] px-4 py-5">Cup Competition</div>
+                <div className="border-r border-[#242424] px-4 py-5">Deadline</div>
+                <div className="border-r border-[#242424] px-4 py-5">Predicted Round</div>
+                <div className="border-r border-[#242424] px-4 py-5">Actual Round</div>
+                <div className="px-4 py-5 text-center">Bonus Points</div>
+              </div>
+
+              {extraData?.cup_predictions?.length ? (
+                extraData.cup_predictions.map((cup) => {
+                  const stageOptions = getCupStageOptions(
+                    cup.competition,
+                    cup.display_name
+                  );
+
+                  return (
+                    <CupPredictionRow
+                      key={cup.competition}
+                      cup={cup}
+                      stageOptions={stageOptions}
+                      saving={savingExtraKey === `cup-${cup.competition}`}
+                      onChange={updateCupPrediction}
+                    />
+                  );
+                })
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  Cup predictions loading or not available.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="mt-12 bg-[var(--nffc-black,#000000)]">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-4 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+              Other Predictions
+            </h2>
+
+            <div className="grid gap-0 bg-[var(--nffc-black,#000000)]">
+              {extraData?.custom_answers?.length ? (
+                extraData.custom_answers.map((answer) => (
+                  <div
+                    key={answer.question_key}
+                    className={`grid gap-3 border-b border-[#242424] bg-[var(--nffc-black,#000000)] p-4 text-white last:border-b-0 lg:grid-cols-[minmax(320px,0.9fr)_1.1fr] ${
+                      answer.is_locked ? "opacity-70" : ""
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xl font-black uppercase leading-tight tracking-[0.08em] text-white md:text-2xl">
+                        {answer.question_text}
+                      </div>
+                      {answer.is_locked && (
+                        <div className="mt-2 text-sm font-black uppercase tracking-[0.14em] text-[var(--stat-yellow,#ffe44d)]">
+                          Locked
+                        </div>
+                      )}
+                    </div>
+
+                    <textarea
+                      value={answer.answer ?? ""}
+                      disabled={
+                        answer.is_locked ||
+                        savingExtraKey === `custom-${answer.question_key}`
+                      }
+                      onChange={(event) =>
+                        updateCustomAnswer(answer.question_key, event.target.value)
+                      }
+                      rows={3}
+                      className="w-full rounded-none border border-[#444444] bg-[#151515] px-4 py-3 text-lg font-black leading-7 text-white disabled:cursor-not-allowed disabled:bg-[#202020] disabled:text-white md:text-xl"
+                      placeholder="No answer"
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  Other predictions loading or not available.
+                </div>
+              )}
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+  );
+}
+
+function AlertMessage({
+  type,
+  text,
+}: {
+  type: "success" | "error" | "pending";
+  text: string;
+}) {
+  const tone =
+    type === "success"
+      ? {
+          label: "Saved",
+          className:
+            "text-[var(--stat-green,#22e55e)]",
+        }
+      : type === "error"
+        ? {
+            label: "Action needed",
+            className:
+              "text-[var(--stat-wrong,#ff3030)]",
+          }
+        : {
+            label: "Pending",
+            className:
+              "text-[var(--stat-yellow,#ffe44d)]",
+          };
+
+  return (
+    <div className="grid gap-px bg-[#242424] text-white md:grid-cols-[260px_1fr]" role="status">
+      <div className={`bg-[var(--nffc-black,#000000)] px-5 py-3 text-lg font-black uppercase tracking-[0.18em] md:text-xl ${tone.className}`}>
+        {tone.label}
+      </div>
+
+      <div className="bg-[var(--nffc-black,#000000)] px-5 py-3 text-lg font-black uppercase tracking-[0.08em] text-white md:text-xl">
+        {text}
+      </div>
+    </div>
+  );
+}
+
+function PredictionInfoCell({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "green" | "yellow" | "cyan" | "red";
+}) {
+  const toneClass =
+    tone === "green"
+      ? "text-[var(--stat-green,#22e55e)]"
+      : tone === "yellow"
+        ? "text-[var(--stat-yellow,#ffe44d)]"
+        : tone === "cyan"
+          ? "text-[var(--stat-cyan,#59efff)]"
+          : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <div className="grid min-h-[112px] content-between gap-2 bg-[var(--nffc-black,#000000)] px-4 py-4">
+      <div className="text-base font-black uppercase leading-tight tracking-[0.08em] text-white md:text-lg">
+        {label}
+      </div>
+      <div className={`whitespace-nowrap text-4xl font-black uppercase leading-none md:text-5xl ${toneClass}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function CurrentPredictedPointsStrip({ value }: { value: number }) {
+  return (
+    <div className="mt-5 flex items-center justify-between bg-[var(--nffc-black,#000000)] px-5 py-4 text-white">
+      <div className="text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+        Current Predicted Points
+      </div>
+
+      <div className="text-6xl font-black leading-none text-white md:text-7xl">
+        {formatPoints(value)}
+      </div>
+    </div>
+  );
+}
+
+function TopStat({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: string | number;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-none border p-3 ${
+        highlight
+          ? "border-[#111111] bg-[var(--nffc-black,#000000)] text-white"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]"
+      }`}
+    >
+      <div className="text-[0.68rem] font-black uppercase tracking-wide opacity-65">
+        {label}
+      </div>
+      <div className="mt-1 text-xl font-black">{value}</div>
+    </div>
+  );
+}
+
+function ProjectionStat({
+  label,
+  value,
+  helper,
+  highlight = false,
+}: {
+  label: string;
+  value: string | number;
+  helper: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-none border p-3 ${
+        highlight
+          ? "border-[#C8102E] bg-[#C8102E] text-white"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]"
+      }`}
+    >
+      <div className="text-[0.68rem] font-black uppercase tracking-wide opacity-70">
+        {label}
+      </div>
+      <div className="mt-1 text-3xl font-black">{value}</div>
+      <div className="mt-1 text-[0.68rem] font-bold leading-4 opacity-65">
+        {helper}
+      </div>
+    </div>
+  );
+}
+
+function PredictionEntryRow({
+  prediction,
+  saving,
+  onChange,
+}: {
+  prediction: PlayerPageData["predictions"][number];
+  saving: boolean;
+  onChange: (fixtureId: string, newPrediction: PredictionValue) => void;
+}) {
+  const deadlineAt = prediction.prediction_lock_at ?? prediction.kickoff_at;
+  const countdown = getDeadlineCountdown(deadlineAt);
+  const locked =
+    prediction.is_locked || isConfirmedPrediction(prediction) || countdown.expired;
+  const deadline = formatCompactDateTime(deadlineAt);
+
+  return (
+    <div
+      className={`grid items-center gap-0 border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-white last:border-b-0 lg:grid-cols-[100px_minmax(150px,1fr)_560px_230px] ${
+        locked ? "opacity-60" : ""
+      }`}
+    >
+      <div className="border-r border-[#242424] px-4 py-2 text-xl font-black uppercase tracking-[0.08em] text-[var(--nffc-red,#e50914)]">
+        {prediction.gameweek_label}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-3">
+        <div className="text-3xl font-black uppercase leading-none tracking-[0.04em]">
+          {prediction.opponent_short}
+          <span className="ml-3 text-white">{prediction.venue}</span>
+        </div>
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-1.5">
+        <div className="whitespace-nowrap text-2xl font-black uppercase leading-none tracking-[0.06em] text-white">
+          {deadline}
+          <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+          <span className={countdownTextClass(countdown.tone)}>
+            {locked ? "LOCKED" : countdown.label}
+          </span>
+        </div>
+      </div>
+
+      <div className="px-4 py-1.5">
+        <PredictionButtons
+          fixtureId={prediction.fixture_id}
+          selected={prediction.prediction}
+          locked={locked}
+          saving={saving}
+          onChange={onChange}
+          fullWidth
+        />
+      </div>
+    </div>
+  );
+}
+
+function PredictionButtons({
+  fixtureId,
+  selected,
+  locked,
+  saving,
+  onChange,
+  fullWidth = false,
+}: {
+  fixtureId: string;
+  selected: PredictionValue;
+  locked: boolean;
+  saving: boolean;
+  onChange: (fixtureId: string, newPrediction: PredictionValue) => void;
+  fullWidth?: boolean;
+}) {
+  const options: PredictionValue[] = ["W", "D", "L"];
+
+  return (
+    <div className={`grid grid-cols-3 gap-1.5 ${fullWidth ? "w-full" : ""}`}>
+      {options.map((option) => {
+        const isSelected = selected === option;
+
+        return (
+          <button
+            key={option}
+            type="button"
+            disabled={locked || saving}
+            onClick={() => onChange(fixtureId, option)}
+            className={`h-11 border text-2xl font-black uppercase tracking-[0.12em] transition ${
+              fullWidth ? "w-full" : "w-12"
+            } ${predictionButtonClass(option, isSelected)} ${
+              locked || saving
+                ? "cursor-not-allowed opacity-60"
+                : "cursor-pointer hover:brightness-125"
+            }`}
+          >
+            {saving && isSelected ? "…" : option}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function predictionButtonClass(option: PredictionValue, isSelected: boolean) {
+  if (!isSelected) {
+    return "border-[#444444] bg-[var(--nffc-black,#000000)] text-white";
+  }
+
+  if (option === "W") {
+    return "border-[var(--stat-green,#22e55e)] bg-[var(--stat-green,#22e55e)] text-black";
+  }
+
+  if (option === "D") {
+    return "border-[var(--stat-yellow,#ffe44d)] bg-[var(--stat-yellow,#ffe44d)] text-black";
+  }
+
+  return "border-[var(--stat-wrong,#ff3030)] bg-[var(--stat-wrong,#ff3030)] text-white";
+}
+
+function ExpandableButton({
+  open,
+  onClick,
+  title,
+  meta,
+}: {
+  open: boolean;
+  onClick: () => void;
+  title: string;
+  meta: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center justify-between gap-4 rounded-none border border-[#242424] bg-[var(--nffc-black,#000000)] px-4 py-4 text-left shadow-none transition hover:border-[#C8102E]"
+    >
+      <div>
+        <div className="text-lg font-black uppercase text-[var(--nffc-white,#f5f5f5)]">{title}</div>
+        <div className="mt-1 text-xs font-bold uppercase tracking-wide text-white">
+          {meta}
+        </div>
+      </div>
+
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-[var(--nffc-red,#e50914)] text-2xl font-black leading-none text-white">
+        {open ? "−" : "+"}
+      </div>
+    </button>
+  );
+}
+
+function ScoreStat({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-none border p-3 ${
+        highlight
+          ? "border-[#111111] bg-[var(--nffc-black,#000000)] text-white"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]"
+      }`}
+    >
+      <div className="text-[0.68rem] font-bold uppercase tracking-wide opacity-70">
+        {label}
+      </div>
+      <div className="mt-1 text-2xl font-black">{value}</div>
+    </div>
+  );
+}
+
+function CupPredictionRow({
+  cup,
+  stageOptions,
+  saving,
+  onChange,
+}: {
+  cup: ExtraPredictionsData["cup_predictions"][number];
+  stageOptions: string[];
+  saving: boolean;
+  onChange: (competition: string, newValue: string) => void;
+}) {
+  return (
+    <div
+      className={`grid items-center border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-white last:border-b-0 lg:grid-cols-[minmax(260px,1fr)_240px_300px_260px_160px]`}
+    >
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-3xl font-black uppercase leading-none ${
+          cup.bonus_awarded > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-white"
+        }`}
+      >
+        {cup.display_name ?? cup.competition}
+        {cup.is_locked && (
+          <span className="ml-3 text-sm font-black uppercase tracking-[0.14em] text-[var(--stat-yellow,#ffe44d)]">
+            Locked
+          </span>
+        )}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-4 text-xl font-black uppercase tracking-[0.08em] text-white">
+        {formatCompactDateTime(cup.prediction_lock_at)}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-3">
+        <select
+          value={cup.predicted_round_reached ?? ""}
+          disabled={cup.is_locked || saving}
+          onChange={(event) => onChange(cup.competition, event.target.value)}
+          className="w-full rounded-none border border-[#444444] bg-[#151515] px-4 py-4 text-xl font-black uppercase text-white disabled:cursor-not-allowed disabled:bg-[#202020] disabled:text-white"
+        >
+          <option value="">No prediction</option>
+          {stageOptions.map((stage) => (
+            <option key={stage} value={stage}>
+              {stage}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-4 text-2xl font-black uppercase text-white">
+        {cup.actual_round_reached ?? "Not decided"}
+      </div>
+
+      <div
+        className={`px-4 py-4 text-center text-5xl font-black ${
+          cup.bonus_awarded > 0
+            ? "text-[var(--stat-green,#22e55e)]"
+            : "text-[var(--stat-wrong,#ff3030)]"
+        }`}
+      >
+        {formatPoints(cup.bonus_awarded)}
+      </div>
+    </div>
+  );
+}
+
+function ScoreBreakdownRow({ score }: { score: ScoreRowWithRunning }) {
+  const correct = score.prediction === score.actual_result;
+
+  return (
+    <div className="grid items-center border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-white last:border-b-0 lg:grid-cols-[100px_minmax(240px,1fr)_170px_140px_110px_120px_120px_120px_100px_150px]">
+      <div className="border-r border-[#242424] px-4 py-1.5 text-2xl font-black uppercase text-[var(--nffc-red,#e50914)]">
+        {score.gameweek_label}
+      </div>
+
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-3xl font-black uppercase leading-none ${
+          correct ? "text-[var(--stat-green,#22e55e)]" : "text-white"
+        }`}
+      >
+        {score.opponent_short}{" "}
+        <span className={correct ? "text-[var(--stat-green,#22e55e)]" : "text-white"}>
+          {score.venue}
+        </span>
+      </div>
+
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${
+          correct ? "text-[var(--stat-green,#22e55e)]" : "text-white"
+        }`}
+      >
+        {score.prediction}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none text-white">
+        {score.actual_result}
+      </div>
+
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${
+          score.base_points > 0
+            ? "text-[var(--stat-green,#22e55e)]"
+            : "text-[var(--stat-wrong,#ff3030)]"
+        }`}
+      >
+        {formatPoints(score.base_points)}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none text-[var(--stat-yellow,#ffe44d)]">
+        {formatPoints(score.streak_bonus)}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none text-[var(--stat-cyan,#59efff)]">
+        {formatPoints(score.maverick_bonus)}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none text-[var(--stat-pink,#ff4fd8)]">
+        {formatPoints(score.rogue_bonus)}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none text-[var(--stat-green,#22e55e)]">
+        {formatPoints(score.cup_bonus)}
+      </div>
+
+      <div
+        className={`px-4 py-1.5 text-center text-4xl font-black leading-none ${
+          score.running_total > 0
+            ? "text-[var(--stat-green,#22e55e)]"
+            : "text-[var(--stat-wrong,#ff3030)]"
+        }`}
+      >
+        {formatPoints(score.running_total)}
+      </div>
+    </div>
+  );
+}
+
+function MiniScore({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-none border border-[rgba(245,245,245,0.35)] bg-[var(--nffc-black,#000000)] px-3 py-2">
+      <div className="text-[0.62rem] uppercase tracking-wide text-white">
+        {label}
+      </div>
+      <div className="mt-0.5 text-lg text-[var(--nffc-white,#f5f5f5)]">{value}</div>
+    </div>
+  );
+}
+
+function BreakdownPart({
+  label,
+  value,
+  dark = false,
+}: {
+  label: string;
+  value: number;
+  dark?: boolean;
+}) {
+  return (
+    <span
+      className={`rounded-none border px-3 py-1 text-xs font-black uppercase tracking-wide ${
+        dark
+          ? "border-[#111111] bg-[var(--nffc-black,#000000)] text-white"
+          : value > 0
+            ? "border-green-200 bg-green-50 text-green-700"
+            : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-white"
+      }`}
+    >
+      {value} {label}
+    </span>
+  );
+}
+
+function InlineInfoPill({
+  label,
+  value,
+  tone = "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]",
+}: {
+  label: string;
+  value: string;
+  tone?: string;
+}) {
+  return (
+    <span
+      className={`inline-flex flex-wrap items-center gap-2 rounded-none border px-3 py-1 text-xs font-black uppercase tracking-wide ${tone}`}
+    >
+      <span className="opacity-60">{label}</span>
+      <span>{value}</span>
+    </span>
+  );
+}
+
+function LockedBadge() {
+  return (
+    <span className="rounded-none bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-bold uppercase text-white">
+      Locked
+    </span>
+  );
+}

@@ -1,5 +1,8 @@
 "use client";
 
+import Image from "next/image";
+
+
 import { useState } from "react";
 import CompactIndividualLeaderboard from "@/components/leaderboards/web/CompactIndividualLeaderboard";
 import CompactTeamLeaderboard from "@/components/leaderboards/web/CompactTeamLeaderboard";
@@ -7,436 +10,401 @@ import IndividualLeaderboard from "@/components/leaderboards/web/IndividualLeade
 import TeamLeaderboard from "@/components/leaderboards/web/TeamLeaderboard";
 
 type IndividualLeaderboardRow = {
-  player_id: string;
-  player_name: string;
-  short_name: string | null;
-  table_display_name?: string | null;
-  team_name: string;
-  team_display_name?: string | null;
-  team_abbreviation?: string | null;
-  base_points: number;
-  streak_bonus: number;
-  maverick_bonus: number;
-  rogue_bonus: number;
-  cup_bonus: number;
-  total_points: number;
-  correct_predictions: number;
-  fixtures_scored: number;
-  accuracy_percentage: number;
-  bonus_points: number | null;
-  accuracy_whole_percentage: number | null;
-  best_streak: number | null;
-  current_streak: number | null;
-  team_logo_url?: string | null;
-  team_logo_alt?: string | null;
-  team_brand_colour?: string | null;
+ player_id: string;
+ player_name: string;
+ short_name: string | null;
+ table_display_name?: string | null;
+ team_name: string;
+ team_display_name?: string | null;
+ team_abbreviation?: string | null;
+ base_points: number;
+ streak_bonus: number;
+ maverick_bonus: number;
+ rogue_bonus: number;
+ cup_bonus: number;
+ total_points: number;
+ correct_predictions: number;
+ fixtures_scored: number;
+ accuracy_percentage: number;
+ bonus_points: number | null;
+ accuracy_whole_percentage: number | null;
+ best_streak: number | null;
+ current_streak: number | null;
+ team_logo_url?: string | null;
+ team_logo_alt?: string | null;
+ team_brand_colour?: string | null;
 };
 
 type TeamLeaderboardRow = {
-  team_id: string;
-  team_name: string;
-  display_name: string | null;
-  slug?: string | null;
-  x_handle: string | null;
-  total_team_points: number;
-  clean_sweeps: number;
-  blanks: number;
-  best_player_accuracy_percentage: number;
-  logo_url: string | null;
-  logo_alt: string | null;
-  brand_colour: string | null;
-  mvp_player_id?: string | null;
-  mvp_player_name?: string | null;
-  mvp_short_name?: string | null;
-  mvp_accuracy_percentage?: number | null;
-  latest_gameweek?: number | null;
-  latest_gameweek_label?: string | null;
-  latest_opponent_short?: string | null;
-  points_this_week?: number | null;
+ team_id: string;
+ team_name: string;
+ display_name: string | null;
+ slug?: string | null;
+ x_handle: string | null;
+ total_team_points: number;
+ clean_sweeps: number;
+ blanks: number;
+ best_player_accuracy_percentage: number;
+ logo_url: string | null;
+ logo_alt: string | null;
+ brand_colour: string | null;
+ mvp_player_id?: string | null;
+ mvp_player_name?: string | null;
+ mvp_short_name?: string | null;
+ mvp_accuracy_percentage?: number | null;
+ latest_gameweek?: number | null;
+ latest_gameweek_label?: string | null;
+ latest_opponent_short?: string | null;
+ points_this_week?: number | null;
 };
 
 type FixtureTableRow = {
-  fixture_id: string;
-  gameweek: number;
-  gameweek_label: string;
-  opponent: string;
-  opponent_short: string;
-  venue: "H" | "A";
-  home_team: string;
-  away_team: string;
-  home_score: number | null;
-  away_score: number | null;
-  forest_result: "W" | "D" | "L" | null;
-  total_predictions: number;
-  forest_win_count: number;
-  draw_count: number;
-  forest_loss_count: number;
-  correct_count: number;
-  forest_win_percent: number;
-  draw_percent: number;
-  forest_loss_percent: number;
-  rogue_applied: boolean;
-  maverick_applied: boolean;
+ fixture_id: string;
+ gameweek: number;
+ gameweek_label: string;
+ opponent: string;
+ opponent_short: string;
+ venue: "H" | "A";
+ home_team: string;
+ away_team: string;
+ home_score: number | null;
+ away_score: number | null;
+ forest_result: "W" | "D" | "L" | null;
+ total_predictions: number;
+ forest_win_count: number;
+ draw_count: number;
+ forest_loss_count: number;
+ correct_count: number;
+ forest_win_percent: number;
+ draw_percent: number;
+ forest_loss_percent: number;
+ rogue_applied: boolean;
+ maverick_applied: boolean;
 };
 
 type ActiveTab = "teams" | "players" | "fixtures";
 
 function formatPercent(value: number | null | undefined) {
-  return `${Math.round(Number(value ?? 0))}%`;
+ return `${Math.round(Number(value ?? 0))}%`;
 }
 
 function resultLabel(result: "W" | "D" | "L" | null) {
-  if (result === "W") return "Forest win";
-  if (result === "D") return "Draw";
-  if (result === "L") return "Forest loss";
-  return "—";
+ return result ?? "—";
+}
+
+function resultTextClass(result: "W" | "D" | "L" | null) {
+ if (result === "W") return "text-[var(--stat-green,#22e55e)]";
+ if (result === "D") return "text-[var(--stat-yellow,#ffe44d)]";
+ if (result === "L") return "text-[var(--stat-wrong,#ff3030)]";
+ return "text-white";
+}
+
+function hasFixtureResult(row: FixtureTableRow) {
+ return row.forest_result !== null;
 }
 
 export default function HomepageLeaderboardTabs({
-  individualRows,
-  teamRows,
-  fixtureRows,
+ individualRows,
+ teamRows,
+ fixtureRows,
 }: {
-  individualRows: IndividualLeaderboardRow[];
-  teamRows: TeamLeaderboardRow[];
-  fixtureRows: FixtureTableRow[];
+ individualRows: IndividualLeaderboardRow[];
+ teamRows: TeamLeaderboardRow[];
+ fixtureRows: FixtureTableRow[];
 }) {
-  const [activeTab, setActiveTab] = useState<ActiveTab>("teams");
-  const [showFullMobileStats, setShowFullMobileStats] = useState(false);
+ const [activeTab, setActiveTab] = useState<ActiveTab>("teams");
+ const [showFullMobileStats, setShowFullMobileStats] = useState(false);
 
-  function changeTab(nextTab: ActiveTab) {
-    setActiveTab(nextTab);
-    setShowFullMobileStats(false);
-  }
+ function changeTab(nextTab: ActiveTab) {
+ setActiveTab(nextTab);
+ setShowFullMobileStats(false);
+ }
 
-  return (
-    <section id="leaderboards" className="scroll-mt-6">
-      <div className="mb-4 grid grid-cols-3 gap-2 rounded-3xl border border-[#D9D6D1] bg-white p-3 shadow-sm">
-        <TableButton
-          label="Team Table"
-          active={activeTab === "teams"}
-          onClick={() => changeTab("teams")}
-        />
-        <TableButton
-          label="Player Table"
-          active={activeTab === "players"}
-          onClick={() => changeTab("players")}
-        />
-        <TableButton
-          label="Fixture Table"
-          active={activeTab === "fixtures"}
-          onClick={() => changeTab("fixtures")}
-        />
-      </div>
+ return (
+ <section id="leaderboards" className="scroll-mt-6">
+ <div className="mb-2 grid grid-cols-3 gap-2 bg-[var(--nffc-black,#000000)] pb-1">
+ <TableButton
+ label="Team Table"
+ active={activeTab === "teams"}
+ onClick={() => changeTab("teams")}
+ />
+ <TableButton
+ label="Player Table"
+ active={activeTab === "players"}
+ onClick={() => changeTab("players")}
+ />
+ <TableButton
+ label="Fixture Table"
+ active={activeTab === "fixtures"}
+ onClick={() => changeTab("fixtures")}
+ />
+ </div>
 
-      <div className="2xl:hidden">
-        {activeTab === "teams" ? (
-          <CompactTeamLeaderboard rows={teamRows} />
-        ) : activeTab === "players" ? (
-          <CompactIndividualLeaderboard rows={individualRows} />
-        ) : (
-          <FixtureTable rows={fixtureRows} compact />
-        )}
+ <div className="2xl:hidden">
+ {activeTab === "teams" ? (
+ <CompactTeamLeaderboard rows={teamRows} />
+ ) : activeTab === "players" ? (
+ <CompactIndividualLeaderboard rows={individualRows} />
+ ) : (
+ <FixtureTable rows={fixtureRows} compact />
+ )}
 
-        {activeTab !== "fixtures" && (
-          <button
-            type="button"
-            onClick={() => setShowFullMobileStats((current) => !current)}
-            className="mt-3 w-full rounded-full border border-[#111111] bg-white px-5 py-3 text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
-          >
-            {showFullMobileStats ? "Hide full stats" : "Show full stats"}
-          </button>
-        )}
+ </div>
 
-        {showFullMobileStats && (
-          <div className="mt-4">
-            {activeTab === "teams" ? (
-              <TeamLeaderboard rows={teamRows} />
-            ) : activeTab === "players" ? (
-              <IndividualLeaderboard rows={individualRows} />
-            ) : null}
-          </div>
-        )}
-      </div>
-
-      <div className="hidden 2xl:block">
-        {activeTab === "teams" ? (
-          <TeamLeaderboard rows={teamRows} />
-        ) : activeTab === "players" ? (
-          <IndividualLeaderboard rows={individualRows} />
-        ) : (
-          <FixtureTable rows={fixtureRows} />
-        )}
-      </div>
-    </section>
-  );
+ <div className="hidden 2xl:block">
+ {activeTab === "teams" ? (
+ <TeamLeaderboard rows={teamRows} />
+ ) : activeTab === "players" ? (
+ <IndividualLeaderboard rows={individualRows} />
+ ) : (
+ <FixtureTable rows={fixtureRows} />
+ )}
+ </div>
+ </section>
+ );
 }
 
 function TableButton({
-  label,
-  active,
-  onClick,
+ label,
+ active,
+ onClick,
 }: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
+ label: string;
+ active: boolean;
+ onClick: () => void;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-full px-3 py-3 text-[0.68rem] font-black uppercase tracking-wide transition md:text-xs ${
-        active
-          ? "bg-[#111111] text-white"
-          : "border border-[#111111] bg-white text-[#111111] hover:border-[#C8102E] hover:text-[#C8102E]"
-      }`}
-    >
-      {label}
-    </button>
-  );
+ return (
+ <button
+ type="button"
+ onClick={onClick}
+ className={`relative border px-5 py-4 text-center text-lg font-black uppercase tracking-[0.14em] transition md:text-lg ${
+ active
+ ? "border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] text-[var(--stat-green,#22e55e)] after:absolute after:bottom-0 after:left-0 after:h-[3px] after:w-full after:bg-[var(--stat-green,#22e55e)]"
+ : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)] hover:border-[var(--stat-green,#22e55e)] hover:text-[var(--stat-green,#22e55e)]"
+ }`}
+ >
+ <span className="inline-flex items-center justify-center gap-2">
+ {active && <span className="text-[var(--stat-green,#22e55e)]">█</span>}
+ <span>{active ? `ACTIVE / ${label}` : `> ${label}`}</span>
+ </span>
+ </button>
+ );
 }
 
 function FixtureTable({
-  rows,
-  compact = false,
+ rows,
+ compact = false,
 }: {
-  rows: FixtureTableRow[];
-  compact?: boolean;
+ rows: FixtureTableRow[];
+ compact?: boolean;
 }) {
-  if (!rows.length) {
-    return (
-      <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
-        Fixture table not available yet.
-      </div>
-    );
-  }
+ if (!rows.length) {
+ return (
+ <div className="border border-[#242424] bg-[var(--nffc-black,#000000)] p-4 text-base font-black uppercase tracking-[0.12em] text-white">
+ Fixture table not available yet.
+ </div>
+ );
+ }
 
-  if (compact) {
-    return (
-      <div className="grid gap-2">
-        {rows.map((row) => (
-          <div
-            key={row.fixture_id}
-            className="rounded-2xl border border-[#D9D6D1] bg-white p-3 shadow-sm"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[#C8102E]">
-                  {row.gameweek_label}
-                </div>
-                <div className="mt-1 text-lg font-black">
-                  {row.opponent_short} {row.venue}
-                </div>
-              </div>
+ const tableRows = (
+ <div className="overflow-hidden border border-[#242424]">
+ <div className="hidden grid-cols-[100px_minmax(190px,1fr)_80px_28px_360px_28px_190px_220px] bg-[var(--nffc-black,#000000)] text-xl font-black uppercase tracking-[0.12em] text-white lg:grid">
+ <div className="flex items-center border-r border-[#242424] px-3 py-1.5">GW</div>
+ <div className="flex items-center border-r border-[#242424] px-3 py-1.5">Fixture</div>
+ <div className="flex items-center justify-center border-r border-[#242424] px-2 py-2.5 text-center">Result</div>
+ <div className="bg-[var(--nffc-black,#000000)]" />
+ <div className="flex flex-col items-center justify-center border-r border-[#242424] px-3 py-1.5 text-center leading-none">
+ <span>Prediction Split</span>
+ <span className="mt-1">
+ <span className="text-[var(--stat-green,#22e55e)]">W</span>
+ <span className="px-1 text-white">/</span>
+ <span className="text-[var(--stat-yellow,#ffe44d)]">D</span>
+ <span className="px-1 text-white">/</span>
+ <span className="text-[var(--stat-wrong,#ff3030)]">L</span>
+ </span>
+ </div>
+ <div className="bg-[var(--nffc-black,#000000)]" />
+ <div className="flex items-center justify-center whitespace-nowrap border-r border-[#242424] px-3 py-1.5 text-center text-[var(--stat-green,#22e55e)]">Accuracy %</div>
+ <div className="flex items-center justify-center px-3 py-1.5 text-center">Bonus</div>
+ </div>
 
-              <ResultPill result={row.forest_result} />
-            </div>
+ {rows.map((row) => (
+ <FixtureTableRowEntry key={row.fixture_id} row={row} />
+ ))}
+ </div>
+ );
 
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <SplitPill label="Forest W" value={row.forest_win_percent} tone="win" />
-              <SplitPill label="Draw" value={row.draw_percent} tone="draw" />
-              <SplitPill label="Forest L" value={row.forest_loss_percent} tone="loss" />
-            </div>
+ if (compact) {
+ return tableRows;
+ }
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <CorrectPill
-                correct={row.correct_count}
-                total={row.total_predictions}
-              />
-              <BonusPills
-                maverick={row.maverick_applied}
-                rogue={row.rogue_applied}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
+ return (
+ <section className="bg-[var(--nffc-black,#000000)]">
+ <div className="mb-5">
+ <LeaderboardTableHeader title="Fixture Table" />
 
-  return (
-    <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
-      <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-black uppercase">Fixture table</h2>
-          <p className="text-sm font-semibold text-neutral-600">
-            Completed fixtures only. Future prediction splits are not shown.
-          </p>
-        </div>
+ <div className="mt-3 flex flex-col gap-2 text-base font-black uppercase tracking-[0.08em] text-white sm:flex-row sm:items-center sm:justify-between">
+ </div>
+ </div>
 
-        <div className="text-xs font-black uppercase tracking-wide text-[#C8102E]">
-          {rows.length} completed fixtures
-        </div>
-      </div>
+ {tableRows}
+ </section>
+ );
+}
 
-      <div className="overflow-hidden rounded-2xl border border-[#D9D6D1]">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead className="bg-[#111111] text-white">
-            <tr>
-              <th className="px-4 py-3">GW</th>
-              <th className="px-4 py-3">Fixture</th>
-              <th className="px-4 py-3">Result</th>
-              <th className="px-4 py-3">Prediction split</th>
-              <th className="px-4 py-3">Correct</th>
-              <th className="px-4 py-3">Bonus</th>
-            </tr>
-          </thead>
+function FixtureTableRowEntry({ row }: { row: FixtureTableRow }) {
+ const hasResult = hasFixtureResult(row);
+ const accuracy =
+ hasResult && Number(row.total_predictions ?? 0) > 0
+ ? Math.round((Number(row.correct_count ?? 0) / Number(row.total_predictions ?? 0)) * 100)
+ : null;
 
-          <tbody>
-            {rows.map((row) => (
-              <tr
-                key={row.fixture_id}
-                className="border-b border-[#E7E2DA] last:border-b-0"
-              >
-                <td className="px-4 py-3 align-middle">
-                  <span className="inline-flex min-w-[58px] items-center justify-center rounded-xl border border-[#C8102E]/20 bg-[#C8102E]/10 px-3 py-2 text-sm font-black text-[#C8102E]">
-                    {row.gameweek_label}
-                  </span>
-                </td>
+ return (
+ <div className="grid grid-cols-[100px_minmax(190px,1fr)_80px_28px_360px_28px_190px_220px] items-center border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-white last:border-b-0">
+ <div className="border-r border-[#242424] px-2.5 py-0.5 text-xl font-black uppercase text-[var(--nffc-red,#e50914)]">
+ {row.gameweek_label}
+ </div>
 
-                <td className="px-4 py-3 align-middle">
-                  <div className="text-base font-black text-[#111111]">
-                    {row.opponent_short}
-                  </div>
-                  <div className="mt-0.5 text-xs font-bold uppercase tracking-wide text-neutral-500">
-                    {row.venue === "H" ? "Home" : "Away"}
-                  </div>
-                </td>
+ <div
+ className={`border-r border-[#242424] px-2.5 py-0.5 text-3xl font-black uppercase leading-none ${
+ hasResult ? resultTextClass(row.forest_result) : "text-white"
+ }`}
+ >
+ {row.opponent_short}
+ <span className={`ml-3 ${hasResult ? resultTextClass(row.forest_result) : "text-white"}`}>
+ {row.venue}
+ </span>
+ </div>
 
-                <td className="px-4 py-3 align-middle">
-                  <ResultPill result={row.forest_result} />
-                </td>
+ <div className="flex items-center justify-center border-r border-[#242424] px-2.5 py-0.5 text-center">
+ {hasResult ? <ResultPill result={row.forest_result} /> : <span className="text-xl font-black text-white">—</span>}
+ </div>
 
-                <td className="px-4 py-3 align-middle">
-                  <div className="grid max-w-[360px] grid-cols-3 gap-2">
-                    <SplitPill
-                      label="W"
-                      value={row.forest_win_percent}
-                      tone="win"
-                    />
-                    <SplitPill
-                      label="D"
-                      value={row.draw_percent}
-                      tone="draw"
-                    />
-                    <SplitPill
-                      label="L"
-                      value={row.forest_loss_percent}
-                      tone="loss"
-                    />
-                  </div>
-                </td>
+ <div className="bg-[var(--nffc-black,#000000)]" />
 
-                <td className="px-4 py-3 align-middle">
-                  <CorrectPill
-                    correct={row.correct_count}
-                    total={row.total_predictions}
-                  />
-                </td>
+ <div className="border-r border-[#242424] px-2 py-0.5">
+ <div className="grid grid-cols-3 gap-0">
+ <SplitPill value={row.forest_win_percent} tone="win" />
+ <SplitPill value={row.draw_percent} tone="draw" />
+ <SplitPill value={row.forest_loss_percent} tone="loss" />
+ </div>
+ </div>
 
-                <td className="px-4 py-3 align-middle">
-                  <BonusPills
-                    maverick={row.maverick_applied}
-                    rogue={row.rogue_applied}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
+ <div className="bg-[var(--nffc-black,#000000)]" />
+
+ <div className="flex items-center justify-center border-r border-[#242424] px-2.5 py-0.5 text-center text-2xl font-black text-[var(--stat-green,#22e55e)]">
+ {accuracy === null ? "—" : formatPercent(accuracy)}
+ </div>
+
+ <div className="px-2 py-0.5 text-center">
+ {hasResult ? (
+ <BonusPills
+ maverick={row.maverick_applied}
+ rogue={row.rogue_applied}
+ />
+ ) : (
+ <span className="text-xl font-black text-white">—</span>
+ )}
+ </div>
+ </div>
+ );
 }
 
 function ResultPill({ result }: { result: "W" | "D" | "L" | null }) {
-  const className =
-    result === "W"
-      ? "border-green-200 bg-green-50 text-green-700"
-      : result === "D"
-        ? "border-amber-200 bg-amber-50 text-amber-700"
-        : result === "L"
-          ? "border-red-200 bg-red-50 text-red-700"
-          : "border-[#D9D6D1] bg-[#F7F6F2] text-neutral-600";
-
-  return (
-    <span
-      className={`inline-flex min-w-[96px] items-center justify-center rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-wide ${className}`}
-    >
-      {resultLabel(result)}
-    </span>
-  );
+ return (
+ <span
+ className={`inline-flex items-center justify-center text-3xl font-black uppercase leading-none ${resultTextClass(result)}`}
+ >
+ {resultLabel(result)}
+ </span>
+ );
 }
 
 function SplitPill({
-  label,
-  value,
-  tone,
+ value,
+ tone,
 }: {
-  label: string;
-  value: number;
-  tone: "win" | "draw" | "loss";
+ value: number;
+ tone: "win" | "draw" | "loss";
 }) {
-  const className =
-    tone === "win"
-      ? "border-green-200 bg-green-50 text-green-700"
-      : tone === "draw"
-        ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-red-200 bg-red-50 text-red-700";
+ const className =
+ tone === "win"
+ ? "text-[var(--stat-green,#22e55e)]"
+ : tone === "draw"
+ ? "text-[var(--stat-yellow,#ffe44d)]"
+ : "text-[var(--stat-wrong,#ff3030)]";
 
-  return (
-    <div className={`rounded-xl border px-3 py-2 text-center ${className}`}>
-      <div className="text-[0.62rem] font-black uppercase tracking-wide opacity-70">
-        {label}
-      </div>
-      <div className="mt-0.5 text-base font-black">
-        {formatPercent(value)}
-      </div>
-    </div>
-  );
+ return (
+ <div className={`flex h-7 min-w-0 items-center justify-center bg-[var(--nffc-black,#000000)] px-2 py-0 text-center ${className}`}>
+ <div className="text-[1.45rem] font-black uppercase leading-none tracking-[0.02em]">
+ {formatPercent(value)}
+ </div>
+ </div>
+ );
 }
 
 function CorrectPill({
-  correct,
-  total,
+ correct,
+ total,
 }: {
-  correct: number;
-  total: number;
+ correct: number;
+ total: number;
 }) {
-  return (
-    <span className="inline-flex min-w-[96px] items-center justify-center rounded-xl border border-[#111111] bg-[#111111] px-3 py-2 text-xs font-black uppercase tracking-wide text-white">
-      {correct}/{total}
-    </span>
-  );
+ return (
+ <span className="inline-flex min-w-[110px] items-center justify-center border border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] px-2.5 py-0.5 text-lg font-black uppercase tracking-[0.1em] text-[var(--stat-green,#22e55e)]">
+ {correct}/{total}
+ </span>
+ );
 }
 
 function BonusPills({
-  maverick,
-  rogue,
+ maverick,
+ rogue,
 }: {
-  maverick: boolean;
-  rogue: boolean;
+ maverick: boolean;
+ rogue: boolean;
 }) {
-  if (!maverick && !rogue) {
-    return (
-      <span className="inline-flex rounded-xl border border-[#D9D6D1] bg-[#F7F6F2] px-3 py-2 text-xs font-black uppercase tracking-wide text-neutral-500">
-        —
-      </span>
-    );
-  }
+ if (!maverick && !rogue) {
+ return (
+ <span className="inline-flex border border-[#444444] bg-[var(--nffc-black,#000000)] px-2.5 py-0.5 text-lg font-black uppercase tracking-[0.1em] text-white">
+ —
+ </span>
+ );
+ }
 
+ return (
+ <span className="inline-flex flex-wrap gap-2">
+ {maverick && (
+ <span className="border border-[var(--stat-cyan,#59efff)] bg-[var(--nffc-black,#000000)] px-2.5 py-0.5 text-lg font-black uppercase tracking-[0.1em] text-[var(--stat-cyan,#59efff)]">
+ Maverick
+ </span>
+ )}
+ {rogue && (
+ <span className="border border-[var(--stat-pink,#ff4fd8)] bg-[var(--nffc-black,#000000)] px-2.5 py-0.5 text-lg font-black uppercase tracking-[0.1em] text-[var(--stat-pink,#ff4fd8)]">
+ Rogue
+ </span>
+ )}
+ </span>
+ );
+}
+
+
+function LeaderboardTableHeader({ title }: { title: string }) {
   return (
-    <span className="inline-flex flex-wrap gap-2">
-      {maverick && (
-        <span className="rounded-xl border border-[#C8102E]/25 bg-[#C8102E]/10 px-3 py-2 text-xs font-black uppercase tracking-wide text-[#C8102E]">
-          Maverick
-        </span>
-      )}
-      {rogue && (
-        <span className="rounded-xl border border-[#111111]/25 bg-[#111111] px-3 py-2 text-xs font-black uppercase tracking-wide text-white">
-          Rogue
-        </span>
-      )}
-    </span>
+    <div className="grid grid-cols-[minmax(0,1fr)_250px] items-center bg-[var(--nffc-red,#e50914)]">
+      <h2 className="px-5 py-2.5 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+        {title}
+      </h2>
+
+      <div className="flex h-full items-center justify-end bg-[var(--nffc-red,#e50914)] px-2">
+        <Image
+          src="/brand/nffc-podcast-prediction-league-banner.png"
+          alt="NFFC Podcast Prediction League"
+          width={520}
+          height={145}
+          className="h-14 w-auto object-contain"
+        />
+      </div>
+    </div>
   );
 }

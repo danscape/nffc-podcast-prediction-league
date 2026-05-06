@@ -148,9 +148,9 @@ export default function AdminRemindersPage() {
   const failed = result?.failed ?? [];
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
+        <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
@@ -159,14 +159,14 @@ export default function AdminRemindersPage() {
               <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
                 Reminder emails
               </h1>
-              <p className="mt-3 text-sm font-semibold text-neutral-600">
+              <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                 Check and send Premier League fixture reminders scheduled around 2 days before kick-off.
               </p>
             </div>
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -175,12 +175,12 @@ export default function AdminRemindersPage() {
 
         {message && (
           <div
-            className={`mb-6 rounded-2xl border p-4 text-sm font-semibold ${
+            className={`mb-6 rounded-none border p-4 text-sm font-semibold ${
               message.type === "success"
                 ? "border-green-200 bg-green-50 text-green-800"
                 : message.type === "error"
                   ? "border-red-200 bg-red-50 text-red-800"
-                  : "border-[#D9D6D1] bg-white text-neutral-700"
+                  : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-muted,#a7a7a7)]"
             }`}
           >
             {message.text}
@@ -197,13 +197,13 @@ export default function AdminRemindersPage() {
           />
         </section>
 
-        <section className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+        <section className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-6">
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
               <h2 className="text-2xl font-black uppercase">
                 Run reminder check
               </h2>
-              <p className="mt-1 text-sm text-neutral-600">
+              <p className="mt-1 text-sm text-[var(--nffc-muted,#a7a7a7)]">
                 Dry run only lists reminders that are currently due. Send reminders emails those players and writes to the reminder log to prevent duplicates.
               </p>
             </div>
@@ -213,7 +213,7 @@ export default function AdminRemindersPage() {
                 type="button"
                 disabled={loading}
                 onClick={() => runReminderCheck(true)}
-                className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading && lastAction === "dry-run" ? "Checking…" : "Dry run"}
               </button>
@@ -228,19 +228,19 @@ export default function AdminRemindersPage() {
             </div>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-700">
+          <div className="mt-5 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
             Reminder window: scheduled Premier League fixtures with kick-off roughly 47–48 hours away. Each player should receive only one reminder per fixture.
           </div>
         </section>
 
         {lastAction === "dry-run" && (
-          <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+          <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-6">
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-2xl font-black uppercase">
                   Due reminders
                 </h2>
-                <p className="text-sm text-neutral-600">
+                <p className="text-sm text-[var(--nffc-muted,#a7a7a7)]">
                   These emails would be sent if you run Send due reminders.
                 </p>
               </div>
@@ -259,13 +259,13 @@ export default function AdminRemindersPage() {
 
         {lastAction === "send" && (
           <div className="grid gap-6">
-            <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+            <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-6">
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-2xl font-black uppercase">
                     Sent reminders
                   </h2>
-                  <p className="text-sm text-neutral-600">
+                  <p className="text-sm text-[var(--nffc-muted,#a7a7a7)]">
                     Successfully sent reminder emails.
                   </p>
                 </div>
@@ -281,13 +281,13 @@ export default function AdminRemindersPage() {
               )}
             </section>
 
-            <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+            <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-6">
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-2xl font-black uppercase">
                     Failed reminders
                   </h2>
-                  <p className="text-sm text-neutral-600">
+                  <p className="text-sm text-[var(--nffc-muted,#a7a7a7)]">
                     Any reminder emails that could not be sent or logged.
                   </p>
                 </div>
@@ -317,8 +317,8 @@ function AdminStat({
   value: number | string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
-      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+    <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none">
+      <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
       <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
@@ -328,7 +328,7 @@ function AdminStat({
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-5 text-sm font-semibold text-neutral-600">
+    <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-5 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
       {text}
     </div>
   );
@@ -337,7 +337,7 @@ function EmptyState({ text }: { text: string }) {
 function ReminderTable({ reminders }: { reminders: ReminderRow[] }) {
   return (
     <>
-      <div className="hidden overflow-hidden rounded-2xl border border-[#D9D6D1] lg:block">
+      <div className="hidden overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)] lg:block">
         <table className="w-full border-collapse text-left text-sm">
           <thead className="bg-[#111111] text-white">
             <tr>
@@ -352,13 +352,13 @@ function ReminderTable({ reminders }: { reminders: ReminderRow[] }) {
             {reminders.map((reminder) => (
               <tr
                 key={`${reminder.fixture_id}-${reminder.player_id}`}
-                className="border-b border-[#E7E2DA] last:border-b-0"
+                className="border-b border-[rgba(245,245,245,0.35)] last:border-b-0"
               >
                 <td className="px-4 py-3">
                   <div className="font-black">
                     {reminder.short_name ?? reminder.player_name}
                   </div>
-                  <div className="text-xs text-neutral-500">
+                  <div className="text-xs text-[var(--nffc-muted,#a7a7a7)]">
                     {reminder.legacy_code}
                   </div>
                 </td>
@@ -383,7 +383,7 @@ function ReminderTable({ reminders }: { reminders: ReminderRow[] }) {
         {reminders.map((reminder) => (
           <div
             key={`${reminder.fixture_id}-${reminder.player_id}`}
-            className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4"
+            className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4"
           >
             <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
               {reminder.gameweek_label} · {reminder.opponent_short}{" "}
@@ -392,10 +392,10 @@ function ReminderTable({ reminders }: { reminders: ReminderRow[] }) {
             <div className="mt-1 text-lg font-black">
               {reminder.short_name ?? reminder.player_name}
             </div>
-            <div className="mt-1 text-sm font-semibold text-neutral-600">
+            <div className="mt-1 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
               {reminder.team_display_name ?? reminder.team_name}
             </div>
-            <div className="mt-3 border-t border-[#D9D6D1] pt-3 text-sm text-neutral-600">
+            <div className="mt-3 border-t border-[var(--nffc-white,#f5f5f5)] pt-3 text-sm text-[var(--nffc-muted,#a7a7a7)]">
               {formatDateTime(reminder.kickoff_at)} · {reminder.email}
             </div>
           </div>
@@ -419,7 +419,7 @@ function ResultTable({
   type: "sent" | "failed";
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#D9D6D1]">
+    <div className="overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)]">
       <table className="w-full border-collapse text-left text-sm">
         <thead className="bg-[#111111] text-white">
           <tr>
@@ -433,12 +433,12 @@ function ResultTable({
           {rows.map((row, index) => (
             <tr
               key={`${row.email}-${row.fixture}-${index}`}
-              className="border-b border-[#E7E2DA] last:border-b-0"
+              className="border-b border-[rgba(245,245,245,0.35)] last:border-b-0"
             >
               <td className="px-4 py-3 font-black">{row.player}</td>
               <td className="px-4 py-3 font-bold">{row.fixture}</td>
               <td className="px-4 py-3">{row.email}</td>
-              <td className="px-4 py-3 text-xs text-neutral-600">
+              <td className="px-4 py-3 text-xs text-[var(--nffc-muted,#a7a7a7)]">
                 {type === "sent" ? row.messageId ?? "—" : row.error ?? "—"}
               </td>
             </tr>

@@ -205,9 +205,9 @@ export default function AdminSeasonPage() {
   const results = apiResult?.results ?? [];
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
+        <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
@@ -216,14 +216,14 @@ export default function AdminSeasonPage() {
               <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
                 Season / API Sync
               </h1>
-              <p className="mt-3 text-sm font-semibold text-neutral-600">
+              <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                 Manage the active game season and run fixture/results API syncs.
               </p>
             </div>
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -232,12 +232,12 @@ export default function AdminSeasonPage() {
 
         {message && (
           <div
-            className={`mb-6 rounded-2xl border p-4 text-sm font-semibold ${
+            className={`mb-6 rounded-none border p-4 text-sm font-semibold ${
               message.type === "success"
                 ? "border-green-200 bg-green-50 text-green-800"
                 : message.type === "error"
                   ? "border-red-200 bg-red-50 text-red-800"
-                  : "border-[#D9D6D1] bg-white text-neutral-700"
+                  : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-muted,#a7a7a7)]"
             }`}
           >
             {message.text}
@@ -250,16 +250,16 @@ export default function AdminSeasonPage() {
           <AdminStat label="Display label" value={seasonLabel || "—"} />
         </section>
 
-        <section className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+        <section className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-6">
           <div className="mb-4">
             <h2 className="text-2xl font-black uppercase">Season settings</h2>
-            <p className="mt-1 text-sm text-neutral-600">
+            <p className="mt-1 text-sm text-[var(--nffc-muted,#a7a7a7)]">
               These database settings control which local fixtures and football-data.org season are used.
             </p>
           </div>
 
           {loadingSettings ? (
-            <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
+            <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
               Loading season settings…
             </div>
           ) : (
@@ -296,7 +296,7 @@ export default function AdminSeasonPage() {
             </div>
           )}
 
-          <div className="mt-5 rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-700">
+          <div className="mt-5 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
             For a new season, set <strong>Current app season</strong> to something like{" "}
             <strong>2026/27</strong> and <strong>Football-data season</strong> to{" "}
             <strong>2026</strong>, then dry-run Create season fixtures before running it live.
@@ -334,11 +334,11 @@ export default function AdminSeasonPage() {
         </section>
 
         {apiResult && (
-          <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+          <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-6">
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-2xl font-black uppercase">API result</h2>
-                <p className="text-sm text-neutral-600">
+                <p className="text-sm text-[var(--nffc-muted,#a7a7a7)]">
                   Season {apiResult.currentSeason ?? "—"} · API season{" "}
                   {apiResult.footballDataSeason ?? "—"} ·{" "}
                   {apiResult.dryRun ? "Dry run" : "Live run"}
@@ -365,7 +365,7 @@ export default function AdminSeasonPage() {
             </div>
 
             {results.length === 0 ? (
-              <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
+              <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                 No detailed results returned.
               </div>
             ) : (
@@ -386,8 +386,8 @@ function AdminStat({
   value: number | string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
-      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+    <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none">
+      <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
       <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
@@ -403,8 +403,8 @@ function MiniStat({
   value: number | string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4">
-      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+    <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4">
+      <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
       <div className="mt-1 text-2xl font-black text-[#C8102E]">{value}</div>
@@ -425,7 +425,7 @@ function TextField({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+      <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </span>
       <input
@@ -433,7 +433,7 @@ function TextField({
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
       />
     </label>
   );
@@ -461,16 +461,16 @@ function ApiActionCard({
   onLive: () => void;
 }) {
   return (
-    <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+    <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-6">
       <h2 className="text-2xl font-black uppercase">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-neutral-600">{description}</p>
+      <p className="mt-2 text-sm leading-6 text-[var(--nffc-muted,#a7a7a7)]">{description}</p>
 
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
         <button
           type="button"
           disabled={disabled}
           onClick={onDryRun}
-          className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {dryRunLoading ? "Running…" : dryRunLabel}
         </button>
@@ -490,7 +490,7 @@ function ApiActionCard({
 function ResultTable({ rows }: { rows: SyncResultRow[] }) {
   return (
     <>
-      <div className="hidden overflow-hidden rounded-2xl border border-[#D9D6D1] lg:block">
+      <div className="hidden overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)] lg:block">
         <table className="w-full border-collapse text-left text-sm">
           <thead className="bg-[#111111] text-white">
             <tr>
@@ -505,7 +505,7 @@ function ResultTable({ rows }: { rows: SyncResultRow[] }) {
             {rows.map((row, index) => (
               <tr
                 key={`${row.apiId}-${row.gameweek}-${index}`}
-                className="border-b border-[#E7E2DA] last:border-b-0"
+                className="border-b border-[rgba(245,245,245,0.35)] last:border-b-0"
               >
                 <td className="px-4 py-3 font-black">
                   {row.gameweek ? `GW${row.gameweek}` : "—"}
@@ -514,8 +514,8 @@ function ResultTable({ rows }: { rows: SyncResultRow[] }) {
                 <td className="px-4 py-3">
                   <ActionBadge action={row.action} />
                 </td>
-                <td className="px-4 py-3 text-neutral-600">{row.apiId}</td>
-                <td className="px-4 py-3 text-neutral-600">{row.message}</td>
+                <td className="px-4 py-3 text-[var(--nffc-muted,#a7a7a7)]">{row.apiId}</td>
+                <td className="px-4 py-3 text-[var(--nffc-muted,#a7a7a7)]">{row.message}</td>
               </tr>
             ))}
           </tbody>
@@ -526,7 +526,7 @@ function ResultTable({ rows }: { rows: SyncResultRow[] }) {
         {rows.map((row, index) => (
           <div
             key={`${row.apiId}-${row.gameweek}-${index}`}
-            className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4"
+            className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4"
           >
             <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
               {row.gameweek ? `GW${row.gameweek}` : "No GW"} · {row.apiId}
@@ -535,7 +535,7 @@ function ResultTable({ rows }: { rows: SyncResultRow[] }) {
             <div className="mt-3">
               <ActionBadge action={row.action} />
             </div>
-            <div className="mt-3 border-t border-[#D9D6D1] pt-3 text-sm text-neutral-600">
+            <div className="mt-3 border-t border-[var(--nffc-white,#f5f5f5)] pt-3 text-sm text-[var(--nffc-muted,#a7a7a7)]">
               {row.message}
             </div>
           </div>

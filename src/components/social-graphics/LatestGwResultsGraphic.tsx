@@ -95,7 +95,7 @@ function topBonusLabel(row: LatestGwBonusResultRow) {
 
 function TeamRow({ row }: { row: LatestGwTeamResultRow }) {
   return (
-    <div className="grid grid-cols-[2rem_1fr_auto] items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 backdrop-blur">
+    <div className="grid grid-cols-[2rem_1fr_auto] items-center gap-2 rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 px-3 py-2 ">
       <div className="text-lg font-black text-white/70">{row.rank}</div>
 
       <div className="min-w-0">
@@ -108,7 +108,7 @@ function TeamRow({ row }: { row: LatestGwTeamResultRow }) {
         </div>
       </div>
 
-      <div className="rounded-xl bg-white px-3 py-1 text-sm font-black text-[#111111]">
+      <div className="rounded-xl bg-[var(--nffc-panel,#070707)] px-3 py-1 text-sm font-black text-[var(--nffc-white,#f5f5f5)]">
         {formatGraphicPoints(row.team_points)}
       </div>
     </div>
@@ -117,7 +117,7 @@ function TeamRow({ row }: { row: LatestGwTeamResultRow }) {
 
 function BonusRow({ row }: { row: LatestGwBonusResultRow }) {
   return (
-    <div className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 backdrop-blur">
+    <div className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 px-3 py-2 ">
       <div className="min-w-0">
         <div className="truncate text-base font-black text-white">
           {row.player_display_name}
@@ -159,7 +159,7 @@ export default function LatestGwResultsGraphic({
   return (
     <SocialGraphicFrame title="GW Results" footer="#NFFC">
       <div className="grid gap-3">
-        <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+        <div className="rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 p-4 ">
           <div className="text-[0.66rem] font-black uppercase tracking-[0.2em] text-white/55">
             Latest confirmed result
           </div>
@@ -189,7 +189,7 @@ export default function LatestGwResultsGraphic({
           />
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-white/15 bg-white/10">
+        <div className="overflow-hidden rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10">
           <div
             className="grid h-7"
             style={{
@@ -240,7 +240,7 @@ export default function LatestGwResultsGraphic({
               <BonusRow key={row.player_id} row={row} />
             ))
           ) : (
-            <div className="rounded-2xl border border-white/15 bg-black/20 p-3 text-xs font-semibold text-white/65">
+            <div className="rounded-none border border-white/15 bg-black/20 p-3 text-xs font-semibold text-white/65">
               No bonus points awarded this week.
             </div>
           )}

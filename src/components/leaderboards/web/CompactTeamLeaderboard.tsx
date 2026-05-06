@@ -25,21 +25,21 @@ export default function CompactTeamLeaderboard({
 }) {
   if (!rows.length) {
     return (
-      <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
+      <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
         Team leaderboard not available yet.
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#D9D6D1] bg-white">
+    <div className="overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)]">
       {rows.map((row, index) => {
         const teamName = displayTeamName(row);
 
         return (
           <div
             key={row.team_id}
-            className="grid grid-cols-[44px_1fr_auto] items-center gap-3 border-b border-[#E7E2DA] px-4 py-3 last:border-b-0"
+            className="grid grid-cols-[44px_1fr_auto] items-center gap-3 border-b border-[rgba(245,245,245,0.35)] px-4 py-3 last:border-b-0"
           >
             <div className="text-lg font-black text-[#C8102E]">{index + 1}</div>
 
@@ -47,16 +47,16 @@ export default function CompactTeamLeaderboard({
               {row.slug ? (
                 <Link
                   href={`/team/${row.slug}`}
-                  className="block truncate text-base font-black text-[#111111] underline decoration-[#C8102E]/25 underline-offset-4 transition hover:text-[#C8102E]"
+                  className="block truncate text-base font-black text-[var(--nffc-white,#f5f5f5)] underline decoration-[#C8102E]/25 underline-offset-4 transition hover:text-[#C8102E]"
                 >
                   {teamName}
                 </Link>
               ) : (
-                <div className="truncate text-base font-black text-[#111111]">
+                <div className="truncate text-base font-black text-[var(--nffc-white,#f5f5f5)]">
                   {teamName}
                 </div>
               )}
-              <div className="mt-1 text-xs font-bold uppercase tracking-wide text-neutral-500">
+              <div className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                 Sweeps {row.clean_sweeps} · Blanks {row.blanks}
               </div>
             </div>

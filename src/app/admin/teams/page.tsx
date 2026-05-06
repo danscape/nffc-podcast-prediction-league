@@ -226,9 +226,9 @@ export default function AdminTeamsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
+        <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
@@ -237,14 +237,14 @@ export default function AdminTeamsPage() {
               <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
                 Teams
               </h1>
-              <p className="mt-3 text-sm font-semibold text-neutral-600">
+              <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                 Edit one parent podcast or team at a time, including logo/icon and brand colour data.
               </p>
             </div>
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -253,7 +253,7 @@ export default function AdminTeamsPage() {
 
         {message && (
           <div
-            className={`mb-6 rounded-2xl border p-4 text-sm font-semibold ${
+            className={`mb-6 rounded-none border p-4 text-sm font-semibold ${
               message.type === "success"
                 ? "border-green-200 bg-green-50 text-green-800"
                 : "border-red-200 bg-red-50 text-red-800"
@@ -270,9 +270,9 @@ export default function AdminTeamsPage() {
           <AdminStat label="Players" value={totalPlayers} />
         </section>
 
-        <section className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+        <section className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
           <label className="block">
-            <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+            <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
               Search teams
             </span>
             <input
@@ -280,24 +280,24 @@ export default function AdminTeamsPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by team, parent podcast, abbreviation, X handle, logo alt or colour"
-              className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+              className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
             />
           </label>
         </section>
 
         {loading ? (
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-6 text-xl font-black uppercase text-[#C8102E] shadow-sm">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[#C8102E] shadow-none">
             Loading teams…
           </div>
         ) : (
           <div className="grid gap-6">
-            <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+            <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-6">
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-2xl font-black uppercase">
                     Parent podcasts
                   </h2>
-                  <p className="text-sm text-neutral-600">
+                  <p className="text-sm text-[var(--nffc-muted,#a7a7a7)]">
                     Main podcast/brand groups used for public labels, abbreviations and fallback assets.
                   </p>
                 </div>
@@ -314,7 +314,7 @@ export default function AdminTeamsPage() {
                   return (
                     <div
                       key={parent.parent_podcast_id}
-                      className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4"
+                      className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4"
                     >
                       {!isEditing ? (
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -331,12 +331,12 @@ export default function AdminTeamsPage() {
                               <div className="mt-1 text-xl font-black">
                                 {parent.display_name ?? parent.podcast_name}
                               </div>
-                              <div className="mt-1 text-sm font-semibold text-neutral-600">
+                              <div className="mt-1 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                                 {parent.x_handle ?? "No X handle"} · sort{" "}
                                 {parent.sort_order ?? "—"} · {parent.child_team_count} linked team
                                 {parent.child_team_count === 1 ? "" : "s"}
                               </div>
-                              <div className="mt-1 text-xs font-bold uppercase text-neutral-500">
+                              <div className="mt-1 text-xs font-bold uppercase text-[var(--nffc-muted,#a7a7a7)]">
                                 Logo {parent.logo_url ? "set" : "missing"} · Colour{" "}
                                 {parent.brand_colour ?? "not set"}
                               </div>
@@ -460,7 +460,7 @@ export default function AdminTeamsPage() {
                               <button
                                 type="button"
                                 onClick={cancelParentEdit}
-                                className="w-full rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+                                className="w-full rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
                               >
                                 Cancel
                               </button>
@@ -474,11 +474,11 @@ export default function AdminTeamsPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+            <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-6">
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-2xl font-black uppercase">Teams</h2>
-                  <p className="text-sm text-neutral-600">
+                  <p className="text-sm text-[var(--nffc-muted,#a7a7a7)]">
                     Team-level names and assets used for leaderboards, player groups and social graphics.
                   </p>
                 </div>
@@ -498,7 +498,7 @@ export default function AdminTeamsPage() {
                   return (
                     <div
                       key={team.team_id}
-                      className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4"
+                      className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4"
                     >
                       {!isEditing ? (
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -520,7 +520,7 @@ export default function AdminTeamsPage() {
                               <div className="mt-1 text-xl font-black">
                                 {team.display_name ?? team.team_name}
                               </div>
-                              <div className="mt-1 text-sm font-semibold text-neutral-600">
+                              <div className="mt-1 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                                 Parent:{" "}
                                 {team.parent_podcast_display_name ??
                                   team.parent_podcast_name ??
@@ -530,7 +530,7 @@ export default function AdminTeamsPage() {
                                 {team.player_count === 1 ? "" : "s"} · sort{" "}
                                 {team.sort_order ?? "—"}
                               </div>
-                              <div className="mt-1 text-xs font-bold uppercase text-neutral-500">
+                              <div className="mt-1 text-xs font-bold uppercase text-[var(--nffc-muted,#a7a7a7)]">
                                 Logo {effectiveLogo ? "set" : "missing"} · Colour{" "}
                                 {effectiveColour ?? "not set"}
                                 {!team.logo_url && team.parent_podcast_logo_url
@@ -574,7 +574,7 @@ export default function AdminTeamsPage() {
                                 <div className="mt-1 text-xl font-black">
                                   {draft.display_name ?? draft.team_name}
                                 </div>
-                                <div className="text-sm font-semibold text-neutral-600">
+                                <div className="text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                                   {draft.player_count} player
                                   {draft.player_count === 1 ? "" : "s"}
                                 </div>
@@ -627,7 +627,7 @@ export default function AdminTeamsPage() {
                               className="md:col-span-2 xl:col-span-2"
                             />
                             <label className="block md:col-span-2 xl:col-span-2">
-                              <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                              <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                                 Parent podcast
                               </span>
                               <select
@@ -637,7 +637,7 @@ export default function AdminTeamsPage() {
                                     parent_podcast_id: event.target.value || null,
                                   })
                                 }
-                                className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
                               >
                                 <option value="">No parent</option>
                                 {parentPodcasts.map((parent) => (
@@ -690,7 +690,7 @@ export default function AdminTeamsPage() {
                               <button
                                 type="button"
                                 onClick={cancelTeamEdit}
-                                className="w-full rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+                                className="w-full rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
                               >
                                 Cancel
                               </button>
@@ -698,7 +698,7 @@ export default function AdminTeamsPage() {
                           </div>
 
                           {!draft.logo_url && draft.parent_podcast_logo_url && (
-                            <div className="mt-4 rounded-2xl border border-[#D9D6D1] bg-white p-4 text-sm font-semibold text-neutral-600">
+                            <div className="mt-4 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                               This team is currently using the parent podcast logo as its fallback.
                             </div>
                           )}
@@ -718,8 +718,8 @@ export default function AdminTeamsPage() {
 
 function AdminStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
-      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+    <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none">
+      <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
       <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
@@ -742,7 +742,7 @@ function TextField({
 }) {
   return (
     <label className={`block ${className}`}>
-      <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+      <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </span>
       <input
@@ -750,7 +750,7 @@ function TextField({
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
       />
     </label>
   );
@@ -767,14 +767,14 @@ function NumberField({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+      <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </span>
       <input
         type="number"
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
       />
     </label>
   );
@@ -790,7 +790,7 @@ function StatusBadge({ active }: { active: boolean }) {
   }
 
   return (
-    <span className="w-fit rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-neutral-700">
+    <span className="w-fit rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
       Inactive
     </span>
   );
@@ -810,7 +810,7 @@ function StatusToggle({
       className={`w-full rounded-full px-5 py-3 text-xs font-black uppercase tracking-wide transition sm:w-fit ${
         active
           ? "bg-green-100 text-green-800 hover:bg-green-200"
-          : "bg-neutral-200 text-neutral-700 hover:bg-neutral-300"
+          : "bg-neutral-200 text-[var(--nffc-muted,#a7a7a7)] hover:bg-neutral-300"
       }`}
     >
       {active ? "Active" : "Inactive"}
@@ -829,7 +829,7 @@ function LogoPreview({
 }) {
   return (
     <div
-      className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#D9D6D1] bg-white text-xs font-black uppercase text-neutral-400"
+      className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]"
       style={{
         borderColor: brandColour || undefined,
       }}

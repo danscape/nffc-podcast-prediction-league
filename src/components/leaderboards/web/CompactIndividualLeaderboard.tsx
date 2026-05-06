@@ -42,13 +42,13 @@ function CompactPlayerName({ row }: { row: IndividualLeaderboardRow }) {
   const name = displayPlayerName(row);
 
   if (!href) {
-    return <div className="truncate text-base font-black text-[#111111]">{name}</div>;
+    return <div className="truncate text-base font-black text-[var(--nffc-white,#f5f5f5)]">{name}</div>;
   }
 
   return (
     <Link
       href={href}
-      className="block truncate text-base font-black text-[#111111] transition hover:text-[#C8102E] hover:underline hover:decoration-2 hover:underline-offset-4"
+      className="block truncate text-base font-black text-[var(--nffc-white,#f5f5f5)] transition hover:text-[#C8102E] hover:underline hover:decoration-2 hover:underline-offset-4"
     >
       {name}
     </Link>
@@ -62,25 +62,25 @@ export default function CompactIndividualLeaderboard({
 }) {
   if (!rows.length) {
     return (
-      <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
+      <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
         Individual leaderboard not available yet.
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#D9D6D1] bg-white">
+    <div className="overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)]">
       {rows.map((row, index) => (
         <div
           key={row.player_id}
-          className="grid grid-cols-[44px_1fr_auto] items-center gap-3 border-b border-[#E7E2DA] px-4 py-3 last:border-b-0"
+          className="grid grid-cols-[44px_1fr_auto] items-center gap-3 border-b border-[rgba(245,245,245,0.35)] px-4 py-3 last:border-b-0"
         >
           <div className="text-lg font-black text-[#C8102E]">{index + 1}</div>
 
           <div className="min-w-0">
             <CompactPlayerName row={row} />
 
-            <div className="mt-1 truncate text-xs font-bold uppercase tracking-wide text-neutral-500">
+            <div className="mt-1 truncate text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
               {displayTeamName(row)} · {formatAccuracy(row)}
             </div>
           </div>

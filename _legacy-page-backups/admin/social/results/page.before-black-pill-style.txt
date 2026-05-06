@@ -1,0 +1,867 @@
+import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
+import type { ReactNode } from "react";
+
+export const dynamic = "force-dynamic";
+
+type LatestGwResultSummaryRow = {
+  fixture_id: string;
+  gameweek: number;
+  gameweek_label: string;
+  opponent: string | null;
+  opponent_short: string | null;
+  venue: "H" | "A";
+  home_team: string;
+  away_team: string;
+  home_score: number | null;
+  away_score: number | null;
+  forest_result: "W" | "D" | "L" | null;
+  total_predictions: number | null;
+  forest_win_count: number | null;
+  draw_count: number | null;
+  forest_loss_count: number | null;
+  correct_count: number | null;
+  forest_win_percent: number | string | null;
+  draw_percent: number | string | null;
+  forest_loss_percent: number | string | null;
+  rogue_applied: boolean | null;
+  maverick_applied: boolean | null;
+};
+
+type LatestGwBonusResultRow = {
+  rank: number;
+  fixture_id: string;
+  gameweek: number;
+  gameweek_label: string;
+  opponent_short: string | null;
+  player_id: string;
+  player_display_name: string;
+  player_name: string;
+  short_name: string | null;
+  team_id: string | null;
+  team_display_name: string | null;
+  team_name: string | null;
+  prediction: "W" | "D" | "L" | null;
+  actual_result: "W" | "D" | "L" | null;
+  base_points: number | null;
+  streak_bonus: number | null;
+  maverick_bonus: number | null;
+  rogue_bonus: number | null;
+  cup_bonus: number | null;
+  total_points: number | null;
+  correct_streak_after_fixture: number | null;
+  bonus_points: number | null;
+};
+
+type WeeklyResultRow = {
+  rank: number;
+  playerId: string;
+  playerDisplayName: string;
+  teamDisplayName: string;
+  teamAbbreviation: string;
+  prediction: "W" | "D" | "L" | null;
+  actualResult: "W" | "D" | "L" | null;
+  basePoints: number;
+  streakBonus: number;
+  maverickBonus: number;
+  rogueBonus: number;
+  cupBonus: number;
+  totalPoints: number;
+  bonusPoints: number;
+  correctStreakAfterFixture: number;
+};
+
+type TeamGroup = {
+  teamName: string;
+  abbreviation: string;
+  rows: WeeklyResultRow[];
+  playerCount: number;
+  correctCount: number;
+  bonusPlayers: number;
+  totalPlayerPoints: number;
+  accuracyPercent: number;
+};
+
+const TEAM_ORDER = [
+  "1865",
+  "Forest All Over",
+  "FFTV",
+  "Forest Fan TV",
+  "FF Eternal Optimists",
+  "Forest Focus Eternal Optimists",
+  "FF Staunch Realists",
+  "Forest Focus Staunch Realists",
+  "Forest Women Cast",
+  "Oh Mist Rolling In",
+  "Red Side Trent",
+  "TR American Dream Boys",
+  "Talking Reds American Dream Boys",
+  "TR Brit Pop Lads",
+  "Talking Reds Brit Pop Lads",
+  "Tricky Talks Pod",
+];
+
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing Supabase environment variables.");
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
+
+function formatPoints(value: number | null | undefined) {
+  return Number(value ?? 0).toFixed(1).replace(".0", "");
+}
+
+function formatAverage(value: number) {
+  return value.toFixed(1).replace(".0", "");
+}
+
+function formatPercent(value: number | string | null | undefined) {
+  return `${Math.round(Number(value ?? 0))}%`;
+}
+
+function formatFixtureResult(summary: LatestGwResultSummaryRow | null) {
+  if (!summary) return "No confirmed fixture found";
+
+  return `${summary.gameweek_label}: ${summary.home_team} ${
+    summary.home_score ?? 0
+  }-${summary.away_score ?? 0} ${summary.away_team}`;
+}
+
+function resultLabel(result: "W" | "D" | "L" | null) {
+  if (result === "W") return "Forest win";
+  if (result === "D") return "Draw";
+  if (result === "L") return "Forest defeat";
+  return "Result TBC";
+}
+
+function getWeekModifierText(summary: LatestGwResultSummaryRow | null) {
+  if (!summary) return "No scored predictions";
+  if (summary.rogue_applied) return "Rogue applied";
+  if (summary.maverick_applied) return "Maverick applied";
+  return "No result modifier";
+}
+
+function getTeamAbbreviation(teamName: string | null | undefined) {
+  const name = teamName ?? "";
+
+  const known: Record<string, string> = {
+    "1865": "1865",
+    "Forest All Over": "FAO",
+    "Forest Fan TV": "FFTV",
+    FFTV: "FFTV",
+    "Forest Focus Eternal Optimists": "FF-EO",
+    "FF Eternal Optimists": "FF-EO",
+    "Forest Focus Staunch Realists": "FF-SR",
+    "FF Staunch Realists": "FF-SR",
+    "Forest Women Cast": "FWC",
+    "Oh Mist Rolling In": "OMRI",
+    "Red Side Trent": "RST",
+    "Talking Reds American Dream Boys": "TR-ADB",
+    "TR American Dream Boys": "TR-ADB",
+    "Talking Reds Brit Pop Lads": "TR-BPL",
+    "TR Brit Pop Lads": "TR-BPL",
+    "Tricky Talks Pod": "TT",
+  };
+
+  if (known[name]) return known[name];
+
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 6)
+    .toUpperCase();
+}
+
+function getTeamOrder(teamName: string) {
+  const index = TEAM_ORDER.indexOf(teamName);
+  return index === -1 ? 999 : index;
+}
+
+function getMostCommonPick(rows: WeeklyResultRow[]) {
+  const counts = {
+    W: rows.filter((row) => row.prediction === "W").length,
+    D: rows.filter((row) => row.prediction === "D").length,
+    L: rows.filter((row) => row.prediction === "L").length,
+  };
+
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const [pick, count] = sorted[0] ?? ["W", 0];
+
+  const label =
+    pick === "W" ? "Forest win" : pick === "D" ? "Draw" : "Forest defeat";
+
+  const percentage = rows.length ? Math.round((count / rows.length) * 100) : 0;
+
+  return {
+    label,
+    count,
+    percentage,
+  };
+}
+
+function getBonusChips(row: WeeklyResultRow) {
+  const chips: { label: string; className: string }[] = [];
+
+  if (row.streakBonus > 0) {
+    chips.push({
+      label: `S+${row.streakBonus}`,
+      className: "border-yellow-200 bg-yellow-300 text-[#111111]",
+    });
+  }
+
+  if (row.maverickBonus > 0) {
+    chips.push({
+      label: `M+${row.maverickBonus}`,
+      className: "border-sky-200 bg-sky-400 text-[#06121F]",
+    });
+  }
+
+  if (row.rogueBonus > 0) {
+    chips.push({
+      label: `R+${row.rogueBonus}`,
+      className: "border-pink-200 bg-pink-500 text-white",
+    });
+  }
+
+  if (row.cupBonus > 0) {
+    chips.push({
+      label: `C+${row.cupBonus}`,
+      className: "border-purple-200 bg-purple-400 text-white",
+    });
+  }
+
+  return chips;
+}
+
+function buildTeamGroups(rows: WeeklyResultRow[]) {
+  const map = new Map<string, WeeklyResultRow[]>();
+
+  rows.forEach((row) => {
+    const existing = map.get(row.teamDisplayName) ?? [];
+    existing.push(row);
+    map.set(row.teamDisplayName, existing);
+  });
+
+  return Array.from(map.entries())
+    .map(([teamName, teamRows]) => {
+      const sortedRows = [...teamRows].sort((a, b) =>
+        a.playerDisplayName.localeCompare(b.playerDisplayName)
+      );
+
+      const correctCount = sortedRows.filter((row) => row.basePoints > 0).length;
+      const playerCount = sortedRows.length;
+      const accuracyPercent = playerCount
+        ? (correctCount / playerCount) * 100
+        : 0;
+
+      return {
+        teamName,
+        abbreviation: getTeamAbbreviation(teamName),
+        rows: sortedRows,
+        playerCount,
+        correctCount,
+        bonusPlayers: sortedRows.filter((row) => row.bonusPoints > 0).length,
+        totalPlayerPoints: sortedRows.reduce(
+          (total, row) => total + row.totalPoints,
+          0
+        ),
+        accuracyPercent,
+      } satisfies TeamGroup;
+    })
+    .sort((a, b) => {
+      const orderDifference = getTeamOrder(a.teamName) - getTeamOrder(b.teamName);
+      if (orderDifference !== 0) return orderDifference;
+      return a.teamName.localeCompare(b.teamName);
+    });
+}
+
+export default async function AdminSocialResultsPage() {
+  const supabase = getSupabaseClient();
+
+  const [
+    { data: summaryData, error: summaryError },
+    { data: bonusData, error: bonusError },
+  ] = await Promise.all([
+    supabase.from("latest_confirmed_gw_result_summary").select("*").maybeSingle(),
+    supabase
+      .from("latest_confirmed_gw_bonus_results")
+      .select("*")
+      .order("rank", { ascending: true }),
+  ]);
+
+  if (summaryError) {
+    throw new Error(summaryError.message);
+  }
+
+  if (bonusError) {
+    throw new Error(bonusError.message);
+  }
+
+  const summary = (summaryData ?? null) as LatestGwResultSummaryRow | null;
+  const bonusRows = (bonusData ?? []) as LatestGwBonusResultRow[];
+
+  const weeklyRows = bonusRows
+    .map((row) => {
+      const teamDisplayName = row.team_display_name ?? row.team_name ?? "No team";
+      const basePoints = Number(row.base_points ?? 0);
+      const streakBonus = Number(row.streak_bonus ?? 0);
+      const maverickBonus = Number(row.maverick_bonus ?? 0);
+      const rogueBonus = Number(row.rogue_bonus ?? 0);
+      const cupBonus = Number(row.cup_bonus ?? 0);
+      const totalPoints = Number(row.total_points ?? 0);
+      const bonusPoints = Number(row.bonus_points ?? 0);
+
+      return {
+        rank: 0,
+        playerId: row.player_id,
+        playerDisplayName: row.player_display_name,
+        teamDisplayName,
+        teamAbbreviation: getTeamAbbreviation(teamDisplayName),
+        prediction: row.prediction,
+        actualResult: row.actual_result,
+        basePoints,
+        streakBonus,
+        maverickBonus,
+        rogueBonus,
+        cupBonus,
+        totalPoints,
+        bonusPoints,
+        correctStreakAfterFixture: Number(row.correct_streak_after_fixture ?? 0),
+      } satisfies WeeklyResultRow;
+    })
+    .sort((a, b) => {
+      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+      if (b.basePoints !== a.basePoints) return b.basePoints - a.basePoints;
+      if (b.bonusPoints !== a.bonusPoints) return b.bonusPoints - a.bonusPoints;
+      return a.playerDisplayName.localeCompare(b.playerDisplayName);
+    })
+    .map((row, index) => ({
+      ...row,
+      rank: index + 1,
+    }));
+
+  const teamGroups = buildTeamGroups(weeklyRows);
+
+  const totalPredictions = Number(summary?.total_predictions ?? weeklyRows.length);
+  const correctPredictions = Number(
+    summary?.correct_count ?? weeklyRows.filter((row) => row.basePoints > 0).length
+  );
+  const averageWeeklyScore =
+    weeklyRows.length > 0
+      ? weeklyRows.reduce((sum, row) => sum + row.totalPoints, 0) /
+        weeklyRows.length
+      : 0;
+  const bonusPlayers = weeklyRows.filter((row) => row.bonusPoints > 0).length;
+  const topScore = weeklyRows[0]?.totalPoints ?? 0;
+  const topScorers = weeklyRows.filter((row) => row.totalPoints === topScore);
+  const topScorerText = topScorers.length
+    ? topScorers
+        .slice(0, 3)
+        .map((row) => row.playerDisplayName)
+        .join(", ")
+    : "TBC";
+
+  const topTeam = [...teamGroups].sort((a, b) => {
+    if (b.accuracyPercent !== a.accuracyPercent) {
+      return b.accuracyPercent - a.accuracyPercent;
+    }
+    if (b.correctCount !== a.correctCount) {
+      return b.correctCount - a.correctCount;
+    }
+    if (b.totalPlayerPoints !== a.totalPlayerPoints) {
+      return b.totalPlayerPoints - a.totalPlayerPoints;
+    }
+    return a.teamName.localeCompare(b.teamName);
+  })[0];
+
+  const mostCommonPick = getMostCommonPick(weeklyRows);
+  const modifierText = getWeekModifierText(summary);
+
+  return (
+    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-[1500px]">
+        <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="text-xs font-black uppercase tracking-[0.24em] text-[#C8102E]">
+              Admin social
+            </div>
+            <h1 className="mt-2 text-3xl font-black uppercase tracking-tight md:text-4xl">
+              Weekly team results matrix
+            </h1>
+            <p className="mt-2 text-sm font-semibold text-neutral-600">
+              Auto-built from the latest confirmed fixture and weekly player scores.
+            </p>
+          </div>
+
+          <Link
+            href="/admin/social"
+            className="rounded-full border border-[#111111] bg-white px-4 py-2 text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+          >
+            Back to social
+          </Link>
+        </div>
+
+        <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+          <div className="mb-4">
+            <h2 className="text-2xl font-black uppercase">Graphic preview</h2>
+            <p className="text-sm font-semibold text-neutral-600">
+              Matrix layout for social sharing: teams, player ticks/crosses and bonus tags.
+            </p>
+          </div>
+
+          <div className="mx-auto w-full overflow-hidden rounded-[2rem] border border-[#111111] bg-[#111111] text-white shadow-sm">
+            <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_#D90F31_0,_#7A0719_34%,_#111111_76%)] p-5">
+              <div className="absolute inset-0 opacity-[0.08]">
+                <div className="h-full w-full bg-[linear-gradient(135deg,_transparent_0,_transparent_47%,_#ffffff_47%,_#ffffff_53%,_transparent_53%,_transparent_100%)]" />
+              </div>
+
+              <div className="relative z-10">
+                <div className="grid gap-3 xl:grid-cols-[1.15fr_0.95fr] xl:items-start">
+                  <div>
+                    <div className="text-[0.7rem] font-black uppercase tracking-[0.24em] text-white/70">
+                      🔮 NFFC Podcast Prediction League
+                    </div>
+
+                    <h3 className="mt-2 text-4xl font-black uppercase leading-none tracking-tight md:text-5xl xl:text-6xl">
+                      Weekly Team Results
+                    </h3>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2.5">
+                      <div className="rounded-2xl bg-[#C8102E] px-4 py-2 text-2xl font-black uppercase text-white">
+                        {summary?.gameweek_label ?? "GW"}
+                      </div>
+
+                      <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-2 text-xl font-black text-white backdrop-blur md:text-2xl">
+                        {summary
+                          ? `${summary.home_team} ${summary.home_score ?? 0}-${
+                              summary.away_score ?? 0
+                            } ${summary.away_team}`
+                          : "Result TBC"}
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-[#111111] px-4 py-2 text-sm font-black uppercase tracking-wide text-white">
+                        {resultLabel(summary?.forest_result ?? null)}
+                      </div>
+
+                      {modifierText !== "No result modifier" && (
+                        <div
+                          className={`rounded-2xl border px-4 py-2 text-sm font-black uppercase tracking-wide ${
+                            modifierText === "Maverick applied"
+                              ? "border-sky-200 bg-sky-400 text-[#06121F]"
+                              : modifierText === "Rogue applied"
+                                ? "border-pink-200 bg-pink-500 text-white"
+                                : "border-white/10 bg-white/10 text-white"
+                          }`}
+                        >
+                          {modifierText}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <GraphicSummaryCard
+                      label="Correct picks"
+                      value={`${correctPredictions}/${totalPredictions}`}
+                    />
+                    <GraphicSummaryCard
+                      label="Bonus players"
+                      value={`${bonusPlayers}/${totalPredictions}`}
+                    />
+                    <GraphicSummaryCard
+                      label="Most common pick"
+                      value={mostCommonPick.label}
+                      subValue={`${mostCommonPick.percentage}%`}
+                    />
+                    <GraphicSummaryCard
+                      label="Top team"
+                      value={topTeam?.teamName ?? "TBC"}
+                      subValue={
+                        topTeam
+                          ? `${Math.round(topTeam.accuracyPercent)}% accuracy`
+                          : undefined
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-2.5 2xl:grid-cols-4 xl:grid-cols-3">
+                  {teamGroups.map((group) => (
+                    <TeamMatrixCard key={group.teamName} group={group} />
+                  ))}
+
+                  <LegendCard />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+          <div className="mb-4">
+            <h2 className="text-2xl font-black uppercase">Weekly results data</h2>
+            <p className="text-sm font-semibold text-neutral-600">
+              Plain admin view of the same result set used in the graphic.
+            </p>
+          </div>
+
+          <div className="mb-4 grid gap-3 md:grid-cols-5">
+            <AdminStatCard label="Fixture" value={summary?.gameweek_label ?? "TBC"} />
+            <AdminStatCard
+              label="Result"
+              value={`${summary?.home_score ?? 0}-${summary?.away_score ?? 0}`}
+            />
+            <AdminStatCard
+              label="Correct picks"
+              value={`${correctPredictions}/${totalPredictions}`}
+            />
+            <AdminStatCard label="Bonus players" value={bonusPlayers} />
+            <AdminStatCard
+              label="Average score"
+              value={`${formatAverage(averageWeeklyScore)} pts`}
+            />
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-[#D9D6D1]">
+            <table className="w-full border-collapse text-left text-xs">
+              <thead>
+                <tr>
+                  <th className="bg-[#111111] px-3 py-3 text-white">POS</th>
+                  <th className="bg-[#111111] px-3 py-3 text-white">PLAYER</th>
+                  <th className="bg-[#111111] px-3 py-3 text-white">TEAM</th>
+                  <th className="bg-[#111111] px-3 py-3 text-center text-white">
+                    PICK
+                  </th>
+                  <th className="bg-[#111111] px-3 py-3 text-center text-white">
+                    BASE
+                  </th>
+                  <th className="bg-[#111111] px-3 py-3 text-white">BONUS</th>
+                  <th className="bg-[#111111] px-3 py-3 text-center text-white">
+                    TOTAL
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {weeklyRows.map((row) => {
+                  const bonusChips = getBonusChips(row);
+
+                  return (
+                    <tr
+                      key={row.playerId}
+                      className={`border-b border-[#E7E2DA] last:border-b-0 ${
+                        row.basePoints > 0 ? "bg-[#F4FBF5]" : "bg-white"
+                      }`}
+                    >
+                      <td className="px-3 py-3 text-sm font-black text-[#111111]">
+                        {row.rank}
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="font-black text-[#111111]">
+                          {row.playerDisplayName}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="font-bold text-neutral-700">
+                          {row.teamDisplayName}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <span
+                          className={`inline-flex min-w-[30px] items-center justify-center rounded-lg px-2 py-1 text-xs font-black ${
+                            row.basePoints > 0
+                              ? "bg-green-500 text-white"
+                              : "bg-[#F1F1F1] text-[#111111]"
+                          }`}
+                        >
+                          {row.prediction ?? "—"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <span
+                          className={`inline-flex min-w-[34px] items-center justify-center rounded-lg px-2 py-1 text-xs font-black ${
+                            row.basePoints > 0
+                              ? "bg-green-500 text-white"
+                              : "bg-[#F1F1F1] text-[#111111]"
+                          }`}
+                        >
+                          {row.basePoints}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {bonusChips.length ? (
+                            bonusChips.map((chip) => (
+                              <span
+                                key={chip.label}
+                                className={`inline-flex items-center justify-center rounded-md border px-2 py-1 text-[0.68rem] font-black ${chip.className}`}
+                              >
+                                {chip.label}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-neutral-400">—</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <span
+                          className={`inline-flex min-w-[40px] items-center justify-center rounded-lg px-2 py-1 text-xs font-black ${
+                            row.totalPoints > 0
+                              ? "bg-green-500 text-white"
+                              : "bg-[#111111] text-white"
+                          }`}
+                        >
+                          {formatPoints(row.totalPoints)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4">
+            <div className="text-sm font-black uppercase text-[#111111]">
+              Copy-ready X post starter
+            </div>
+            <div className="mt-2 whitespace-pre-wrap text-sm font-semibold leading-6 text-neutral-700">
+              {`🔮 ${summary?.gameweek_label ?? "GW"} results are in.
+
+${formatFixtureResult(summary)}
+
+Top scorer${topScorers.length === 1 ? "" : "s"}: ${
+                topScorers.length
+                  ? topScorers
+                      .map(
+                        (row) =>
+                          `${row.playerDisplayName} (${formatPoints(
+                            row.totalPoints
+                          )})`
+                      )
+                      .join(", ")
+                  : "TBC"
+              }
+Correct picks: ${correctPredictions}/${totalPredictions}
+Bonus players: ${bonusPlayers}
+Most common pick: ${mostCommonPick.label} (${mostCommonPick.percentage}%)
+${modifierText}
+
+Full board below 👇`}
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  );
+}
+
+function GraphicSummaryCard({
+  label,
+  value,
+  subValue,
+}: {
+  label: string;
+  value: string | number;
+  subValue?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/15 bg-black/25 p-4 backdrop-blur">
+      <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/55">
+        {label}
+      </div>
+      <div className="mt-1 text-2xl font-black leading-tight text-white">
+        {value}
+      </div>
+      {subValue && (
+        <div className="mt-1 text-sm font-black uppercase tracking-wide text-green-400">
+          {subValue}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TeamMatrixCard({ group }: { group: TeamGroup }) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-white/15 bg-black/25 shadow-sm backdrop-blur">
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-[#D90F31] to-[#8A0A1E] px-3 py-2">
+        <div className="min-w-0">
+          <div className="truncate text-lg font-black leading-tight text-white">
+            {group.teamName}
+          </div>
+          <div className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-white/65">
+            {group.correctCount}/{group.playerCount} correct · {group.bonusPlayers} bonus
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-green-500 px-3 py-1 text-base font-black text-white">
+          {formatPoints(group.totalPlayerPoints)}
+        </div>
+      </div>
+
+      <div
+        className={`grid ${
+          group.rows.length <= 2
+            ? "grid-cols-2"
+            : group.rows.length <= 4
+              ? "grid-cols-4"
+              : "grid-cols-5"
+        }`}
+      >
+        {group.rows.map((row) => (
+          <PlayerMatrixCell key={row.playerId} row={row} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PlayerMatrixCell({ row }: { row: WeeklyResultRow }) {
+  const bonusChips = getBonusChips(row);
+  const isCorrect = row.basePoints > 0;
+
+  return (
+    <div className="min-h-[96px] border-r border-t border-white/10 px-2 py-2 text-center last:border-r-0">
+      <div className="truncate text-[0.9rem] font-black leading-tight text-white">
+        {row.playerDisplayName}
+      </div>
+
+      <div className="mt-2 flex items-center justify-center gap-1.5">
+        <span
+          className={`flex h-8 w-8 items-center justify-center rounded-full text-lg font-black ${
+            isCorrect ? "bg-green-500 text-white" : "bg-white/20 text-white/70"
+          }`}
+        >
+          {isCorrect ? "✓" : "×"}
+        </span>
+
+        {row.basePoints > 0 && (
+          <span className="rounded-lg bg-green-500 px-2 py-1 text-[0.7rem] font-black text-white">
+            +{row.basePoints}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-2 flex min-h-[22px] flex-wrap items-center justify-center gap-1">
+        {bonusChips.length ? (
+          bonusChips.map((chip) => (
+            <span
+              key={chip.label}
+              className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-[0.58rem] font-black ${chip.className}`}
+            >
+              {chip.label}
+            </span>
+          ))
+        ) : (
+          <span className="text-[0.6rem] font-bold text-white/30">—</span>
+        )}
+      </div>
+
+      <div className="mt-2">
+        <span
+          className={`inline-flex min-w-[42px] items-center justify-center rounded-lg px-3 py-1 text-[0.95rem] font-black leading-none ${
+            row.totalPoints > 0
+              ? "bg-green-500 text-white"
+              : "bg-white/10 text-white/55"
+          }`}
+        >
+          {formatPoints(row.totalPoints)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function LegendCard() {
+  return (
+    <section className="rounded-2xl border border-white/15 bg-black/30 p-4 backdrop-blur">
+      <div className="text-2xl font-black uppercase text-white">Key</div>
+
+      <div className="mt-4 grid gap-3">
+        <LegendRow
+          mark={
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-green-500 text-base font-black text-white">
+              ✓
+            </span>
+          }
+          label="Correct pick"
+        />
+        <LegendRow
+          mark={
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-base font-black text-white/70">
+              ×
+            </span>
+          }
+          label="Wrong pick"
+        />
+        <LegendRow
+          mark={
+            <span className="rounded-md border border-yellow-200 bg-yellow-300 px-2 py-1 text-xs font-black text-[#111111]">
+              S+1
+            </span>
+          }
+          label="Streaker bonus"
+        />
+        <LegendRow
+          mark={
+            <span className="rounded-md border border-sky-200 bg-sky-400 px-2 py-1 text-xs font-black text-[#06121F]">
+              M+2
+            </span>
+          }
+          label="Maverick bonus"
+        />
+        <LegendRow
+          mark={
+            <span className="rounded-md border border-pink-200 bg-pink-500 px-2 py-1 text-xs font-black text-white">
+              R+3
+            </span>
+          }
+          label="Rogue bonus"
+        />
+      </div>
+    </section>
+  );
+}
+
+function LegendRow({
+  mark,
+  label,
+}: {
+  mark: ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-12 shrink-0">{mark}</div>
+      <div className="text-sm font-black uppercase tracking-wide text-white/80">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function AdminStatCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4">
+      <div className="text-xs font-black uppercase tracking-wide text-[#C8102E]">
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-black text-[#111111]">{value}</div>
+    </div>
+  );
+}

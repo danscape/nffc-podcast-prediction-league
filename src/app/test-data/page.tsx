@@ -12,7 +12,7 @@ export default async function TestDataPage() {
     .order("sort_order");
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] p-8 text-[#111111]">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] p-8 text-[var(--nffc-white,#f5f5f5)]">
       <h1 className="mb-6 text-3xl font-bold">Imported Data Test</h1>
 
       {(fixturesError || teamsError) && (
@@ -25,9 +25,9 @@ export default async function TestDataPage() {
         <h2 className="mb-3 text-xl font-bold">Teams</h2>
         <div className="grid gap-3 md:grid-cols-2">
           {teams?.map((team) => (
-            <div key={team.team_name} className="rounded-lg border border-[#D9D6D1] bg-white p-4">
+            <div key={team.team_name} className="rounded-lg border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4">
               <div className="font-semibold">{team.team_name}</div>
-              <div className="text-sm text-neutral-600">
+              <div className="text-sm text-[var(--nffc-muted,#a7a7a7)]">
                 {team.parent_podcast_name} / {team.abbreviation} / {team.player_count} players
               </div>
             </div>
@@ -41,12 +41,12 @@ export default async function TestDataPage() {
           {fixtures?.map((fixture) => (
             <div
               key={fixture.gameweek_label}
-              className="flex items-center justify-between rounded-lg border border-[#D9D6D1] bg-white px-4 py-3"
+              className="flex items-center justify-between rounded-lg border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3"
             >
               <span className="font-semibold">
                 {fixture.gameweek_label} — {fixture.opponent_short} {fixture.venue}
               </span>
-              <span className="text-sm text-neutral-600">
+              <span className="text-sm text-[var(--nffc-muted,#a7a7a7)]">
                 {fixture.kickoff_uk_time ? String(fixture.kickoff_uk_time) : "Kick-off TBC"}
               </span>
             </div>

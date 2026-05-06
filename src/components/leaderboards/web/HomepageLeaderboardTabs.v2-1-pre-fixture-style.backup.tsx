@@ -111,7 +111,7 @@ export default function HomepageLeaderboardTabs({
 
   return (
     <section id="leaderboards" className="scroll-mt-6">
-      <div className="mb-4 grid grid-cols-3 gap-2 rounded-3xl border border-[#D9D6D1] bg-white p-3 shadow-sm">
+      <div className="mb-4 grid grid-cols-3 gap-2 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-3 shadow-none">
         <TableButton
           label="Team Table"
           active={activeTab === "teams"}
@@ -142,7 +142,7 @@ export default function HomepageLeaderboardTabs({
           <button
             type="button"
             onClick={() => setShowFullMobileStats((current) => !current)}
-            className="mt-3 w-full rounded-full border border-[#111111] bg-white px-5 py-3 text-xs font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+            className="mt-3 w-full rounded-full border border-[#111111] bg-[var(--nffc-panel,#070707)] px-5 py-3 text-xs font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
           >
             {showFullMobileStats ? "Hide full stats" : "Show full stats"}
           </button>
@@ -188,7 +188,7 @@ function TableButton({
       className={`rounded-full px-3 py-3 text-[0.68rem] font-black uppercase tracking-wide transition md:text-xs ${
         active
           ? "bg-[#111111] text-white"
-          : "border border-[#111111] bg-white text-[#111111] hover:border-[#C8102E] hover:text-[#C8102E]"
+          : "border border-[#111111] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)] hover:border-[#C8102E] hover:text-[#C8102E]"
       }`}
     >
       {label}
@@ -205,7 +205,7 @@ function FixtureTable({
 }) {
   if (!rows.length) {
     return (
-      <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-600">
+      <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
         Fixture table not available yet.
       </div>
     );
@@ -217,7 +217,7 @@ function FixtureTable({
         {rows.map((row) => (
           <div
             key={row.fixture_id}
-            className="rounded-2xl border border-[#D9D6D1] bg-white p-3 shadow-sm"
+            className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-3 shadow-none"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -239,7 +239,7 @@ function FixtureTable({
               <MiniPercent label="L" value={row.forest_loss_percent} />
             </div>
 
-            <div className="mt-3 text-xs font-bold uppercase tracking-wide text-neutral-500">
+            <div className="mt-3 text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
               Correct {row.correct_count}/{row.total_predictions}
               {row.maverick_applied ? " · Maverick" : ""}
               {row.rogue_applied ? " · Rogue" : ""}
@@ -251,15 +251,15 @@ function FixtureTable({
   }
 
   return (
-    <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+    <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
       <div className="mb-4">
         <h2 className="text-2xl font-black uppercase">Fixture table</h2>
-        <p className="text-sm font-semibold text-neutral-600">
+        <p className="text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
           Completed fixtures only. Future prediction splits are not shown.
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[#D9D6D1]">
+      <div className="overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)]">
         <table className="w-full border-collapse text-left text-sm">
           <thead className="bg-[#111111] text-white">
             <tr>
@@ -277,7 +277,7 @@ function FixtureTable({
             {rows.map((row) => (
               <tr
                 key={row.fixture_id}
-                className="border-b border-[#E7E2DA] last:border-b-0"
+                className="border-b border-[rgba(245,245,245,0.35)] last:border-b-0"
               >
                 <td className="px-4 py-3 font-black text-[#C8102E]">
                   {row.gameweek_label}
@@ -317,11 +317,11 @@ function FixtureTable({
 
 function MiniPercent({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-[#E7E2DA] bg-[#F7F6F2] px-3 py-2">
-      <div className="text-[0.62rem] font-black uppercase tracking-wide text-neutral-500">
+    <div className="rounded-xl border border-[rgba(245,245,245,0.35)] bg-[var(--nffc-black,#000000)] px-3 py-2">
+      <div className="text-[0.62rem] font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className="mt-1 text-lg font-black text-[#111111]">
+      <div className="mt-1 text-lg font-black text-[var(--nffc-white,#f5f5f5)]">
         {formatPercent(value)}
       </div>
     </div>

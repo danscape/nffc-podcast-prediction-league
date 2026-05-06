@@ -1,0 +1,832 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
+
+type PredictionValue = "W" | "D" | "L";
+
+type PlayerProfileRow = {
+  player_id: string;
+  player_name: string;
+  short_name: string | null;
+  team_name: string;
+  base_points: number;
+  streak_bonus: number;
+  maverick_bonus: number;
+  rogue_bonus: number;
+  cup_bonus: number;
+  total_points: number;
+  correct_predictions: number;
+  fixtures_scored: number;
+  accuracy_percentage: number;
+  bonus_points: number | null;
+  accuracy_whole_percentage: number | null;
+  best_streak: number | null;
+  current_streak: number | null;
+  team_display_name: string | null;
+  team_abbreviation: string | null;
+  team_logo_url: string | null;
+  team_logo_alt: string | null;
+  team_brand_colour: string | null;
+  team_id: string;
+  player_slug: string;
+};
+
+type WeeklyScoreRow = {
+  player_id: string;
+  player_name: string;
+  short_name: string | null;
+  team_id: string;
+  team_name: string;
+  team_display_name: string | null;
+  team_logo_url: string | null;
+  team_logo_alt: string | null;
+  fixture_id: string;
+  gameweek: number;
+  gameweek_label: string;
+  opponent: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  home_team: string;
+  away_team: string;
+  home_score: number | null;
+  away_score: number | null;
+  forest_result: PredictionValue | null;
+  actual_forest_points: number | null;
+  result_confirmed: boolean;
+  prediction: PredictionValue;
+  actual_result: PredictionValue;
+  base_points: number;
+  streak_bonus: number;
+  maverick_bonus: number;
+  rogue_bonus: number;
+  fixture_points_this_week: number;
+  cup_bonus_this_week: number;
+  total_points_this_week: number;
+  correct_streak_after_fixture: number;
+  running_fixture_total: number | string;
+  running_cup_bonus: number | string;
+  running_total: number | string;
+  running_correct_predictions: number;
+  running_fixtures_scored: number;
+  running_accuracy_percentage: number;
+  player_slug: string;
+};
+
+type DerivedWeeklyScoreRow = WeeklyScoreRow & {
+  derived_fixture_points_this_week: number;
+  derived_cup_bonus_this_week: number;
+  derived_total_points_this_week: number;
+  derived_running_fixture_total: number;
+  derived_running_cup_bonus: number;
+  derived_running_total: number;
+  derived_running_correct_predictions: number;
+  derived_running_fixtures_scored: number;
+  derived_running_accuracy_percentage: number;
+};
+
+type CupPredictionRow = {
+  id: string;
+  competition: string;
+  predicted_round_reached: string | null;
+  actual_round_reached: string | null;
+  bonus_awarded: number;
+  awarded_gameweek: number | null;
+  awarded_gameweek_label: string | null;
+};
+
+function safeNumber(value: number | string | null | undefined) {
+  const numberValue = Number(value ?? 0);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
+function formatPercent(value: number | null | undefined) {
+  if (value === null || value === undefined) return "0%";
+  return `${Math.round(Number(value))}%`;
+}
+
+function formatPoints(value: number | string | null | undefined) {
+  return String(Math.round(safeNumber(value)));
+}
+
+function displayPlayerName(player: PlayerProfileRow) {
+  return player.short_name ?? player.player_name;
+}
+
+function displayTeamName(player: PlayerProfileRow) {
+  return player.team_display_name ?? player.team_name;
+}
+
+function predictionTone(value: PredictionValue | null | undefined) {
+  if (value === "W") return "bg-green-600 text-white";
+  if (value === "L") return "bg-[#C8102E] text-white";
+  return "bg-[#111111] text-white";
+}
+
+function scoreTone(value: number | string | null | undefined) {
+  const points = safeNumber(value);
+
+  if (points >= 5) return "border-green-200 bg-green-50 text-green-700";
+  if (points >= 3) return "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)]";
+  if (points > 0) return "border-amber-200 bg-amber-50 text-amber-700";
+
+  return "border-neutral-200 bg-neutral-50 text-[var(--nffc-muted,#a7a7a7)]";
+}
+
+function accuracyTone(value: number | null | undefined) {
+  const accuracy = Number(value ?? 0);
+
+  if (accuracy >= 40) return "border-green-200 bg-green-50 text-green-700";
+  if (accuracy >= 30) return "border-amber-200 bg-amber-50 text-amber-700";
+
+  return "border-red-200 bg-red-50 text-red-700";
+}
+
+function buildScoreBreakdown(row: DerivedWeeklyScoreRow) {
+  const parts: string[] = [];
+
+  if (row.base_points > 0) parts.push(`${row.base_points} base`);
+  if (row.streak_bonus > 0) parts.push(`${row.streak_bonus} streaker`);
+  if (row.maverick_bonus > 0) parts.push(`${row.maverick_bonus} maverick`);
+  if (row.rogue_bonus > 0) parts.push(`${row.rogue_bonus} rogue`);
+  if (row.derived_cup_bonus_this_week > 0) {
+    parts.push(`${row.derived_cup_bonus_this_week} cup`);
+  }
+
+  return parts.length ? parts.join(" + ") : "0";
+}
+
+function fixtureScore(row: WeeklyScoreRow) {
+  if (row.home_score === null || row.away_score === null) return "—";
+  return `${row.home_score}-${row.away_score}`;
+}
+
+function deriveWeeklyRows(rows: WeeklyScoreRow[]): DerivedWeeklyScoreRow[] {
+  const sortedRows = [...rows].sort((a, b) => a.gameweek - b.gameweek);
+
+  return sortedRows.reduce<{
+    rows: DerivedWeeklyScoreRow[];
+    runningFixtureTotal: number;
+    runningCupBonus: number;
+    runningTotal: number;
+    runningCorrectPredictions: number;
+    runningFixturesScored: number;
+  }>(
+    (state, row) => {
+      const fixturePointsThisWeek =
+        safeNumber(row.base_points) +
+        safeNumber(row.streak_bonus) +
+        safeNumber(row.maverick_bonus) +
+        safeNumber(row.rogue_bonus);
+
+      const cupBonusThisWeek = safeNumber(row.cup_bonus_this_week);
+      const totalPointsThisWeek = fixturePointsThisWeek + cupBonusThisWeek;
+
+      const nextRunningFixtureTotal =
+        state.runningFixtureTotal + fixturePointsThisWeek;
+      const nextRunningCupBonus = state.runningCupBonus + cupBonusThisWeek;
+      const nextRunningTotal = state.runningTotal + totalPointsThisWeek;
+      const nextRunningFixturesScored = state.runningFixturesScored + 1;
+      const nextRunningCorrectPredictions =
+        safeNumber(row.base_points) === 3
+          ? state.runningCorrectPredictions + 1
+          : state.runningCorrectPredictions;
+
+      const nextRunningAccuracyPercentage =
+        nextRunningFixturesScored > 0
+          ? (nextRunningCorrectPredictions / nextRunningFixturesScored) * 100
+          : 0;
+
+      return {
+        rows: [
+          ...state.rows,
+          {
+            ...row,
+            derived_fixture_points_this_week: fixturePointsThisWeek,
+            derived_cup_bonus_this_week: cupBonusThisWeek,
+            derived_total_points_this_week: totalPointsThisWeek,
+            derived_running_fixture_total: nextRunningFixtureTotal,
+            derived_running_cup_bonus: nextRunningCupBonus,
+            derived_running_total: nextRunningTotal,
+            derived_running_correct_predictions: nextRunningCorrectPredictions,
+            derived_running_fixtures_scored: nextRunningFixturesScored,
+            derived_running_accuracy_percentage: nextRunningAccuracyPercentage,
+          },
+        ],
+        runningFixtureTotal: nextRunningFixtureTotal,
+        runningCupBonus: nextRunningCupBonus,
+        runningTotal: nextRunningTotal,
+        runningCorrectPredictions: nextRunningCorrectPredictions,
+        runningFixturesScored: nextRunningFixturesScored,
+      };
+    },
+    {
+      rows: [],
+      runningFixtureTotal: 0,
+      runningCupBonus: 0,
+      runningTotal: 0,
+      runningCorrectPredictions: 0,
+      runningFixturesScored: 0,
+    }
+  ).rows;
+}
+
+export default function PublicPlayerProfilePage() {
+  const params = useParams<{ slug: string }>();
+  const routeSlug = params?.slug ?? null;
+
+  const [profile, setProfile] = useState<PlayerProfileRow | null>(null);
+  const [weeklyRows, setWeeklyRows] = useState<WeeklyScoreRow[]>([]);
+  const [cupRows, setCupRows] = useState<CupPredictionRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function loadPlayerProfile(slug: string) {
+    setLoading(true);
+    setMessage(null);
+
+    const cleanSlug = decodeURIComponent(slug).trim().toLowerCase();
+
+    const { data: profileData, error: profileError } = await supabase
+      .from("individual_leaderboard")
+      .select("*")
+      .eq("player_slug", cleanSlug)
+      .limit(1)
+      .maybeSingle();
+
+    if (profileError) {
+      setMessage(profileError.message);
+      setLoading(false);
+      return;
+    }
+
+    if (!profileData) {
+      setMessage(`Player not found for slug: ${cleanSlug}`);
+      setLoading(false);
+      return;
+    }
+
+    const loadedProfile = profileData as PlayerProfileRow;
+
+    const [
+      { data: weeklyData, error: weeklyError },
+      { data: cupData, error: cupError },
+    ] = await Promise.all([
+      supabase
+        .from("public_player_weekly_scores")
+        .select("*")
+        .eq("player_slug", cleanSlug)
+        .order("gameweek", { ascending: true }),
+      supabase
+        .from("cup_predictions")
+        .select(
+          "id, competition, predicted_round_reached, actual_round_reached, bonus_awarded, awarded_gameweek, awarded_gameweek_label"
+        )
+        .eq("player_id", loadedProfile.player_id)
+        .order("competition", { ascending: true }),
+    ]);
+
+    if (weeklyError || cupError) {
+      setMessage(
+        weeklyError?.message ?? cupError?.message ?? "Could not load player data."
+      );
+      setLoading(false);
+      return;
+    }
+
+    setProfile(loadedProfile);
+    setWeeklyRows((weeklyData ?? []) as WeeklyScoreRow[]);
+    setCupRows((cupData ?? []) as CupPredictionRow[]);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    if (!routeSlug) return;
+
+    const timeoutId = window.setTimeout(() => {
+      loadPlayerProfile(routeSlug);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [routeSlug]);
+
+  const derivedWeeklyRows = useMemo(() => {
+    return deriveWeeklyRows(weeklyRows);
+  }, [weeklyRows]);
+
+  const latestWeeklyRow = derivedWeeklyRows[derivedWeeklyRows.length - 1] ?? null;
+
+  const summary = useMemo(() => {
+    const fixturePoints =
+      latestWeeklyRow?.derived_running_fixture_total ??
+      (profile
+        ? profile.base_points +
+          profile.streak_bonus +
+          profile.maverick_bonus +
+          profile.rogue_bonus
+        : 0);
+
+    const runningCupBonus =
+      latestWeeklyRow?.derived_running_cup_bonus ?? profile?.cup_bonus ?? 0;
+
+    const totalScore =
+      latestWeeklyRow?.derived_running_total ?? profile?.total_points ?? 0;
+
+    const bonusPoints =
+      profile?.bonus_points ??
+      (profile
+        ? profile.streak_bonus +
+          profile.maverick_bonus +
+          profile.rogue_bonus +
+          runningCupBonus
+        : 0);
+
+    return {
+      fixturePoints,
+      runningCupBonus,
+      totalScore,
+      bonusPoints,
+      latestGameweek: latestWeeklyRow?.gameweek_label ?? "—",
+      latestRunningTotal: latestWeeklyRow?.derived_running_total ?? totalScore,
+      accuracy:
+        latestWeeklyRow?.derived_running_accuracy_percentage ??
+        profile?.accuracy_whole_percentage ??
+        0,
+    };
+  }, [latestWeeklyRow, profile]);
+
+  if (!routeSlug) {
+    return (
+      <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
+        <section className="mx-auto max-w-7xl">
+          <div className="rounded-none border border-red-200 bg-red-50 p-6 text-sm font-bold text-red-800">
+            Player slug missing from URL.
+          </div>
+
+          <Link
+            href="/"
+            className="mt-4 inline-flex rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+          >
+            Back to leaderboards
+          </Link>
+        </section>
+      </main>
+    );
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
+        <section className="mx-auto max-w-7xl">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[#C8102E] shadow-none">
+            Loading player profile…
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (message || !profile) {
+    return (
+      <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
+        <section className="mx-auto max-w-7xl">
+          <div className="rounded-none border border-red-200 bg-red-50 p-6 text-sm font-bold text-red-800">
+            {message ?? "Player not found."}
+          </div>
+
+          <Link
+            href="/"
+            className="mt-4 inline-flex rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+          >
+            Back to leaderboards
+          </Link>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
+      <section className="mx-auto max-w-7xl">
+        <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+                🔮 Player profile
+              </div>
+
+              <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-6xl">
+                {displayPlayerName(profile)}
+              </h1>
+
+              <div className="mt-4 flex items-center gap-3">
+                {profile.team_logo_url ? (
+                  <img
+                    src={profile.team_logo_url}
+                    alt={profile.team_logo_alt ?? displayTeamName(profile)}
+                    className="h-12 w-12 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] object-cover"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-sm font-black text-[#C8102E]">
+                    {profile.team_name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+
+                <div>
+                  <div className="text-lg font-black">
+                    {displayTeamName(profile)}
+                  </div>
+                  <div className="text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
+                    {profile.player_name}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:min-w-[680px]">
+              <HeroStat
+                label="Total score"
+                value={formatPoints(summary.totalScore)}
+                highlight
+              />
+              <HeroStat
+                label="Fixture points"
+                value={formatPoints(summary.fixturePoints)}
+              />
+              <HeroStat
+                label="Cup bonus"
+                value={formatPoints(summary.runningCupBonus)}
+              />
+              <HeroStat label="Accuracy" value={formatPercent(summary.accuracy)} />
+              <HeroStat label="Best streak" value={profile.best_streak ?? 0} />
+              <HeroStat label="Current streak" value={profile.current_streak ?? 0} />
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/#leaderboards"
+              className="rounded-full bg-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+            >
+              View leaderboards
+            </Link>
+            <Link
+              href="/"
+              className="rounded-full border border-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+            >
+              League homepage
+            </Link>
+          </div>
+        </header>
+
+        <section className="mb-6 grid gap-4 lg:grid-cols-3">
+          <InfoCard
+            title="Scoring profile"
+            stats={[
+              ["Base points", formatPoints(profile.base_points)],
+              ["Bonus points", formatPoints(summary.bonusPoints)],
+              ["Streaker bonus", formatPoints(profile.streak_bonus)],
+              ["Maverick bonus", formatPoints(profile.maverick_bonus)],
+              ["Rogue bonus", formatPoints(profile.rogue_bonus)],
+              ["Cup bonus", formatPoints(summary.runningCupBonus)],
+            ]}
+          />
+
+          <InfoCard
+            title="Prediction record"
+            stats={[
+              [
+                "Correct",
+                `${
+                  latestWeeklyRow?.derived_running_correct_predictions ??
+                  profile.correct_predictions
+                }/${
+                  latestWeeklyRow?.derived_running_fixtures_scored ??
+                  profile.fixtures_scored
+                }`,
+              ],
+              ["Accuracy", formatPercent(summary.accuracy)],
+              ["Best streak", String(profile.best_streak ?? 0)],
+              ["Current streak", String(profile.current_streak ?? 0)],
+              ["Latest GW", summary.latestGameweek],
+              ["Latest running total", formatPoints(summary.latestRunningTotal)],
+            ]}
+          />
+
+          <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
+            <h2 className="text-2xl font-black uppercase">Cup predictions</h2>
+            <p className="mt-1 text-sm text-[var(--nffc-muted,#a7a7a7)]">
+              Cup Specialist bonuses are added to the selected GW total.
+            </p>
+
+            <div className="mt-4 grid gap-3">
+              {cupRows.length ? (
+                cupRows.map((cup) => (
+                  <div
+                    key={cup.id}
+                    className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4"
+                  >
+                    <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                      {cup.competition}
+                    </div>
+                    <div className="mt-2 grid gap-1 text-sm font-bold text-[var(--nffc-muted,#a7a7a7)]">
+                      <div>Predicted: {cup.predicted_round_reached ?? "—"}</div>
+                      <div>Actual: {cup.actual_round_reached ?? "Not decided"}</div>
+                      <div>
+                        Bonus:{" "}
+                        <span
+                          className={
+                            cup.bonus_awarded > 0
+                              ? "text-green-700"
+                              : "text-[var(--nffc-muted,#a7a7a7)]"
+                          }
+                        >
+                          {cup.bonus_awarded}
+                        </span>
+                      </div>
+                      <div>
+                        GW total: {cup.awarded_gameweek_label ?? "Not applied yet"}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
+                  No cup predictions found.
+                </div>
+              )}
+            </div>
+          </section>
+        </section>
+
+        <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-6">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-black uppercase">Weekly score record</h2>
+              <p className="text-sm text-[var(--nffc-muted,#a7a7a7)]">
+                Fixture points, cup bonuses and running totals after each confirmed
+                GW.
+              </p>
+            </div>
+
+            <div className="text-sm font-bold uppercase tracking-wide text-[#C8102E]">
+              {derivedWeeklyRows.length} scored GWs
+            </div>
+          </div>
+
+          <div className="hidden overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)] xl:block">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="bg-[#111111] text-white">
+                <tr>
+                  <th className="px-4 py-3">GW</th>
+                  <th className="px-4 py-3">Fixture</th>
+                  <th className="px-4 py-3 text-center">Pick</th>
+                  <th className="px-4 py-3 text-center">Result</th>
+                  <th className="px-4 py-3 text-center">Fixture</th>
+                  <th className="px-4 py-3 text-center">Breakdown</th>
+                  <th className="px-4 py-3 text-center">GW total</th>
+                  <th className="px-4 py-3 text-center">Running total</th>
+                  <th className="px-4 py-3 text-center">Accuracy</th>
+                </tr>
+              </thead>
+              <tbody>
+                {derivedWeeklyRows.length ? (
+                  derivedWeeklyRows.map((row) => (
+                    <tr
+                      key={row.fixture_id}
+                      className="border-b border-[rgba(245,245,245,0.35)] last:border-b-0"
+                    >
+                      <td className="px-4 py-4 text-xl font-black text-[#C8102E]">
+                        {row.gameweek_label}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="text-base font-black">
+                          {row.opponent_short} {row.venue}
+                        </div>
+                        <div className="text-xs font-semibold text-[var(--nffc-muted,#a7a7a7)]">
+                          {fixtureScore(row)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <PredictionPill value={row.prediction} />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <PredictionPill value={row.actual_result} />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span
+                          className={`inline-flex min-w-[64px] items-center justify-center rounded-xl border px-3 py-2 text-xl font-black ${scoreTone(
+                            row.derived_fixture_points_this_week
+                          )}`}
+                        >
+                          {formatPoints(row.derived_fixture_points_this_week)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-center text-sm font-bold text-[var(--nffc-muted,#a7a7a7)]">
+                        {buildScoreBreakdown(row)}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span
+                          className={`inline-flex min-w-[64px] items-center justify-center rounded-xl border px-3 py-2 text-xl font-black ${scoreTone(
+                            row.derived_total_points_this_week
+                          )}`}
+                        >
+                          {formatPoints(row.derived_total_points_this_week)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-center text-2xl font-black text-[var(--nffc-white,#f5f5f5)]">
+                        {formatPoints(row.derived_running_total)}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span
+                          className={`inline-flex min-w-[74px] items-center justify-center rounded-xl border px-3 py-2 text-lg font-black ${accuracyTone(
+                            row.derived_running_accuracy_percentage
+                          )}`}
+                        >
+                          {formatPercent(row.derived_running_accuracy_percentage)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="px-4 py-6 text-[var(--nffc-muted,#a7a7a7)]" colSpan={9}>
+                      No scored fixtures yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="grid gap-3 xl:hidden">
+            {derivedWeeklyRows.length ? (
+              derivedWeeklyRows.map((row) => (
+                <div
+                  key={row.fixture_id}
+                  className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                        {row.gameweek_label}
+                      </div>
+                      <div className="mt-1 text-xl font-black">
+                        {row.opponent_short} {row.venue}
+                      </div>
+                      <div className="text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
+                        Score: {fixtureScore(row)}
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
+                        Running total
+                      </div>
+                      <div className="text-3xl font-black text-[var(--nffc-white,#f5f5f5)]">
+                        {formatPoints(row.derived_running_total)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <PredictionPill value={row.prediction} />
+                    <span className="text-xs font-bold uppercase text-[var(--nffc-muted,#a7a7a7)]">
+                      Pick
+                    </span>
+                    <PredictionPill value={row.actual_result} />
+                    <span className="text-xs font-bold uppercase text-[var(--nffc-muted,#a7a7a7)]">
+                      Result
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-sm font-bold">
+                    <MiniStat
+                      label="Fixture"
+                      value={formatPoints(row.derived_fixture_points_this_week)}
+                    />
+                    <MiniStat
+                      label="Cup"
+                      value={formatPoints(row.derived_cup_bonus_this_week)}
+                    />
+                    <MiniStat
+                      label="GW total"
+                      value={formatPoints(row.derived_total_points_this_week)}
+                      tone={scoreTone(row.derived_total_points_this_week)}
+                    />
+                    <MiniStat
+                      label="Accuracy"
+                      value={formatPercent(
+                        row.derived_running_accuracy_percentage
+                      )}
+                      tone={accuracyTone(row.derived_running_accuracy_percentage)}
+                    />
+                  </div>
+
+                  <div className="mt-3 rounded-xl border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
+                    {buildScoreBreakdown(row)}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
+                No scored fixtures yet.
+              </div>
+            )}
+          </div>
+        </section>
+      </section>
+    </main>
+  );
+}
+
+function HeroStat({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: string | number;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-none border p-4 ${
+        highlight
+          ? "border-[#111111] bg-[#111111] text-white"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]"
+      }`}
+    >
+      <div className="text-xs font-bold uppercase tracking-wide opacity-70">
+        {label}
+      </div>
+      <div className="mt-1 text-3xl font-black">{value}</div>
+    </div>
+  );
+}
+
+function InfoCard({
+  title,
+  stats,
+}: {
+  title: string;
+  stats: [string, string][];
+}) {
+  return (
+    <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
+      <h2 className="text-2xl font-black uppercase">{title}</h2>
+      <div className="mt-4 grid gap-2">
+        {stats.map(([label, value]) => (
+          <div
+            key={label}
+            className="flex items-center justify-between gap-4 rounded-none border border-[rgba(245,245,245,0.35)] bg-[var(--nffc-black,#000000)] px-4 py-3"
+          >
+            <div className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
+              {label}
+            </div>
+            <div className="text-xl font-black text-[var(--nffc-white,#f5f5f5)]">{value}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PredictionPill({ value }: { value: PredictionValue | null | undefined }) {
+  return (
+    <span
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-black ${predictionTone(
+        value
+      )}`}
+    >
+      {value ?? "—"}
+    </span>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string | number;
+  tone?: string;
+}) {
+  return (
+    <div
+      className={`rounded-none border p-3 text-center ${
+        tone ?? "border-[rgba(245,245,245,0.35)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)]"
+      }`}
+    >
+      <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-black">{value}</div>
+    </div>
+  );
+}

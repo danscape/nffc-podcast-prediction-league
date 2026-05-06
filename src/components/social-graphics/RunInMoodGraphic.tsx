@@ -1,9 +1,8 @@
-import SocialGraphicFrame from "./SocialGraphicFrame";
+import Image from "next/image";
+import Link from "next/link";
 import {
   formatWholeGraphicPoints,
   getRoundedPercentSplit,
-  GraphicPercentCard,
-  GraphicTeamCard,
 } from "./SocialGraphicBits";
 
 type MoodTracker = {
@@ -44,77 +43,180 @@ export default function RunInMoodGraphic({
   );
 
   return (
-    <SocialGraphicFrame title="Run-in Mood">
-      <div className="grid gap-3">
-        <div className="rounded-3xl border border-white/15 bg-white/10 p-4 text-center backdrop-blur">
-          <div className="text-[0.66rem] font-black uppercase tracking-[0.2em] text-white/55">
-            Current mood
-          </div>
-          <div className="mt-2 text-5xl font-black uppercase leading-none text-white">
-            {moodTracker.mood_label}
-          </div>
-        </div>
+    <section className="bg-[var(--nffc-black,#000000)] text-white">
+      <GraphicBlockHeader title="Run-In Mood" />
 
-        <div className="grid grid-cols-[0.9fr_1.1fr] gap-3">
-          <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-            <div className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
-              Projected points
+      <div className="border border-[#242424] border-t-0 bg-[var(--nffc-black,#000000)]">
+        <div className="grid border-b border-[#242424] lg:grid-cols-[1fr_0.75fr]">
+          <div className="border-r border-[#242424] px-5 py-4">
+            <div className="text-sm font-black uppercase tracking-[0.14em] text-[var(--nffc-red,#e50914)]">
+              Current Mood
             </div>
-            <div className="mt-2 text-6xl font-black leading-none text-white">
+
+            <div className="mt-2 text-5xl font-black uppercase leading-none tracking-[0.04em] text-[var(--stat-yellow,#ffe44d)] md:text-6xl">
+              {moodTracker.mood_label}
+            </div>
+
+            <div className="mt-3 text-lg font-black uppercase tracking-[0.08em] text-white">
+              Remaining games{" "}
+              <span className="text-[var(--nffc-red,#e50914)]">
+                {moodTracker.remaining_fixture_count}
+              </span>
+            </div>
+          </div>
+
+          <div className="px-5 py-4">
+            <div className="text-sm font-black uppercase tracking-[0.14em] text-white">
+              Projected Points
+            </div>
+
+            <div className="mt-2 text-5xl font-black leading-none text-[var(--stat-green,#22e55e)] md:text-7xl">
               {formatWholeGraphicPoints(
                 moodTracker.average_remaining_predicted_points
               )}
             </div>
-            <div className="mt-2 text-[0.66rem] font-black uppercase tracking-wide text-white/65">
-              from {moodTracker.remaining_fixture_count} games
+
+            <div className="mt-2 text-sm font-black uppercase tracking-[0.12em] text-white">
+              From remaining predictions
             </div>
           </div>
-
-          <div className="grid gap-2">
-            <GraphicPercentCard label="Wins" value={split.win} tone="win" />
-            <GraphicPercentCard label="Draws" value={split.draw} tone="draw" />
-            <GraphicPercentCard label="Losses" value={split.loss} tone="loss" />
-          </div>
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-white/15 bg-white/10">
-          <div
-            className="grid h-7"
-            style={{
-              gridTemplateColumns: `${Math.max(split.win, 0.01)}fr ${Math.max(
-                split.draw,
-                0.01
-              )}fr ${Math.max(split.loss, 0.01)}fr`,
-            }}
-          >
-            <div className="bg-green-500" />
-            <div className="bg-amber-400" />
-            <div className="bg-red-600" />
-          </div>
+        <div className="grid gap-px bg-[#242424] md:grid-cols-3">
+          <MoodSplitCell label="Forest Wins" value={split.win} tone="win" />
+          <MoodSplitCell label="Draws" value={split.draw} tone="draw" />
+          <MoodSplitCell label="Forest Losses" value={split.loss} tone="loss" />
         </div>
 
-        <div className="grid gap-2">
-          <GraphicTeamCard
-            label="Most optimistic"
+        <div className="grid h-10 border-b border-[#242424]"
+          style={{
+            gridTemplateColumns: `${Math.max(split.win, 0.01)}fr ${Math.max(
+              split.draw,
+              0.01
+            )}fr ${Math.max(split.loss, 0.01)}fr`,
+          }}
+        >
+          <div className="bg-[var(--stat-green,#22e55e)]" />
+          <div className="bg-[var(--stat-yellow,#ffe44d)]" />
+          <div className="bg-[var(--stat-wrong,#ff3030)]" />
+        </div>
+
+        <div className="grid gap-px bg-[#242424] md:grid-cols-3">
+          <TeamMoodCell
+            label="Most Optimistic"
             teamName={mostOptimisticTeam?.team_name ?? "TBC"}
             href={teamHref(mostOptimisticTeam)}
+            tone="green"
           />
-          <GraphicTeamCard
-            label="Most cautious"
+
+          <TeamMoodCell
+            label="Most Cautious"
             teamName={mostCautiousTeam?.team_name ?? "TBC"}
             href={teamHref(mostCautiousTeam)}
+            tone="red"
           />
-          <GraphicTeamCard
-            label="Draw merchants"
+
+          <TeamMoodCell
+            label="Draw Merchants"
             teamName={drawMerchants?.team_name ?? "TBC"}
             href={teamHref(drawMerchants)}
+            tone="yellow"
           />
         </div>
 
-        <div className="rounded-2xl border border-white/15 bg-black/20 p-3 text-xs font-semibold leading-5 text-white/65">
-          Aggregate remaining predictions only. No individual future picks shown.
-        </div>
+
       </div>
-    </SocialGraphicFrame>
+    </section>
   );
 }
+
+function MoodSplitCell({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "win" | "draw" | "loss";
+}) {
+  const toneClass =
+    tone === "win"
+      ? "text-[var(--stat-green,#22e55e)]"
+      : tone === "draw"
+        ? "text-[var(--stat-yellow,#ffe44d)]"
+        : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] px-5 py-4 text-center">
+      <div className="text-sm font-black uppercase tracking-[0.14em] text-white">
+        {label}
+      </div>
+
+      <div className={`mt-2 text-5xl font-black leading-none ${toneClass}`}>
+        {value}%
+      </div>
+    </div>
+  );
+}
+
+function TeamMoodCell({
+  label,
+  teamName,
+  href,
+  tone,
+}: {
+  label: string;
+  teamName: string;
+  href: string | null;
+  tone: "green" | "yellow" | "red";
+}) {
+  const toneClass =
+    tone === "green"
+      ? "text-[var(--stat-green,#22e55e)]"
+      : tone === "yellow"
+        ? "text-[var(--stat-yellow,#ffe44d)]"
+        : "text-[var(--stat-wrong,#ff3030)]";
+
+  const content = (
+    <div className="bg-[var(--nffc-black,#000000)] px-5 py-4">
+      <div className="text-sm font-black uppercase tracking-[0.14em] text-white">
+        {label}
+      </div>
+
+      <div
+        className={`mt-2 text-2xl font-black uppercase leading-none tracking-[0.04em] md:text-3xl ${toneClass}`}
+      >
+        {teamName}
+      </div>
+    </div>
+  );
+
+  if (!href) return content;
+
+  return (
+    <Link href={href} className="block transition hover:opacity-80">
+      {content}
+    </Link>
+  );
+}
+
+function GraphicBlockHeader({ title }: { title: string }) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_240px] items-center bg-[var(--nffc-red,#e50914)]">
+      <h2 className="px-5 py-3 text-2xl font-black uppercase tracking-[0.08em] text-white md:text-3xl">
+        {title}
+      </h2>
+
+      <div className="flex h-full items-center justify-end bg-[var(--nffc-red,#e50914)] px-2">
+        <Image
+          src="/brand/nffc-podcast-prediction-league-banner.png"
+          alt="NFFC Podcast Prediction League"
+          width={500}
+          height={140}
+          className="h-14 w-auto object-contain"
+        />
+      </div>
+    </div>
+  );
+}
+

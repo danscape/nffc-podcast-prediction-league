@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import PredictionFormClient from "@/components/PredictionFormClient";
+import PublicPageShell from "@/components/layout/PublicPageShell";
 
 type PredictionValue = "W" | "D" | "L";
 
@@ -99,16 +100,16 @@ export default async function PredictPage({
 
   if (error) {
     return (
-      <main className="min-h-screen bg-[#F7F6F2] px-4 py-8 text-[#111111] sm:px-6 lg:px-8">
+      <PublicPageShell topPadding="reduced">
         <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl flex-col justify-center">
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-center shadow-sm md:p-8">
+          <div className="rounded-none border border-red-200 bg-red-50 p-6 text-center shadow-none md:p-8">
             <h1 className="text-3xl font-black uppercase text-red-800">
               Prediction page error
             </h1>
             <p className="mt-3 text-sm text-red-700">{error.message}</p>
           </div>
         </div>
-      </main>
+      </PublicPageShell>
     );
   }
 
@@ -116,22 +117,26 @@ export default async function PredictPage({
 
   if (!rawPageData?.found) {
     return (
-      <main className="min-h-screen bg-[#F7F6F2] px-4 py-8 text-[#111111] sm:px-6 lg:px-8">
+      <PublicPageShell topPadding="reduced">
         <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl flex-col justify-center">
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-6 text-center shadow-sm md:p-8">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-center shadow-none md:p-8">
             <h1 className="text-3xl font-black uppercase text-[#C8102E]">
               Prediction page not found
             </h1>
-            <p className="mt-3 text-sm text-neutral-600">
+            <p className="mt-3 text-sm text-[var(--nffc-muted,#a7a7a7)]">
               This prediction link is invalid or no longer active.
             </p>
           </div>
         </div>
-      </main>
+      </PublicPageShell>
     );
   }
 
   const pageData = normalisePageData(rawPageData);
 
-  return <PredictionFormClient token={token} initialData={pageData} />;
+  return (
+    <PublicPageShell topPadding="reduced">
+      <PredictionFormClient token={token} initialData={pageData} />
+    </PublicPageShell>
+  );
 }

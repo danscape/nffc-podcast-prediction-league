@@ -591,9 +591,9 @@ export default function AdminCupsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
+        <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
@@ -602,7 +602,7 @@ export default function AdminCupsPage() {
               <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
                 Cups
               </h1>
-              <p className="mt-3 text-sm font-semibold text-neutral-600">
+              <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                 Set cup match dates, automatic lock times, actual rounds reached and
                 the GW total where Cup Specialist bonuses are added.
               </p>
@@ -610,7 +610,7 @@ export default function AdminCupsPage() {
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -619,7 +619,7 @@ export default function AdminCupsPage() {
 
         {message && (
           <div
-            className={`mb-6 rounded-2xl border p-4 text-sm font-semibold ${
+            className={`mb-6 rounded-none border p-4 text-sm font-semibold ${
               message.type === "success"
                 ? "border-green-200 bg-green-50 text-green-800"
                 : "border-red-200 bg-red-50 text-red-800"
@@ -630,7 +630,7 @@ export default function AdminCupsPage() {
         )}
 
         {loading ? (
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-6 text-xl font-black uppercase text-[#C8102E] shadow-sm">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[#C8102E] shadow-none">
             Loading cup data…
           </div>
         ) : (
@@ -658,7 +658,7 @@ export default function AdminCupsPage() {
               return (
                 <div
                   key={competition.id}
-                  className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5"
+                  className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5"
                 >
                   <div className="grid gap-5 xl:grid-cols-[0.8fr_1.4fr] xl:items-start">
                     <div>
@@ -668,7 +668,7 @@ export default function AdminCupsPage() {
                       <h2 className="mt-1 text-2xl font-black uppercase">
                         {competition.display_name}
                       </h2>
-                      <div className="mt-2 grid gap-1 text-sm font-semibold text-neutral-600">
+                      <div className="mt-2 grid gap-1 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                         <div>
                           First Forest match:{" "}
                           {formatDateTime(competition.first_forest_match_at)}
@@ -683,7 +683,7 @@ export default function AdminCupsPage() {
                     <div className="grid gap-4">
                       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                         <label className="block">
-                          <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                          <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                             Match date
                           </span>
                           <input
@@ -695,12 +695,12 @@ export default function AdminCupsPage() {
                                 [competition.id]: event.target.value,
                               }))
                             }
-                            className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
                           />
                         </label>
 
                         <label className="block">
-                          <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                          <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                             Match time
                           </span>
                           <input
@@ -712,12 +712,12 @@ export default function AdminCupsPage() {
                                 [competition.id]: event.target.value,
                               }))
                             }
-                            className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
                           />
                         </label>
 
                         <label className="block">
-                          <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                          <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                             Add bonus to GW total
                           </span>
                           <select
@@ -728,7 +728,7 @@ export default function AdminCupsPage() {
                                 [competition.id]: event.target.value,
                               }))
                             }
-                            className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
                           >
                             <option value="">Not applied yet</option>
                             {fixtures.map((fixture) => (
@@ -743,7 +743,7 @@ export default function AdminCupsPage() {
                         </label>
 
                         <label className="block">
-                          <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                          <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                             Actual round reached
                           </span>
                           <select
@@ -754,7 +754,7 @@ export default function AdminCupsPage() {
                                 [competition.id]: event.target.value,
                               }))
                             }
-                            className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-white px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
                           >
                             <option value="">Choose round</option>
                             {cupRoundOptions.map((stage) => (
@@ -766,7 +766,7 @@ export default function AdminCupsPage() {
                         </label>
                       </div>
 
-                      <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-700">
+                      <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                         Prediction lock preview:{" "}
                         <span className="font-black text-[#C8102E]">
                           {formatDraftLockTime(matchDate, matchTime)}
@@ -780,7 +780,7 @@ export default function AdminCupsPage() {
                           type="button"
                           onClick={() => saveCupSetup(competition)}
                           disabled={Boolean(savingKey)}
-                          className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {setupSaving ? "Saving…" : "Save setup"}
                         </button>
@@ -802,7 +802,7 @@ export default function AdminCupsPage() {
                             )
                           }
                           disabled={Boolean(savingKey)}
-                          className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {expanded ? "Hide players" : "Show players"}
                         </button>
@@ -833,14 +833,14 @@ export default function AdminCupsPage() {
                     />
                   </div>
 
-                  <div className="mt-4 rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-700">
+                  <div className="mt-4 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                     Save setup can be used before the cup result is known. Save
                     result + bonuses should be used when the actual round reached is
                     confirmed.
                   </div>
 
                   {expanded && (
-                    <div className="mt-5 overflow-hidden rounded-2xl border border-[#D9D6D1]">
+                    <div className="mt-5 overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)]">
                       <table className="w-full border-collapse text-left text-sm">
                         <thead className="bg-[#111111] text-white">
                           <tr>
@@ -859,15 +859,15 @@ export default function AdminCupsPage() {
                             competitionPredictions.map((prediction) => (
                               <tr
                                 key={prediction.id}
-                                className="border-b border-[#E7E2DA] last:border-b-0"
+                                className="border-b border-[rgba(245,245,245,0.35)] last:border-b-0"
                               >
                                 <td className="px-4 py-3 font-black">
                                   {playerDisplayName(prediction)}
-                                  <div className="text-xs font-semibold text-neutral-500 md:hidden">
+                                  <div className="text-xs font-semibold text-[var(--nffc-muted,#a7a7a7)] md:hidden">
                                     {teamDisplayName(prediction)}
                                   </div>
                                 </td>
-                                <td className="hidden px-4 py-3 font-semibold text-neutral-600 md:table-cell">
+                                <td className="hidden px-4 py-3 font-semibold text-[var(--nffc-muted,#a7a7a7)] md:table-cell">
                                   {teamDisplayName(prediction)}
                                 </td>
                                 <td className="px-4 py-3 font-bold">
@@ -881,20 +881,20 @@ export default function AdminCupsPage() {
                                     className={`rounded-full px-3 py-1 text-xs font-black uppercase ${
                                       prediction.bonus_awarded > 0
                                         ? "bg-green-100 text-green-800"
-                                        : "bg-neutral-100 text-neutral-600"
+                                        : "bg-neutral-100 text-[var(--nffc-muted,#a7a7a7)]"
                                     }`}
                                   >
                                     {prediction.bonus_awarded}
                                   </span>
                                 </td>
-                                <td className="hidden px-4 py-3 font-bold text-neutral-600 md:table-cell">
+                                <td className="hidden px-4 py-3 font-bold text-[var(--nffc-muted,#a7a7a7)] md:table-cell">
                                   {prediction.awarded_gameweek_label ?? "Not yet"}
                                 </td>
                               </tr>
                             ))
                           ) : (
                             <tr>
-                              <td className="px-4 py-6 text-neutral-600" colSpan={6}>
+                              <td className="px-4 py-6 text-[var(--nffc-muted,#a7a7a7)]" colSpan={6}>
                                 No cup predictions found.
                               </td>
                             </tr>
@@ -921,8 +921,8 @@ function CupStat({
   value: string | number;
 }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4">
-      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+    <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4">
+      <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
       <div className="mt-1 text-2xl font-black text-[#C8102E]">{value}</div>

@@ -327,9 +327,9 @@ export default function AdminPredictionsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F6F2] px-4 py-6 text-[#111111] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl border border-[#D9D6D1] bg-white p-5 shadow-sm md:p-8">
+        <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
@@ -338,14 +338,14 @@ export default function AdminPredictionsPage() {
               <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
                 Manual predictions
               </h1>
-              <p className="mt-3 text-sm font-semibold text-neutral-600">
+              <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                 Select a player, click edit, make multiple W/D/L changes, then save the session and send a confirmation email.
               </p>
             </div>
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -354,7 +354,7 @@ export default function AdminPredictionsPage() {
 
         {message && (
           <div
-            className={`mb-6 rounded-2xl border p-4 text-sm font-semibold ${
+            className={`mb-6 rounded-none border p-4 text-sm font-semibold ${
               message.type === "success"
                 ? "border-green-200 bg-green-50 text-green-800"
                 : "border-red-200 bg-red-50 text-red-800"
@@ -375,9 +375,9 @@ export default function AdminPredictionsPage() {
         </section>
 
         <section className="mb-6 grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
             <label className="block">
-              <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+              <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                 Search players
               </span>
               <input
@@ -386,14 +386,14 @@ export default function AdminPredictionsPage() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search by name, team, email or PPL code"
                 disabled={editing}
-                className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E] disabled:cursor-not-allowed disabled:opacity-60"
               />
             </label>
 
             <div className="mt-4 max-h-[420px] overflow-y-auto pr-1">
               <div className="grid gap-2">
                 {loadingPlayers ? (
-                  <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-bold text-neutral-600">
+                  <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-bold text-[var(--nffc-muted,#a7a7a7)]">
                     Loading players…
                   </div>
                 ) : (
@@ -403,10 +403,10 @@ export default function AdminPredictionsPage() {
                       type="button"
                       disabled={editing}
                       onClick={() => setSelectedLegacyCode(player.legacy_code)}
-                      className={`rounded-2xl border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                      className={`rounded-none border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
                         selectedLegacyCode === player.legacy_code
                           ? "border-[#C8102E] bg-red-50"
-                          : "border-[#D9D6D1] bg-[#F7F6F2] hover:border-[#C8102E]"
+                          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] hover:border-[#C8102E]"
                       }`}
                     >
                       <div className="text-xs font-black uppercase tracking-[0.16em] text-[#C8102E]">
@@ -415,10 +415,10 @@ export default function AdminPredictionsPage() {
                       <div className="mt-1 font-black">
                         {player.table_display_name ?? player.player_name}
                       </div>
-                      <div className="text-xs font-semibold text-neutral-600">
+                      <div className="text-xs font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                         {player.team_display_name ?? player.team_name}
                       </div>
-                      <div className="mt-1 text-xs font-semibold text-neutral-500">
+                      <div className="mt-1 text-xs font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                         {player.email}
                       </div>
                     </button>
@@ -428,7 +428,7 @@ export default function AdminPredictionsPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-5">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
             <div className="mb-4">
               <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
                 Selected player
@@ -438,16 +438,16 @@ export default function AdminPredictionsPage() {
                   selectedPlayer?.player_name ??
                   "No player selected"}
               </h2>
-              <p className="mt-1 text-sm font-semibold text-neutral-600">
+              <p className="mt-1 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                 {selectedPlayer?.team_display_name ?? selectedPlayer?.team_name}
               </p>
-              <p className="mt-1 text-xs font-bold text-neutral-500">
+              <p className="mt-1 text-xs font-bold text-[var(--nffc-muted,#a7a7a7)]">
                 Confirmation email: {selectedPlayer?.email ?? "No email"}
               </p>
             </div>
 
             <label className="block">
-              <span className="text-xs font-black uppercase tracking-wide text-neutral-500">
+              <span className="text-xs font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
                 Source note for audit log
               </span>
               <input
@@ -455,7 +455,7 @@ export default function AdminPredictionsPage() {
                 value={sourceNote}
                 onChange={(event) => setSourceNote(event.target.value)}
                 disabled={!editing}
-                className="mt-2 w-full rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E] disabled:cursor-not-allowed disabled:opacity-60"
               />
             </label>
 
@@ -489,7 +489,7 @@ export default function AdminPredictionsPage() {
                     type="button"
                     onClick={cancelEditing}
                     disabled={saving}
-                    className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#111111] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -498,20 +498,20 @@ export default function AdminPredictionsPage() {
             </div>
 
             {editing && (
-              <div className="mt-4 rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-4 text-sm font-semibold text-neutral-700">
+              <div className="mt-4 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
                 Changes are held locally until you click save. One confirmation email will then be sent to the selected player.
               </div>
             )}
           </div>
         </section>
 
-        <section className="rounded-3xl border border-[#D9D6D1] bg-white p-4 shadow-sm md:p-6">
+        <section className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-6">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-2xl font-black uppercase">
                 Current predictions
               </h2>
-              <p className="text-sm text-neutral-600">
+              <p className="text-sm text-[var(--nffc-muted,#a7a7a7)]">
                 {editing
                   ? "Edit mode: make changes, then save the session."
                   : "Read-only mode: click Edit predictions to make changes."}
@@ -523,12 +523,12 @@ export default function AdminPredictionsPage() {
           </div>
 
           {loadingPredictions ? (
-            <div className="rounded-2xl border border-[#D9D6D1] bg-[#F7F6F2] p-6 text-xl font-black uppercase text-[#C8102E]">
+            <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-6 text-xl font-black uppercase text-[#C8102E]">
               Loading predictions…
             </div>
           ) : (
             <>
-              <div className="hidden overflow-hidden rounded-2xl border border-[#D9D6D1] xl:block">
+              <div className="hidden overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)] xl:block">
                 <table className="w-full border-collapse text-left text-sm">
                   <thead className="bg-[#111111] text-white">
                     <tr>
@@ -552,7 +552,7 @@ export default function AdminPredictionsPage() {
                       return (
                         <tr
                           key={`${prediction.legacy_code}-${prediction.gameweek}`}
-                          className={`border-b border-[#E7E2DA] last:border-b-0 ${
+                          className={`border-b border-[rgba(245,245,245,0.35)] last:border-b-0 ${
                             locked ? "bg-neutral-50" : changed ? "bg-red-50" : ""
                           }`}
                         >
@@ -572,12 +572,12 @@ export default function AdminPredictionsPage() {
                               onChange={updateDraftPrediction}
                             />
                           </td>
-                          <td className="px-4 py-3 text-neutral-700">
+                          <td className="px-4 py-3 text-[var(--nffc-muted,#a7a7a7)]">
                             {formatDateTime(prediction.kickoff_at)}
                           </td>
                           <td className="px-4 py-3">
                             {locked ? (
-                              <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-neutral-700">
+                              <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
                                 Locked
                               </span>
                             ) : (
@@ -592,7 +592,7 @@ export default function AdminPredictionsPage() {
                                 {original?.prediction} → {prediction.prediction}
                               </span>
                             ) : (
-                              <span className="text-neutral-400">—</span>
+                              <span className="text-[var(--nffc-muted,#a7a7a7)]">—</span>
                             )}
                           </td>
                         </tr>
@@ -614,12 +614,12 @@ export default function AdminPredictionsPage() {
                   return (
                     <div
                       key={`${prediction.legacy_code}-${prediction.gameweek}`}
-                      className={`rounded-2xl border p-4 ${
+                      className={`rounded-none border p-4 ${
                         locked
                           ? "border-neutral-300 bg-neutral-100"
                           : changed
                             ? "border-[#C8102E] bg-red-50"
-                            : "border-[#D9D6D1] bg-[#F7F6F2]"
+                            : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]"
                       }`}
                     >
                       <div className="mb-4 flex items-start justify-between gap-4">
@@ -630,13 +630,13 @@ export default function AdminPredictionsPage() {
                           <div className="mt-1 text-xl font-black">
                             {prediction.opponent_short} {prediction.venue}
                           </div>
-                          <div className="text-sm text-neutral-600">
+                          <div className="text-sm text-[var(--nffc-muted,#a7a7a7)]">
                             Kick-off: {formatDateTime(prediction.kickoff_at)}
                           </div>
                         </div>
 
                         {locked ? (
-                          <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-neutral-700">
+                          <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
                             Locked
                           </span>
                         ) : changed ? (
@@ -659,7 +659,7 @@ export default function AdminPredictionsPage() {
                       />
 
                       {changed && (
-                        <div className="mt-3 border-t border-[#D9D6D1] pt-3 text-xs font-black uppercase text-[#C8102E]">
+                        <div className="mt-3 border-t border-[var(--nffc-white,#f5f5f5)] pt-3 text-xs font-black uppercase text-[#C8102E]">
                           Changed from {original?.prediction} to{" "}
                           {prediction.prediction}
                         </div>
@@ -678,8 +678,8 @@ export default function AdminPredictionsPage() {
 
 function AdminStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-[#D9D6D1] bg-white p-4 shadow-sm">
-      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+    <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none">
+      <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
       <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
@@ -729,7 +729,7 @@ function PredictionButtons({
 
 function predictionButtonClass(option: PredictionValue, isSelected: boolean) {
   if (!isSelected) {
-    return "border-[#D9D6D1] bg-white text-[#111111] hover:border-[#C8102E]";
+    return "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)] hover:border-[#C8102E]";
   }
 
   if (option === "W") {

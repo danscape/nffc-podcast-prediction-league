@@ -1,0 +1,87 @@
+import Image from "next/image";
+import Link from "next/link";
+import type { ReactNode } from "react";
+
+type PublicMastheadProps = {
+  active: "home" | "weekly-results";
+  title?: string;
+  compact?: boolean;
+};
+
+export default function PublicMasthead({
+  active,
+  title = "Leaderboard Terminal",
+  compact = false,
+}: PublicMastheadProps) {
+  return (
+    <header
+      className={`bg-[var(--nffc-black,#000000)] ${
+        compact ? "mb-3" : "mb-10"
+      }`}
+    >
+      <div
+        className={`border-b-4 border-[var(--nffc-red,#e50914)] ${
+          compact ? "pb-3" : "pb-10"
+        }`}
+      >
+        <div className="grid items-stretch bg-[var(--nffc-red,#e50914)] lg:grid-cols-[320px_minmax(0,1fr)_420px]">
+          <div className="flex items-center justify-end bg-[var(--nffc-red,#e50914)] px-3 py-1">
+            <Image
+              src="/brand/nffc-podcast-prediction-league-banner.png"
+              alt="NFFC Podcast Prediction League"
+              width={640}
+              height={180}
+              priority
+              className="h-18 w-auto object-contain md:h-20"
+            />
+          </div>
+
+          <div className="flex items-center bg-[var(--nffc-red,#e50914)] px-7 py-2">
+            <div className="whitespace-nowrap text-3xl font-black uppercase leading-none tracking-[0.04em] text-white md:text-4xl xl:text-5xl">
+              {title}
+            </div>
+          </div>
+
+          <nav className="grid grid-cols-2 gap-2 bg-[var(--nffc-red,#e50914)] p-2">
+            <MastheadMenuButton href="/" active={active === "home"}>
+              Home
+            </MastheadMenuButton>
+
+            <MastheadMenuButton
+              href="/weekly-results"
+              active={active === "weekly-results"}
+            >
+              GW Results
+            </MastheadMenuButton>
+          </nav>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function MastheadMenuButton({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: ReactNode;
+}) {
+  const className = `relative flex items-center justify-center border bg-[var(--nffc-black,#000000)] px-4 py-2 text-center text-sm font-black uppercase tracking-[0.14em] transition md:text-base ${
+    active
+      ? "border-[var(--stat-green,#22e55e)] text-[var(--stat-green,#22e55e)] after:absolute after:bottom-0 after:left-0 after:h-[3px] after:w-full after:bg-[var(--stat-green,#22e55e)]"
+      : "border-white text-white hover:border-[var(--stat-green,#22e55e)] hover:text-[var(--stat-green,#22e55e)] hover:after:absolute hover:after:bottom-0 hover:after:left-0 hover:after:h-[3px] hover:after:w-full hover:after:bg-[var(--stat-green,#22e55e)]"
+  }`;
+
+  if (active) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
+}

@@ -1,8 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #f5f5f5;
+
+  --nffc-black: #000000;
+  --nffc-panel: #070707;
+  --nffc-panel-soft: #111111;
+  --nffc-white: #f5f5f5;
+  --nffc-muted: #a7a7a7;
+
+  --nffc-red: #e50914;
+  --nffc-red-dark: #8f0612;
+  --nffc-red-soft: #c8102e;
+
+  --nffc-grid: rgba(255, 255, 255, 0.26);
+  --nffc-grid-strong: rgba(255, 255, 255, 0.72);
+
+  --stat-green: #22e55e;
+  --stat-yellow: #ffe44d;
+  --stat-cyan: #59efff;
+  --stat-pink: #ff4fd8;
+  --stat-wrong: #ff3030;
+  --stat-total: #ffffff;
 }
 
 @theme inline {
@@ -12,15 +32,321 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--nffc-black);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    var(--nffc-black);
+  background-size: 18px 18px;
+  color: var(--nffc-white);
+  font-family: var(--font-geist-mono), "Courier New", monospace;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--nffc-red);
+  color: var(--nffc-white);
+}
+
+/* Teletext base utilities */
+
+.teletext-page {
+  min-height: 100vh;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    var(--nffc-black);
+  background-size: 18px 18px;
+  color: var(--nffc-white);
+  font-family: var(--font-geist-mono), "Courier New", monospace;
+}
+
+.teletext-frame {
+  border: 2px solid var(--nffc-grid-strong);
+  background: var(--nffc-black);
+  color: var(--nffc-white);
+  box-shadow: none;
+}
+
+.teletext-panel {
+  border: 1px solid var(--nffc-grid);
+  background: var(--nffc-panel);
+  color: var(--nffc-white);
+}
+
+.teletext-title-bar {
+  background: var(--nffc-red);
+  color: var(--nffc-white);
+  border-bottom: 2px solid var(--nffc-white);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.teletext-subtitle-bar {
+  background: var(--nffc-panel-soft);
+  color: var(--nffc-white);
+  border: 1px solid var(--nffc-grid);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.teletext-grid {
+  border: 1px solid var(--nffc-grid);
+  background:
+    linear-gradient(var(--nffc-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--nffc-grid) 1px, transparent 1px),
+    var(--nffc-black);
+  background-size: 100% 40px, 120px 100%;
+}
+
+.teletext-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--nffc-black);
+  color: var(--nffc-white);
+}
+
+.teletext-table th {
+  background: var(--nffc-red);
+  color: var(--nffc-white);
+  border: 1px solid var(--nffc-white);
+  padding: 0.65rem 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.teletext-table td {
+  border: 1px solid var(--nffc-grid);
+  padding: 0.6rem 0.75rem;
+}
+
+.teletext-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentColor;
+  background: var(--nffc-black);
+  padding: 0.2rem 0.5rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.teletext-stat-label {
+  color: var(--nffc-muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.teletext-stat-value {
+  color: var(--nffc-white);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.teletext-link {
+  color: var(--nffc-white);
+  text-decoration: underline;
+  text-decoration-color: var(--nffc-red);
+  text-underline-offset: 0.2em;
+}
+
+.teletext-link:hover {
+  color: var(--stat-cyan);
+  text-decoration-color: var(--stat-cyan);
+}
+
+/* Meaning colours */
+
+.text-stat-correct,
+.text-stat-win,
+.text-stat-base {
+  color: var(--stat-green);
+}
+
+.text-stat-total {
+  color: var(--stat-total);
+}
+
+.text-stat-streak {
+  color: var(--stat-yellow);
+}
+
+.text-stat-maverick {
+  color: var(--stat-cyan);
+}
+
+.text-stat-rogue {
+  color: var(--stat-pink);
+}
+
+.text-stat-wrong {
+  color: var(--stat-wrong);
+}
+
+.border-stat-correct,
+.border-stat-win,
+.border-stat-base {
+  border-color: var(--stat-green);
+}
+
+.border-stat-total {
+  border-color: var(--stat-total);
+}
+
+.border-stat-streak {
+  border-color: var(--stat-yellow);
+}
+
+.border-stat-maverick {
+  border-color: var(--stat-cyan);
+}
+
+.border-stat-rogue {
+  border-color: var(--stat-pink);
+}
+
+.border-stat-wrong {
+  border-color: var(--stat-wrong);
+}
+
+/* Helpful sharp-edge override for graphics/pages */
+
+.teletext-square,
+.teletext-square * {
+  border-radius: 0 !important;
+}
+
+/* Typography */
+
+.teletext-heading,
+.teletext-title,
+.teletext-title-bar,
+.teletext-display {
+  font-family: var(--font-press-start), var(--font-geist-mono), "Courier New", monospace;
+}
+
+.teletext-heading {
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+}
+
+.teletext-display {
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.teletext-body,
+.teletext-content,
+.teletext-table,
+.teletext-panel {
+  font-family: var(--font-geist-mono), "Courier New", monospace;
+}\n\n/* NFFC GLOBAL TELETEXT PAGE SHELL OVERRIDES */
+html {
+  background: #000000;
+  color: #f5f5f5;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    #000000;
+  background-size: 100% 4px;
+  color: #f5f5f5;
+}
+
+body::selection {
+  background: #e50914;
+  color: #ffffff;
+}
+
+.teletext-page-shell {
+  min-height: 100vh;
+  background: #000000;
+  color: #f5f5f5;
+}
+
+.teletext-screen {
+  border: 2px solid #e50914;
+  background: #000000;
+  color: #f5f5f5;
+  box-shadow: inset 0 0 0 1px rgba(245, 245, 245, 0.18);
+}
+
+.teletext-panel {
+  border: 1px solid #f5f5f5;
+  border-radius: 0;
+  background: #070707;
+  color: #f5f5f5;
+  box-shadow: none;
+}
+
+.teletext-red-bar {
+  background: #e50914;
+  color: #ffffff;
+}
+
+.teletext-grid-line {
+  border-color: rgba(245, 245, 245, 0.35);
+}
+
+.teletext-muted {
+  color: #a7a7a7;
+}
+
+/* NFFC GLOBAL BLACK VIEWPORT BORDER */
+:root {
+  --nffc-viewport-border: clamp(30px, 3vw, 54px);
+}
+
+html {
+  background: #000000;
+}
+
+body {
+  box-sizing: border-box;
+  padding: var(--nffc-viewport-border);
+  background: #000000;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  border: var(--nffc-viewport-border) solid #000000;
+  box-sizing: border-box;
+}
+
+body > main {
+  min-height: calc(100vh - (var(--nffc-viewport-border) * 2));
+}
+
+@media (max-width: 640px) {
+  :root {
+    --nffc-viewport-border: 24px;
+  }
 }
