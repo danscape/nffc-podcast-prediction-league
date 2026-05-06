@@ -519,8 +519,6 @@ export default async function HomePage() {
             leadingTeamPoints={leadingTeam?.total_team_points ?? null}
             latestNews={latestNews ?? null}
             moodTracker={moodTracker ?? null}
-            inFormPlayer={inFormPlayer}
-            inFormTeam={inFormTeam}
           />
 
           <RunInMoodGraphic
