@@ -135,7 +135,7 @@ export default async function PredictPage({
   const pageData = normalisePageData(rawPageData);
 
   return (
-    <PublicPageShell topPadding="reduced">
+    <PublicPageShell topPadding="reduced" mobileFullBleed>
       <PredictionFormClient token={token} initialData={pageData} />
     </PublicPageShell>
   );

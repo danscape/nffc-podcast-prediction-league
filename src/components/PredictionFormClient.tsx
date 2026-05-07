@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import PublicMasthead from "@/components/layout/PublicMasthead";
+import MobileCeefaxMasthead from "@/components/layout/MobileCeefaxMasthead";
 
 type PredictionValue = "W" | "D" | "L";
 
@@ -793,37 +794,11 @@ export default function PredictionFormClient({
 
   return (
     <>
-      <main className="min-h-screen w-full overflow-x-hidden bg-[var(--nffc-black,#000000)] px-1 py-1 text-[var(--nffc-white,#f5f5f5)] md:hidden">
-        <section className="w-full">
-          <header className="border-b-2 border-[var(--nffc-red,#e50914)] pb-1.5">
-            <div className="flex justify-center">
-              <Image
-                src="/brand/nffc-podcast-prediction-league-banner.png"
-                alt="NFFC Podcast Prediction League"
-                width={420}
-                height={180}
-                priority
-                className="h-10 w-auto max-w-[78%] object-contain"
-              />
-            </div>
+      <main className="box-border min-h-screen w-full max-w-none overflow-x-hidden bg-[var(--nffc-black,#000000)] px-0 pt-0 pb-3 text-[var(--nffc-white,#f5f5f5)] md:hidden">
+        <section className="box-border w-full max-w-none px-0 pt-0 pb-4">
+          <MobileCeefaxMasthead active="none" />
 
-            <nav className="mt-2 grid grid-cols-2 gap-[2px] bg-[var(--nffc-red,#e50914)]">
-              <Link
-                href="/"
-                className="bg-[var(--nffc-black,#000000)] px-3 py-1.5 text-center text-[0.66rem] font-black uppercase tracking-[0.16em] text-white"
-              >
-                Home
-              </Link>
-              <Link
-                href="/weekly-results"
-                className="bg-[var(--nffc-black,#000000)] px-3 py-1.5 text-center text-[0.66rem] font-black uppercase tracking-[0.16em] text-white"
-              >
-                GW Results
-              </Link>
-            </nav>
-          </header>
-
-          <section className="py-1.5">
+          <section className="min-w-0 px-0 py-0.5">
             <h1 className="text-[1.85rem] font-black uppercase leading-none tracking-[0.02em] text-white">
               {playerDisplayName}
             </h1>
@@ -831,7 +806,7 @@ export default function PredictionFormClient({
               {teamDisplayName}
             </div>
 
-            <div className="mt-3 space-y-1 text-sm font-black uppercase leading-tight tracking-[0.08em] text-white">
+            <div className="mt-2 space-y-1 text-[0.82rem] font-black uppercase leading-tight tracking-[0.06em] text-white">
               <div>
                 Pos <span className="text-white">{formatOrdinal(rankings?.individual_rank)}</span>
                 <span className="px-2 text-[var(--nffc-red,#e50914)]">/</span>
@@ -848,8 +823,8 @@ export default function PredictionFormClient({
             </div>
           </section>
 
-          <section className="mb-4">
-            <h2 className="bg-[var(--nffc-red,#e50914)] px-3 py-1.5 text-lg font-black uppercase tracking-[0.08em] text-white">
+          <section className="mb-2 mt-2 min-w-0 px-0">
+            <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1 py-1 text-base font-black uppercase tracking-[0.08em] text-white">
               Make Predictions
             </h2>
 
@@ -862,7 +837,7 @@ export default function PredictionFormClient({
               </div>
             ) : null}
 
-            <div className="mt-1.5 grid gap-0">
+            <div className="mt-1.5 grid gap-1">
               {openPredictions.length ? (
                 openPredictions.map((prediction) => (
                   <MobilePredictionEntry
@@ -880,12 +855,14 @@ export default function PredictionFormClient({
             </div>
           </section>
 
-          <section className="mb-4">
-            <h2 className="bg-[var(--nffc-red,#e50914)] px-3 py-1.5 text-lg font-black uppercase tracking-[0.08em] text-white">
+          <div className="my-5 h-[2px] w-full bg-[var(--nffc-red,#e50914)]" />
+
+          <section className="mb-4 min-w-0 px-0">
+            <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1 py-1 text-base font-black uppercase tracking-[0.08em] text-white">
               Score Breakdown
             </h2>
 
-            <div className="mt-2 grid gap-2">
+            <div className="mt-1 grid gap-1">
               {scoreRows.length ? (
                 scoreRows.map((score) => (
                   <MobileCleanScoreRow
@@ -1256,14 +1233,14 @@ function MobilePredictionEntry({
     prediction.is_locked || isConfirmedPrediction(prediction) || countdown.expired;
 
   return (
-    <article className={`py-1 ${locked ? "opacity-60" : ""}`}>
-      <div className="grid grid-cols-[minmax(0,1fr)_70px] items-baseline gap-2">
-        <span className="truncate text-left text-lg font-black uppercase leading-none tracking-[0.01em] text-white">
+    <article className={`px-px py-0.5 ${locked ? "opacity-60" : ""}`}>
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_60px] items-baseline gap-1 overflow-hidden">
+        <span className="truncate text-left text-[1.22rem] font-black uppercase leading-none tracking-[0.01em] text-white">
           {prediction.opponent_short}{" "}
           <span className="text-white">{prediction.venue}</span>
         </span>
 
-        <span className="text-right text-lg font-black uppercase tracking-[0.06em] text-[var(--nffc-red,#e50914)]">
+        <span className="text-right text-[1.02rem] font-black uppercase tracking-[0.04em] text-[var(--nffc-red,#e50914)]">
           {prediction.gameweek_label}
         </span>
       </div>
@@ -1274,7 +1251,7 @@ function MobilePredictionEntry({
         </div>
       ) : null}
 
-      <div className="mt-1">
+      <div className="mt-0">
         <PredictionButtons
           fixtureId={prediction.fixture_id}
           selected={prediction.prediction}
@@ -1305,8 +1282,8 @@ function MobileCleanScoreRow({ score }: { score: ScoreRowWithRunning }) {
     : "text-[var(--stat-wrong,#ff3030)]";
 
   return (
-    <article className="border-b border-[#242424] py-2">
-      <div className="grid grid-cols-[72px_minmax(0,1fr)_auto] items-baseline gap-2">
+    <article className="border-b border-[#242424] px-px py-2">
+      <div className="grid min-w-0 grid-cols-[52px_minmax(0,1fr)_42px] items-baseline gap-1 overflow-hidden">
         <div className={`text-lg font-black uppercase tracking-[0.06em] ${resultTone}`}>
           {score.gameweek_label}
         </div>
@@ -1315,18 +1292,18 @@ function MobileCleanScoreRow({ score }: { score: ScoreRowWithRunning }) {
           {score.opponent_short} <span className={resultTone}>{score.venue}</span>
         </div>
 
-        <div className={`pl-2 text-right text-xl font-black leading-none ${resultTone}`}>
+        <div className={`min-w-0 pl-1 text-right text-lg font-black leading-none ${resultTone}`}>
           {formatPoints(runningTotal)}
         </div>
       </div>
 
-      <div className="mt-2 text-sm font-black uppercase tracking-[0.08em] text-white">
+      <div className="mt-2 break-words text-sm font-black uppercase tracking-[0.08em] text-white">
         Pick <span className="text-white">{score.prediction}</span>
         <span className="px-2 text-[var(--nffc-red,#e50914)]">/</span>
         Result <span className="text-white">{score.actual_result}</span>
       </div>
 
-      <div className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-white">
+      <div className="mt-1 break-words text-sm font-black uppercase tracking-[0.08em] text-white">
         Base{" "}
         <span className={score.base_points > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>
           {formatPoints(score.base_points)}
@@ -1605,7 +1582,7 @@ function PredictionButtons({
   const options: PredictionValue[] = ["W", "D", "L"];
 
   return (
-    <div className={`grid max-w-full grid-cols-3 gap-[2px] overflow-hidden ${fullWidth ? "w-full" : ""}`}>
+    <div className={`grid max-w-full grid-cols-3 gap-px overflow-hidden ${fullWidth ? "w-full" : ""}`}>
       {options.map((option) => {
         const isSelected = selected === option;
 
