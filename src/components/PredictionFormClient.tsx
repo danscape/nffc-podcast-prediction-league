@@ -792,6 +792,24 @@ export default function PredictionFormClient({
   const mobileNextDeadline =
     openPredictions[0]?.prediction_lock_at ?? openPredictions[0]?.kickoff_at ?? null;
 
+  const [expandedMobileScoreRows, setExpandedMobileScoreRows] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  function toggleMobileScoreRow(rowKey: string) {
+    setExpandedMobileScoreRows((current) => {
+      const next = new Set(current);
+
+      if (next.has(rowKey)) {
+        next.delete(rowKey);
+      } else {
+        next.add(rowKey);
+      }
+
+      return next;
+    });
+  }
+
   return (
     <>
       <main className="box-border min-h-screen w-full max-w-none overflow-x-hidden bg-[var(--nffc-black,#000000)] px-0 pt-0 pb-3 text-[var(--nffc-white,#f5f5f5)] md:hidden">
@@ -822,6 +840,8 @@ export default function PredictionFormClient({
               </div>
             </div>
           </section>
+
+          <div className="my-2 h-[2px] w-full bg-[var(--nffc-red,#e50914)]" />
 
           <section className="mb-2 mt-2 min-w-0 px-0">
             <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1 py-1 text-base font-black uppercase tracking-[0.08em] text-white">
@@ -864,12 +884,18 @@ export default function PredictionFormClient({
 
             <div className="mt-1 grid gap-1">
               {scoreRows.length ? (
-                scoreRows.map((score) => (
-                  <MobileCleanScoreRow
-                    key={`${score.gameweek}-${score.opponent_short}-clean-mobile`}
-                    score={score}
-                  />
-                ))
+                scoreRows.map((score) => {
+                  const rowKey = `${score.gameweek}-${score.opponent_short}-mobile`;
+
+                  return (
+                    <MobileCleanScoreRow
+                      key={rowKey}
+                      score={score}
+                      expanded={expandedMobileScoreRows.has(rowKey)}
+                      onToggle={() => toggleMobileScoreRow(rowKey)}
+                    />
+                  );
+                })
               ) : (
                 <div className="border border-[#242424] px-3 py-4 text-sm font-black uppercase tracking-[0.1em] text-white">
                   No scored fixtures yet.
@@ -1233,9 +1259,9 @@ function MobilePredictionEntry({
     prediction.is_locked || isConfirmedPrediction(prediction) || countdown.expired;
 
   return (
-    <article className={`px-px py-0.5 ${locked ? "opacity-60" : ""}`}>
+    <article className={`px-px pb-1.5 pt-0.5 ${locked ? "opacity-60" : ""}`}>
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_60px] items-baseline gap-1 overflow-hidden">
-        <span className="truncate text-left text-[1.22rem] font-black uppercase leading-none tracking-[0.01em] text-white">
+        <span className="truncate text-left text-[1.58rem] font-black uppercase leading-none tracking-[0.005em] text-white">
           {prediction.opponent_short}{" "}
           <span className="text-white">{prediction.venue}</span>
         </span>
@@ -1271,7 +1297,15 @@ function mobileBonusValueClass(value: number, tone: "yellow" | "cyan" | "pink" |
   return bonusValueClass(value, tone);
 }
 
-function MobileCleanScoreRow({ score }: { score: ScoreRowWithRunning }) {
+function MobileCleanScoreRow({
+  score,
+  expanded,
+  onToggle,
+}: {
+  score: ScoreRowWithRunning;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   const correct = score.prediction === score.actual_result;
   const runningTotal = getScoreRunningTotal(score);
   const bonusTotal =
@@ -1280,56 +1314,77 @@ function MobileCleanScoreRow({ score }: { score: ScoreRowWithRunning }) {
   const resultTone = correct
     ? "text-[var(--stat-green,#22e55e)]"
     : "text-[var(--stat-wrong,#ff3030)]";
+  const pointsTone =
+    fixtureTotal > 0
+      ? "text-[var(--stat-green,#22e55e)]"
+      : "text-[var(--stat-wrong,#ff3030)]";
 
   return (
-    <article className="border-b border-[#242424] px-px py-2">
-      <div className="grid min-w-0 grid-cols-[52px_minmax(0,1fr)_42px] items-baseline gap-1 overflow-hidden">
-        <div className={`text-lg font-black uppercase tracking-[0.06em] ${resultTone}`}>
+    <article className="border-b border-[#242424] px-px py-1 last:border-b-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="grid w-full grid-cols-[44px_minmax(0,1fr)_56px_72px_22px] items-center gap-1 text-left"
+        aria-expanded={expanded}
+      >
+        <div className={`text-base font-black uppercase tracking-[0.04em] ${resultTone}`}>
           {score.gameweek_label}
         </div>
 
-        <div className={`truncate text-right text-lg font-black uppercase leading-none ${resultTone}`}>
+        <div className={`truncate text-base font-black uppercase leading-none ${resultTone}`}>
           {score.opponent_short} <span className={resultTone}>{score.venue}</span>
         </div>
 
-        <div className={`min-w-0 pl-1 text-right text-lg font-black leading-none ${resultTone}`}>
-          {formatPoints(runningTotal)}
+        <div className="text-right text-[0.64rem] font-black uppercase tracking-[0.04em] text-white">
+          Pts{" "}
+          <span className={`text-sm ${pointsTone}`}>{formatPoints(fixtureTotal)}</span>
         </div>
-      </div>
 
-      <div className="mt-2 break-words text-sm font-black uppercase tracking-[0.08em] text-white">
-        Pick <span className="text-white">{score.prediction}</span>
-        <span className="px-2 text-[var(--nffc-red,#e50914)]">/</span>
-        Result <span className="text-white">{score.actual_result}</span>
-      </div>
+        <div className={`text-right text-[0.64rem] font-black uppercase tracking-[0.04em] ${resultTone}`}>
+          Total{" "}
+          <span className="text-sm">{formatPoints(runningTotal)}</span>
+        </div>
 
-      <div className="mt-1 break-words text-sm font-black uppercase tracking-[0.08em] text-white">
-        Base{" "}
-        <span className={score.base_points > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>
-          {formatPoints(score.base_points)}
-        </span>
-        <span className="px-2 text-[var(--nffc-red,#e50914)]">+</span>
-        Bonus <span className={bonusTotal > 0 ? "text-[var(--stat-cyan,#59efff)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(bonusTotal)}</span>
-        <span className="px-2 text-[var(--nffc-red,#e50914)]">=</span>
-        GW <span className={fixtureTotal > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(fixtureTotal)}</span>
-      </div>
+        <div className="text-right text-lg font-black leading-none text-white">
+          {expanded ? "−" : "+"}
+        </div>
+      </button>
 
-      {(score.streak_bonus > 0 ||
-        score.maverick_bonus > 0 ||
-        score.rogue_bonus > 0 ||
-        score.cup_bonus > 0) && (
-        <div className="mt-1 text-xs font-black uppercase tracking-[0.08em] text-white">
-          <span className="text-[var(--stat-yellow,#ffe44d)]">S</span>{" "}
-          <span className={mobileBonusValueClass(score.streak_bonus, "yellow")}>{formatPoints(score.streak_bonus)}</span>
-          <span className="px-1 text-[#666666]">/</span>
-          <span className="text-[var(--stat-cyan,#59efff)]">M</span>{" "}
-          <span className={mobileBonusValueClass(score.maverick_bonus, "cyan")}>{formatPoints(score.maverick_bonus)}</span>
-          <span className="px-1 text-[#666666]">/</span>
-          <span className="text-[var(--stat-pink,#ff4fd8)]">R</span>{" "}
-          <span className={mobileBonusValueClass(score.rogue_bonus, "pink")}>{formatPoints(score.rogue_bonus)}</span>
-          <span className="px-1 text-[#666666]">/</span>
-          <span className="text-[var(--stat-green,#22e55e)]">Cup</span>{" "}
-          <span className={mobileBonusValueClass(score.cup_bonus, "green")}>{formatPoints(score.cup_bonus)}</span>
+      {expanded && (
+        <div className="mt-1 border-t border-[#242424] pt-1">
+          <div className="break-words text-xs font-black uppercase tracking-[0.07em] text-white">
+            Pick <span className="text-white">{score.prediction}</span>
+            <span className="px-2 text-[var(--nffc-red,#e50914)]">/</span>
+            Result <span className="text-white">{score.actual_result}</span>
+          </div>
+
+          <div className="mt-1 break-words text-xs font-black uppercase tracking-[0.07em] text-white">
+            Base{" "}
+            <span className={score.base_points > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>
+              {formatPoints(score.base_points)}
+            </span>
+            <span className="px-2 text-[var(--nffc-red,#e50914)]">+</span>
+            Bonus{" "}
+            <span className={bonusTotal > 0 ? "text-[var(--stat-cyan,#59efff)]" : "text-[var(--stat-wrong,#ff3030)]"}>
+              {formatPoints(bonusTotal)}
+            </span>
+            <span className="px-2 text-[var(--nffc-red,#e50914)]">=</span>
+            GW <span className={pointsTone}>{formatPoints(fixtureTotal)}</span>
+          </div>
+
+          <div className="mt-1 whitespace-nowrap text-[0.56rem] font-black uppercase tracking-[0.025em] text-white">
+            <span className="text-[var(--stat-yellow,#ffe44d)]">Streaker</span>{" "}
+            <span className={mobileBonusValueClass(score.streak_bonus, "yellow")}>{formatPoints(score.streak_bonus)}</span>
+            <span className="px-0.5 text-[#666666]">/</span>
+            <span className="text-[var(--stat-cyan,#59efff)]">Maverick</span>{" "}
+            <span className={mobileBonusValueClass(score.maverick_bonus, "cyan")}>{formatPoints(score.maverick_bonus)}</span>
+            <span className="px-0.5 text-[#666666]">/</span>
+            <span className="text-[var(--stat-pink,#ff4fd8)]">Rogue</span>{" "}
+            <span className={mobileBonusValueClass(score.rogue_bonus, "pink")}>{formatPoints(score.rogue_bonus)}</span>
+            <span className="px-0.5 text-[#666666]">/</span>
+            <span className="text-[var(--stat-green,#22e55e)]">Cup</span>{" "}
+            <span className={mobileBonusValueClass(score.cup_bonus, "green")}>{formatPoints(score.cup_bonus)}</span>
+          </div>
         </div>
       )}
     </article>

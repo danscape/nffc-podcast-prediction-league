@@ -9,7 +9,7 @@ export default function MobileCeefaxMasthead({
   active = "none",
 }: MobileCeefaxMastheadProps) {
   return (
-    <header className="w-full pb-0.5 md:hidden">
+    <header className="w-full pb-2 md:hidden">
       <div className="flex w-full justify-center overflow-hidden pt-0">
         <Image
           src="/brand/nffc-podcast-prediction-league-banner.png"
@@ -24,7 +24,7 @@ export default function MobileCeefaxMasthead({
       <nav className="mt-1 grid w-full grid-cols-2 gap-1 bg-[var(--nffc-black,#000000)]">
         <Link
           href="/"
-          className={`border px-2 py-1 text-center text-[0.62rem] font-black uppercase tracking-[0.14em] transition ${
+          className={`border px-2 py-1.5 text-center text-[0.78rem] font-black uppercase tracking-[0.12em] transition ${
             active === "home"
               ? "border-[var(--stat-green,#22e55e)] text-[var(--stat-green,#22e55e)]"
               : "border-[var(--nffc-red,#e50914)] text-white"
@@ -35,7 +35,7 @@ export default function MobileCeefaxMasthead({
 
         <Link
           href="/weekly-results"
-          className={`border px-2 py-1 text-center text-[0.62rem] font-black uppercase tracking-[0.14em] transition ${
+          className={`border px-2 py-1.5 text-center text-[0.78rem] font-black uppercase tracking-[0.12em] transition ${
             active === "results"
               ? "border-[var(--stat-green,#22e55e)] text-[var(--stat-green,#22e55e)]"
               : "border-[var(--nffc-red,#e50914)] text-white"
