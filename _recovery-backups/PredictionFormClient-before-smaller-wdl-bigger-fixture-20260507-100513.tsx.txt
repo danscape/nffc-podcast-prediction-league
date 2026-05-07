@@ -1,0 +1,2045 @@
+"use client";
+
+import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabaseClient";
+import PublicMasthead from "@/components/layout/PublicMasthead";
+import MobileCeefaxMasthead from "@/components/layout/MobileCeefaxMasthead";
+
+type PredictionValue = "W" | "D" | "L";
+
+type PlayerPageData = {
+  found: boolean;
+  player: {
+    id: string;
+    legacy_code: string;
+    player_name: string;
+    short_name: string | null;
+    team_name: string;
+    team_display_name: string | null;
+    team_abbreviation: string | null;
+    parent_podcast: string | null;
+    parent_podcast_abbreviation: string | null;
+    joined_gameweek: number;
+  };
+  projection: {
+    actual_points_so_far: number;
+    remaining_predicted_points: number;
+    total_now_predicted: number;
+    full_prediction_set_points: number;
+    gw1_predicted_points?: number | string | null;
+  } | null;
+  rankings: {
+    individual_rank: number;
+    individual_points: number;
+    individual_accuracy_percentage: number;
+    team_rank: number;
+    team_points: number;
+    team_clean_sweeps: number;
+    team_blanks: number;
+    individual_rank_out_of?: number | null;
+    team_rank_out_of?: number | null;
+  } | null;
+  predictions: {
+    fixture_id: string;
+    gameweek: number;
+    gameweek_label: string;
+    opponent: string;
+    opponent_short: string;
+    venue: "H" | "A";
+    kickoff_at: string | null;
+    prediction_lock_at: string | null;
+    status: string;
+    home_score: number | null;
+    away_score: number | null;
+    forest_result: PredictionValue | null;
+    prediction: PredictionValue;
+    predicted_forest_points: number;
+    is_locked: boolean;
+  }[];
+};
+
+type ExtraPredictionsData = {
+  found: boolean;
+  cup_predictions: {
+    id: string | null;
+    competition: string;
+    display_name: string;
+    predicted_round_reached: string | null;
+    actual_round_reached: string | null;
+    bonus_awarded: number;
+    prediction_lock_at: string | null;
+    is_locked: boolean;
+  }[];
+  custom_answers: {
+    id: string | null;
+    question_key: string;
+    question_text: string;
+    answer: string | null;
+    locked_at: string | null;
+    is_locked: boolean;
+  }[];
+};
+
+type ScoreBreakdownData = {
+  found: boolean;
+  summary: {
+    base_points: number;
+    streak_bonus: number;
+    maverick_bonus: number;
+    rogue_bonus: number;
+    fixture_points: number;
+    cup_bonus: number;
+    total_points: number;
+    completed_fixtures: number;
+  } | null;
+  fixture_scores: {
+    gameweek: number;
+    gameweek_label: string;
+    opponent_short: string;
+    opponent: string;
+    venue: "H" | "A";
+    prediction: PredictionValue;
+    actual_result: PredictionValue;
+    base_points: number;
+    streak_bonus: number;
+    maverick_bonus: number;
+    rogue_bonus: number;
+    cup_bonus: number;
+    total_points: number;
+    correct_streak_after_fixture: number;
+  }[];
+  cup_scores: {
+    competition: string;
+    predicted_round_reached: string | null;
+    actual_round_reached: string | null;
+    bonus_awarded: number;
+  }[];
+};
+
+type RankingTotals = {
+  individualTotal: number | null;
+  teamTotal: number | null;
+};
+
+type ChangedFixture = {
+  gameweek: number;
+  gameweek_label: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  old_prediction?: PredictionValue;
+  new_prediction?: PredictionValue;
+};
+
+type ScoreRowWithRunning = ScoreBreakdownData["fixture_scores"][number] & {
+  runningTotal: number;
+};
+
+const domesticCupStageOptions = [
+  "1st Round",
+  "2nd Round",
+  "3rd Round",
+  "4th Round",
+  "5th Round",
+  "Quarter Finals",
+  "Semi Finals",
+  "Final",
+  "Winners",
+];
+
+const europaLeagueStageOptions = [
+  "League Phase",
+  "Knockout/Playoff Round",
+  "Round of 16",
+  "Quarter Finals",
+  "Semi Finals",
+  "Final",
+  "Winners",
+];
+
+const genericCupStageOptions = [
+  "1st Round",
+  "2nd Round",
+  "3rd Round",
+  "4th Round",
+  "5th Round",
+  "League Phase",
+  "Knockout/Playoff Round",
+  "Round of 16",
+  "Quarter Finals",
+  "Semi Finals",
+  "Final",
+  "Winners",
+];
+
+const confirmationEmailDelayMs = 3 * 60 * 1000;
+
+function predictionToPoints(prediction: PredictionValue) {
+  if (prediction === "W") return 3;
+  if (prediction === "D") return 1;
+  return 0;
+}
+
+function formatSignedNumber(value: number) {
+  if (value > 0) return `+${value}`;
+  return String(value);
+}
+
+function isConfirmedPrediction(prediction: PlayerPageData["predictions"][number]) {
+  return prediction.status === "finished" && prediction.forest_result !== null;
+}
+
+function formatOrdinal(value: number | null | undefined) {
+  const numberValue = Number(value ?? 0);
+
+  if (!numberValue || numberValue <= 0) return "—";
+
+  const lastTwoDigits = numberValue % 100;
+  const lastDigit = numberValue % 10;
+
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 13) return `${numberValue}th`;
+  if (lastDigit === 1) return `${numberValue}st`;
+  if (lastDigit === 2) return `${numberValue}nd`;
+  if (lastDigit === 3) return `${numberValue}rd`;
+
+  return `${numberValue}th`;
+}
+
+function formatRank(value: number | null | undefined, total?: number | null) {
+  if (!value || value <= 0) return "—";
+  if (total && total > 0) return `${value}/${total}`;
+  return `${value}`;
+}
+
+function formatPoints(value: number | null | undefined) {
+  return Number(value ?? 0).toFixed(1).replace(".0", "");
+}
+
+function formatTeamPoints(value: number | null | undefined) {
+  return Number(value ?? 0).toFixed(2);
+}
+
+function formatNullablePoints(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") return "N/A";
+
+  const numericValue = Number(value);
+
+  if (Number.isNaN(numericValue)) return "N/A";
+
+  return numericValue.toFixed(0);
+}
+
+function formatPercent(value: number | null | undefined) {
+  if (value === null || value === undefined) return "N/A";
+  return `${Math.round(Number(value))}%`;
+}
+
+function getCupStageOptions(competition: string, displayName?: string | null) {
+  const label = `${competition} ${displayName ?? ""}`.toLowerCase();
+
+  if (label.includes("europa league") || label.includes("uefa europa league")) {
+    return europaLeagueStageOptions;
+  }
+
+  if (
+    label.includes("fa cup") ||
+    label.includes("efl cup") ||
+    label.includes("carabao")
+  ) {
+    return domesticCupStageOptions;
+  }
+
+  return genericCupStageOptions;
+}
+
+function formatCompactDateTime(value: string | null) {
+  if (!value) return "DATE TBC";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/London",
+  })
+    .format(new Date(value))
+    .replace(",", "")
+    .toUpperCase();
+}
+
+function getDeadlineCountdown(value: string | null) {
+  if (!value) {
+    return {
+      label: "DATE TBC",
+      tone: "white" as const,
+      expired: false,
+    };
+  }
+
+  const target = new Date(value).getTime();
+  const now = Date.now();
+  const diffMs = target - now;
+
+  if (!Number.isFinite(target) || diffMs <= 0) {
+    return {
+      label: "LOCKED",
+      tone: "red" as const,
+      expired: true,
+    };
+  }
+
+  const totalMinutes = Math.ceil(diffMs / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  const label =
+    days > 0
+      ? `${days}D ${String(hours).padStart(2, "0")}H LEFT`
+      : hours > 0
+        ? `${hours}H ${String(minutes).padStart(2, "0")}M LEFT`
+        : `${minutes}M LEFT`;
+
+  return {
+    label,
+    tone: totalMinutes <= 120 ? ("red" as const) : totalMinutes <= 1440 ? ("yellow" as const) : ("green" as const),
+    expired: false,
+  };
+}
+
+function countdownTextClass(tone: "green" | "yellow" | "red" | "white") {
+  if (tone === "green") return "text-[var(--stat-green,#22e55e)]";
+  if (tone === "yellow") return "text-[var(--stat-yellow,#ffe44d)]";
+  if (tone === "red") return "text-[var(--stat-wrong,#ff3030)]";
+  return "text-white";
+}
+
+function getPlayerProfileTag(predictions: PlayerPageData["predictions"]) {
+  const total = predictions.length || 1;
+  const winCount = predictions.filter((prediction) => prediction.prediction === "W").length;
+  const drawCount = predictions.filter((prediction) => prediction.prediction === "D").length;
+  const lossCount = predictions.filter((prediction) => prediction.prediction === "L").length;
+
+  const winRate = winCount / total;
+  const drawRate = drawCount / total;
+  const lossRate = lossCount / total;
+
+  if (drawRate >= 0.35) return "Draw Specialist";
+  if (winRate >= 0.5) return "Optimist";
+  if (lossRate >= 0.35) return "Cautious";
+  return "Balanced";
+}
+
+function getOriginalPredictionPoints(projection: PlayerPageData["projection"]) {
+  return projection?.gw1_predicted_points ?? null;
+}
+
+export default function PredictionFormClient({
+  token,
+  initialData,
+}: {
+  token: string;
+  initialData: PlayerPageData;
+}) {
+  const [predictions, setPredictions] = useState(initialData.predictions);
+  const [extraData, setExtraData] = useState<ExtraPredictionsData | null>(null);
+  const [scoreData, setScoreData] = useState<ScoreBreakdownData | null>(null);
+  const [rankingTotals, setRankingTotals] = useState<RankingTotals>({
+    individualTotal: initialData.rankings?.individual_rank_out_of ?? null,
+    teamTotal: initialData.rankings?.team_rank_out_of ?? null,
+  });
+  const [savingFixtureId, setSavingFixtureId] = useState<string | null>(null);
+  const [savingExtraKey, setSavingExtraKey] = useState<string | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [emailMessage, setEmailMessage] = useState<{
+    type: "success" | "error" | "pending";
+    text: string;
+  } | null>(null);
+
+  const emailTimerRef = useRef<number | null>(null);
+  const pendingChangedFixturesRef = useRef<Map<number, ChangedFixture>>(new Map());
+
+  useEffect(() => {
+    async function loadExtraPredictionsAndCounts() {
+      const [
+        { data: extras, error: extrasError },
+        { data: scores, error: scoresError },
+        { count: individualCount },
+        { count: teamCount },
+      ] = await Promise.all([
+        supabase.rpc("get_player_extra_predictions", {
+          target_token: token,
+        }),
+        supabase.rpc("get_player_score_breakdown", {
+          target_token: token,
+        }),
+        supabase
+          .from("individual_leaderboard")
+          .select("*", { count: "exact", head: true }),
+        supabase
+          .from("team_leaderboard")
+          .select("*", { count: "exact", head: true }),
+      ]);
+
+      if (!extrasError && extras) {
+        setExtraData(extras as ExtraPredictionsData);
+      }
+
+      if (!scoresError && scores) {
+        setScoreData(scores as ScoreBreakdownData);
+      }
+
+      setRankingTotals({
+        individualTotal:
+          initialData.rankings?.individual_rank_out_of ??
+          individualCount ??
+          null,
+        teamTotal:
+          initialData.rankings?.team_rank_out_of ?? teamCount ?? null,
+      });
+    }
+
+    loadExtraPredictionsAndCounts();
+  }, [
+    token,
+    initialData.rankings?.individual_rank_out_of,
+    initialData.rankings?.team_rank_out_of,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (emailTimerRef.current) {
+        window.clearTimeout(emailTimerRef.current);
+      }
+    };
+  }, []);
+
+  const sortedPredictions = useMemo(() => {
+    return [...predictions].sort((a, b) => a.gameweek - b.gameweek);
+  }, [predictions]);
+
+  const openPredictions = useMemo(() => {
+    return sortedPredictions.filter((prediction) => {
+      return !prediction.is_locked && !isConfirmedPrediction(prediction);
+    });
+  }, [sortedPredictions]);
+
+  const completedPredictions = useMemo(() => {
+    return sortedPredictions.filter((prediction) => isConfirmedPrediction(prediction));
+  }, [sortedPredictions]);
+
+  const performanceStats = useMemo(() => {
+    const correctCount = completedPredictions.filter(
+      (prediction) => prediction.prediction === prediction.forest_result
+    ).length;
+
+    const actualPointsSoFar = completedPredictions.reduce((total, prediction) => {
+      if (!prediction.forest_result) return total;
+      return total + predictionToPoints(prediction.forest_result);
+    }, 0);
+
+    const predictedCompletedPoints = completedPredictions.reduce(
+      (total, prediction) => total + predictionToPoints(prediction.prediction),
+      0
+    );
+
+    const actualVsPredicted = actualPointsSoFar - predictedCompletedPoints;
+
+    const accuracyPercentage =
+      completedPredictions.length > 0
+        ? Math.round((correctCount / completedPredictions.length) * 100)
+        : null;
+
+    return {
+      correctCount,
+      completedCount: completedPredictions.length,
+      actualPointsSoFar,
+      predictedCompletedPoints,
+      actualVsPredicted,
+      accuracyPercentage,
+    };
+  }, [completedPredictions]);
+
+  const projection = useMemo(() => {
+    const actualPoints = performanceStats.actualPointsSoFar;
+
+    const remainingPredictedPoints = predictions.reduce((total, prediction) => {
+      if (isConfirmedPrediction(prediction)) return total;
+      return total + predictionToPoints(prediction.prediction);
+    }, 0);
+
+    const fullPredictionSetPoints = predictions.reduce(
+      (total, prediction) => total + predictionToPoints(prediction.prediction),
+      0
+    );
+
+    return {
+      actual_points_so_far: actualPoints,
+      remaining_predicted_points: remainingPredictedPoints,
+      total_now_predicted: actualPoints + remainingPredictedPoints,
+      full_prediction_set_points: fullPredictionSetPoints,
+      actual_vs_predicted: performanceStats.actualVsPredicted,
+      original_prediction_points: getOriginalPredictionPoints(initialData.projection),
+    };
+  }, [
+    initialData.projection,
+    performanceStats.actualPointsSoFar,
+    performanceStats.actualVsPredicted,
+    predictions,
+  ]);
+
+  const scoreRows = useMemo<ScoreRowWithRunning[]>(() => {
+    const sortedScores = [...(scoreData?.fixture_scores ?? [])].sort(
+      (a, b) => a.gameweek - b.gameweek
+    );
+
+    return sortedScores.reduce<{
+      rows: ScoreRowWithRunning[];
+      runningTotal: number;
+    }>(
+      (state, score) => {
+        const nextRunningTotal = state.runningTotal + score.total_points;
+
+        return {
+          rows: [
+            ...state.rows,
+            {
+              ...score,
+              runningTotal: nextRunningTotal,
+            },
+          ],
+          runningTotal: nextRunningTotal,
+        };
+      },
+      {
+        rows: [],
+        runningTotal: 0,
+      }
+    ).rows.reverse();
+  }, [scoreData]);
+
+  function scheduleConfirmationEmail(changedFixture?: ChangedFixture) {
+    if (changedFixture) {
+      const existing = pendingChangedFixturesRef.current.get(
+        changedFixture.gameweek
+      );
+
+      pendingChangedFixturesRef.current.set(changedFixture.gameweek, {
+        ...changedFixture,
+        old_prediction: existing?.old_prediction ?? changedFixture.old_prediction,
+        new_prediction: changedFixture.new_prediction,
+      });
+    }
+
+    if (emailTimerRef.current) {
+      window.clearTimeout(emailTimerRef.current);
+    }
+
+    setEmailMessage({
+      type: "pending",
+      text: "Confirmation email scheduled. It will send after 3 minutes with no further changes.",
+    });
+
+    emailTimerRef.current = window.setTimeout(() => {
+      sendDelayedConfirmationEmail();
+    }, confirmationEmailDelayMs);
+  }
+
+  async function sendDelayedConfirmationEmail() {
+    const changedFixtures = Array.from(pendingChangedFixturesRef.current.values());
+
+    try {
+      setEmailMessage({
+        type: "pending",
+        text: "Sending confirmation email…",
+      });
+
+      const response = await fetch("/api/email/prediction-confirmation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token,
+          updatedBy: "player",
+          changedFixtures,
+        }),
+      });
+
+      const result = (await response.json()) as {
+        success?: boolean;
+        message?: string;
+      };
+
+      if (!response.ok || !result.success) {
+        setEmailMessage({
+          type: "error",
+          text: result.message ?? "Could not send confirmation email.",
+        });
+        return;
+      }
+
+      pendingChangedFixturesRef.current.clear();
+
+      setEmailMessage({
+        type: "success",
+        text: "Confirmation email sent.",
+      });
+    } catch (error) {
+      setEmailMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? `Could not send confirmation email: ${error.message}`
+            : "Could not send confirmation email.",
+      });
+    }
+  }
+
+  async function updatePrediction(
+    fixtureId: string,
+    newPrediction: PredictionValue
+  ) {
+    const fixture = predictions.find(
+      (prediction) => prediction.fixture_id === fixtureId
+    );
+
+    if (!fixture || fixture.is_locked || isConfirmedPrediction(fixture)) return;
+    if (fixture.prediction === newPrediction) return;
+
+    const oldPrediction = fixture.prediction;
+    const oldPredictions = predictions;
+
+    setPredictions((current) =>
+      current.map((prediction) =>
+        prediction.fixture_id === fixtureId
+          ? {
+              ...prediction,
+              prediction: newPrediction,
+              predicted_forest_points: predictionToPoints(newPrediction),
+            }
+          : prediction
+      )
+    );
+
+    setSavingFixtureId(fixtureId);
+    setMessage(null);
+
+    const { data, error } = await supabase.rpc("player_update_prediction", {
+      target_token: token,
+      target_fixture_id: fixtureId,
+      new_prediction: newPrediction,
+    });
+
+    setSavingFixtureId(null);
+
+    if (error) {
+      setPredictions(oldPredictions);
+      setMessage({
+        type: "error",
+        text: "Could not save prediction. Please try again.",
+      });
+      return;
+    }
+
+    const result = data as { success?: boolean; message?: string } | null;
+
+    if (!result?.success) {
+      setPredictions(oldPredictions);
+      setMessage({
+        type: "error",
+        text: result?.message ?? "Could not save prediction.",
+      });
+      return;
+    }
+
+    setMessage({
+      type: "success",
+      text: "Prediction saved.",
+    });
+
+    scheduleConfirmationEmail({
+      gameweek: fixture.gameweek,
+      gameweek_label: fixture.gameweek_label,
+      opponent_short: fixture.opponent_short,
+      venue: fixture.venue,
+      old_prediction: oldPrediction,
+      new_prediction: newPrediction,
+    });
+  }
+
+  async function updateCupPrediction(competition: string, newValue: string) {
+    if (!extraData) return;
+
+    const cup = extraData.cup_predictions.find(
+      (item) => item.competition === competition
+    );
+
+    if (!cup || cup.is_locked) return;
+    if ((cup.predicted_round_reached ?? "") === newValue) return;
+
+    const oldData = extraData;
+
+    setExtraData({
+      ...extraData,
+      cup_predictions: extraData.cup_predictions.map((item) =>
+        item.competition === competition
+          ? { ...item, predicted_round_reached: newValue }
+          : item
+      ),
+    });
+
+    setSavingExtraKey(`cup-${competition}`);
+    setMessage(null);
+
+    const { data, error } = await supabase.rpc("player_update_cup_prediction", {
+      target_token: token,
+      target_competition: competition,
+      new_predicted_round_reached: newValue,
+    });
+
+    setSavingExtraKey(null);
+
+    const result = data as { success?: boolean; message?: string } | null;
+
+    if (error || !result?.success) {
+      setExtraData(oldData);
+      setMessage({
+        type: "error",
+        text: result?.message ?? "Could not save cup prediction.",
+      });
+      return;
+    }
+
+    setMessage({
+      type: "success",
+      text: "Cup prediction saved.",
+    });
+
+    scheduleConfirmationEmail();
+  }
+
+  async function updateCustomAnswer(questionKey: string, newValue: string) {
+    if (!extraData) return;
+
+    const answer = extraData.custom_answers.find(
+      (item) => item.question_key === questionKey
+    );
+
+    if (!answer || answer.is_locked) return;
+    if ((answer.answer ?? "") === newValue) return;
+
+    const oldData = extraData;
+
+    setExtraData({
+      ...extraData,
+      custom_answers: extraData.custom_answers.map((item) =>
+        item.question_key === questionKey
+          ? { ...item, answer: newValue }
+          : item
+      ),
+    });
+
+    setSavingExtraKey(`custom-${questionKey}`);
+    setMessage(null);
+
+    const { data, error } = await supabase.rpc("player_update_custom_answer", {
+      target_token: token,
+      target_question_key: questionKey,
+      new_answer: newValue,
+    });
+
+    setSavingExtraKey(null);
+
+    const result = data as { success?: boolean; message?: string } | null;
+
+    if (error || !result?.success) {
+      setExtraData(oldData);
+      setMessage({
+        type: "error",
+        text: result?.message ?? "Could not save answer.",
+      });
+      return;
+    }
+
+    setMessage({
+      type: "success",
+      text: "Answer saved.",
+    });
+
+    scheduleConfirmationEmail();
+  }
+
+  const player = initialData.player;
+  const rankings = initialData.rankings;
+  const scoreSummary = scoreData?.summary;
+
+  const individualRankLabel = formatRank(
+    rankings?.individual_rank,
+    rankingTotals.individualTotal
+  );
+
+  const teamRankLabel = formatRank(rankings?.team_rank, rankingTotals.teamTotal);
+  const playerDisplayName = player.short_name ?? player.player_name;
+  const teamDisplayName = player.team_display_name ?? player.team_name;
+  const scoreTotal = scoreSummary?.total_points ?? rankings?.individual_points ?? 0;
+  const playerProfileTag = getPlayerProfileTag(predictions);
+  const mobileNextDeadline =
+    openPredictions[0]?.prediction_lock_at ?? openPredictions[0]?.kickoff_at ?? null;
+
+  const [expandedMobileScoreRows, setExpandedMobileScoreRows] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  function toggleMobileScoreRow(rowKey: string) {
+    setExpandedMobileScoreRows((current) => {
+      const next = new Set(current);
+
+      if (next.has(rowKey)) {
+        next.delete(rowKey);
+      } else {
+        next.add(rowKey);
+      }
+
+      return next;
+    });
+  }
+
+  return (
+    <>
+      <main className="box-border min-h-screen w-full max-w-none overflow-x-hidden bg-[var(--nffc-black,#000000)] px-0 pt-0 pb-3 text-[var(--nffc-white,#f5f5f5)] md:hidden">
+        <section className="box-border w-full max-w-none px-0 pt-0 pb-4">
+          <MobileCeefaxMasthead active="none" />
+
+          <section className="min-w-0 px-0 py-0.5">
+            <h1 className="text-[1.85rem] font-black uppercase leading-none tracking-[0.02em] text-white">
+              {playerDisplayName}
+            </h1>
+            <div className="mt-1 text-sm font-black uppercase leading-tight tracking-[0.08em] text-[var(--nffc-red,#e50914)]">
+              {teamDisplayName}
+            </div>
+
+            <div className="mt-2 space-y-1 text-[0.82rem] font-black uppercase leading-tight tracking-[0.06em] text-white">
+              <div>
+                Pos <span className="text-white">{formatOrdinal(rankings?.individual_rank)}</span>
+                <span className="px-2 text-[var(--nffc-red,#e50914)]">/</span>
+                Score <span className="text-[var(--stat-green,#22e55e)]">{formatPoints(scoreTotal)}</span>
+              </div>
+              <div>
+                Accuracy{" "}
+                <span className="text-[var(--stat-green,#22e55e)]">
+                  {formatPercent(performanceStats.accuracyPercentage ?? rankings?.individual_accuracy_percentage)}
+                </span>
+                <span className="px-2 text-[var(--nffc-red,#e50914)]">/</span>
+                Profile <span className="text-[var(--stat-cyan,#59efff)]">{playerProfileTag}</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="mb-2 mt-2 min-w-0 px-0">
+            <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1 py-1 text-base font-black uppercase tracking-[0.08em] text-white">
+              Make Predictions
+            </h2>
+
+            {mobileNextDeadline ? (
+              <div className="mt-2 text-[0.68rem] font-black uppercase leading-4 tracking-[0.08em] text-white">
+                Next deadline{" "}
+                <span className="text-[var(--stat-yellow,#ffe44d)]">
+                  {formatCompactDateTime(mobileNextDeadline)}
+                </span>
+              </div>
+            ) : null}
+
+            <div className="mt-1.5 grid gap-1">
+              {openPredictions.length ? (
+                openPredictions.map((prediction) => (
+                  <MobilePredictionEntry
+                    key={`${prediction.fixture_id}-mobile-clean`}
+                    prediction={prediction}
+                    saving={savingFixtureId === prediction.fixture_id}
+                    onChange={updatePrediction}
+                  />
+                ))
+              ) : (
+                <div className="border border-[#242424] px-3 py-4 text-sm font-black uppercase tracking-[0.1em] text-white">
+                  No unlocked predictions available.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <div className="my-5 h-[2px] w-full bg-[var(--nffc-red,#e50914)]" />
+
+          <section className="mb-4 min-w-0 px-0">
+            <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1 py-1 text-base font-black uppercase tracking-[0.08em] text-white">
+              Score Breakdown
+            </h2>
+
+            <div className="mt-1 grid gap-1">
+              {scoreRows.length ? (
+                scoreRows.map((score) => {
+                  const rowKey = `${score.gameweek}-${score.opponent_short}-mobile`;
+
+                  return (
+                    <MobileCleanScoreRow
+                      key={rowKey}
+                      score={score}
+                      expanded={expandedMobileScoreRows.has(rowKey)}
+                      onToggle={() => toggleMobileScoreRow(rowKey)}
+                    />
+                  );
+                })
+              ) : (
+                <div className="border border-[#242424] px-3 py-4 text-sm font-black uppercase tracking-[0.1em] text-white">
+                  No scored fixtures yet.
+                </div>
+              )}
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <main className="hidden w-full bg-[var(--nffc-black,#000000)] px-1 text-[var(--nffc-white,#f5f5f5)] md:block md:px-0">
+      <section className="w-full px-0 py-0">
+        <header className="mb-3 bg-[var(--nffc-black,#000000)] p-0 md:mb-12">
+          <div className="mb-2 md:mb-5">
+            <div className="md:hidden">
+              <div className="flex w-full justify-center">
+                <Image
+                  src="/brand/nffc-podcast-prediction-league-banner.png"
+                  alt="NFFC Podcast Prediction League"
+                  width={420}
+                  height={180}
+                  priority
+                  className="h-14 w-auto object-contain"
+                />
+              </div>
+
+              <nav className="mt-2 grid w-full grid-cols-2 gap-[2px] border-y-2 border-[var(--nffc-red,#e50914)] bg-[var(--nffc-red,#e50914)]">
+                <Link
+                  href="/"
+                  className="bg-[var(--nffc-black,#000000)] px-3 py-2 text-center text-[0.7rem] font-black uppercase tracking-[0.16em] text-white"
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/weekly-results"
+                  className="bg-[var(--nffc-black,#000000)] px-3 py-2 text-center text-[0.7rem] font-black uppercase tracking-[0.16em] text-white"
+                >
+                  GW Results
+                </Link>
+              </nav>
+            </div>
+
+            <div className="hidden md:block">
+              <PublicMasthead active="none" title="Prediction Terminal" />
+            </div>
+          </div>
+
+          <div className="mb-2 bg-[var(--nffc-black,#000000)] px-0 pb-1 pt-2 md:px-4 md:pb-2 md:pt-4">
+            <h1 className="text-3xl font-black uppercase leading-none tracking-[0.02em] md:text-6xl">
+              <span className="block text-[var(--nffc-white,#f5f5f5)] md:inline">{playerDisplayName}</span>
+              <span className="hidden px-3 text-[var(--nffc-white,#f5f5f5)] md:inline">/</span>
+              <span className="mt-1 block text-xl leading-none text-[var(--nffc-red,#e50914)] md:mt-0 md:inline md:text-[0.72em]">
+                {teamDisplayName}
+              </span>
+            </h1>
+          </div>
+
+          <div className="bg-[var(--nffc-black,#000000)] px-0 py-1 text-base font-black uppercase leading-tight tracking-[0.08em] text-white md:px-4 md:py-2 md:text-4xl">
+            <div className="space-y-1 md:hidden">
+              <div>
+                Pos <span className="text-white">{formatOrdinal(rankings?.individual_rank)}</span>
+              </div>
+              <div>
+                Score <span className="text-[var(--stat-green,#22e55e)]">{formatPoints(scoreTotal)}</span>
+              </div>
+              <div>
+                Accuracy{" "}
+                <span className="text-[var(--stat-green,#22e55e)]">
+                  {formatPercent(performanceStats.accuracyPercentage ?? rankings?.individual_accuracy_percentage)}
+                </span>
+              </div>
+              <div>
+                Profile <span className="text-[var(--stat-cyan,#59efff)]">{playerProfileTag}</span>
+              </div>
+            </div>
+
+            <span className="hidden md:inline">
+              Pos {formatOrdinal(rankings?.individual_rank)}
+              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+              Score {formatPoints(scoreTotal)}
+              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+              Accuracy {formatPercent(performanceStats.accuracyPercentage ?? rankings?.individual_accuracy_percentage)}
+              <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+              Profile <span className="text-[var(--stat-cyan,#59efff)]">{playerProfileTag}</span>
+            </span>
+          </div>
+
+          <div className="mt-4 hidden bg-[var(--nffc-black,#000000)] px-3 py-3 md:block md:px-4">
+            <div className="grid grid-cols-2 gap-[2px] bg-[#444444] md:block md:bg-[var(--nffc-black,#000000)] md:text-3xl md:font-black md:uppercase md:leading-tight md:tracking-[0.06em] md:text-white">
+              <MobileHeaderStat
+                label="GW1"
+                value={`${formatNullablePoints(projection.original_prediction_points)} pts`}
+                tone="yellow"
+              />
+              <MobileHeaderStat
+                label="Current"
+                value={`${formatPoints(projection.total_now_predicted)} pts`}
+                tone="green"
+              />
+              <MobileHeaderStat
+                label="Perfect"
+                value={`${formatPoints(projection.full_prediction_set_points)} pts`}
+                tone="cyan"
+              />
+              <MobileHeaderStat
+                label="Reality"
+                value={`${formatSignedNumber(projection.actual_vs_predicted)} pts`}
+                tone={projection.actual_vs_predicted >= 0 ? "green" : "red"}
+              />
+
+              <span className="hidden md:inline">
+                GW1 Prediction{" "}
+                <span className="text-[var(--stat-yellow,#ffe44d)]">
+                  {formatNullablePoints(projection.original_prediction_points)} pts
+                </span>
+                <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+                Current{" "}
+                <span className="text-[var(--stat-green,#22e55e)]">
+                  {formatPoints(projection.total_now_predicted)} pts
+                </span>
+                <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+                Perfect Picks{" "}
+                <span className="text-[var(--stat-cyan,#59efff)]">
+                  {formatPoints(projection.full_prediction_set_points)} pts
+                </span>
+                <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+                Reality Check{" "}
+                <span
+                  className={
+                    projection.actual_vs_predicted >= 0
+                      ? "text-[var(--stat-green,#22e55e)]"
+                      : "text-[var(--stat-wrong,#ff3030)]"
+                  }
+                >
+                  {formatSignedNumber(projection.actual_vs_predicted)} pts
+                </span>
+              </span>
+            </div>
+
+            <div className="mt-3 text-[0.68rem] font-black uppercase leading-4 tracking-[0.08em] text-[#8f8f8f] md:text-base">
+              GW1 = original call / Current = actual + remaining picks / Perfect Picks = all correct / Reality Check = completed picks v reality
+            </div>
+          </div>
+        </header>
+
+        <section className="mb-6 bg-[var(--nffc-black,#000000)] p-0 shadow-none md:mb-12 md:border md:border-[#242424] md:p-5">
+          <div className="mb-4">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-3 py-2 text-xl font-black uppercase tracking-[0.08em] text-white md:px-5 md:py-3 md:text-4xl"><span className="md:hidden">Make Predictions</span><span className="hidden md:inline">Make Your Predictions Here</span></h2>
+            <p className="mt-1 hidden text-sm font-semibold text-white md:block">
+              Select W, D or L for each unlocked fixture.
+            </p>
+          </div>
+
+          {openPredictions[0] ? (
+            <div className="mb-2 bg-[var(--nffc-black,#000000)] text-sm font-black uppercase tracking-[0.08em] text-white md:hidden">
+              Next deadline{" "}
+              <span className="text-[var(--stat-yellow,#ffe44d)]">
+                {formatCompactDateTime(openPredictions[0].prediction_lock_at ?? openPredictions[0].kickoff_at)}
+              </span>
+            </div>
+          ) : null}
+
+          <div className="overflow-visible border-0 md:overflow-hidden md:border md:border-[#242424]">
+            <div className="hidden grid-cols-[100px_minmax(150px,1fr)_560px_230px] border-b border-[var(--nffc-red,#e50914)] bg-[var(--nffc-black,#000000)] text-base font-black uppercase tracking-[0.16em] text-white lg:grid">
+              <div className="border-r border-[#242424] px-4 py-3">GW</div>
+              <div className="border-r border-[#242424] px-4 py-3">Fixture</div>
+              <div className="border-r border-[#242424] px-4 py-3">Deadline</div>
+              <div className="px-4 py-3 text-center">Prediction</div>
+            </div>
+
+            {openPredictions.length ? (
+              openPredictions.map((prediction) => (
+                <PredictionEntryRow
+                  key={prediction.fixture_id}
+                  prediction={prediction}
+                  saving={savingFixtureId === prediction.fixture_id}
+                  onChange={updatePrediction}
+                />
+              ))
+            ) : (
+              <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-white">
+                No unlocked fixture predictions are currently available.
+              </div>
+            )}
+          </div>
+
+          <CurrentPredictedPointsStrip value={projection.total_now_predicted} />
+
+          {(message || emailMessage) && (
+            <div className="mt-5 bg-[var(--nffc-black,#000000)]">
+              <div className="bg-[var(--nffc-red,#e50914)] px-4 py-2 text-xl font-black uppercase tracking-[0.12em] text-white">
+                Status
+              </div>
+
+              <div className="grid gap-px bg-[#242424]">
+                {message && <AlertMessage type={message.type} text={message.text} />}
+
+                {emailMessage && (
+                  <AlertMessage type={emailMessage.type} text={emailMessage.text} />
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="grid gap-3">
+          <section className="bg-[var(--nffc-black,#000000)]">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-4 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+              Score Breakdown
+            </h2>
+
+            <div className="hidden overflow-hidden bg-[var(--nffc-black,#000000)] lg:block">
+              <div className="hidden grid-cols-[100px_minmax(240px,1fr)_170px_140px_110px_120px_120px_120px_100px_150px] border-b border-[var(--nffc-red,#e50914)] text-base font-black uppercase tracking-[0.16em] text-white lg:grid">
+                <div className="border-r border-[#242424] px-4 py-3">GW</div>
+                <div className="border-r border-[#242424] px-4 py-3">Fixture</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center">Your Prediction</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center">Result</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center">Pts</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-yellow,#ffe44d)]">Streak</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-cyan,#59efff)]">Maverick</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-pink,#ff4fd8)]">Rogue</div>
+                <div className="border-r border-[#242424] px-4 py-3 text-center text-[var(--stat-green,#22e55e)]">Cup</div>
+                <div className="px-4 py-3 text-center">Running Total</div>
+              </div>
+
+              {scoreRows.length ? (
+                scoreRows.map((score) => (
+                  <ScoreBreakdownRow
+                    key={`${score.gameweek}-${score.opponent_short}`}
+                    score={score}
+                  />
+                ))
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  No scored fixtures yet.
+                </div>
+              )}
+            </div>
+
+            <div className="grid gap-[2px] bg-[#444444] lg:hidden">
+              {scoreRows.length ? (
+                scoreRows.map((score) => (
+                  <MobileScoreBreakdownRow
+                    key={`${score.gameweek}-${score.opponent_short}-mobile`}
+                    score={score}
+                  />
+                ))
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  No scored fixtures yet.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="mt-8 bg-[var(--nffc-black,#000000)] md:mt-12">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-4 py-3 text-2xl font-black uppercase tracking-[0.08em] text-white md:px-5 md:py-4 md:text-4xl">
+              Cup Predictions
+            </h2>
+
+            <div className="overflow-hidden bg-[var(--nffc-black,#000000)]">
+              <div className="hidden grid-cols-[minmax(260px,1fr)_240px_300px_260px_160px] border-b border-[var(--nffc-red,#e50914)] text-xl font-black uppercase tracking-[0.16em] text-white lg:grid">
+                <div className="border-r border-[#242424] px-4 py-5">Cup Competition</div>
+                <div className="border-r border-[#242424] px-4 py-5">Deadline</div>
+                <div className="border-r border-[#242424] px-4 py-5">Predicted Round</div>
+                <div className="border-r border-[#242424] px-4 py-5">Actual Round</div>
+                <div className="px-4 py-5 text-center">Bonus Points</div>
+              </div>
+
+              {extraData?.cup_predictions?.length ? (
+                extraData.cup_predictions.map((cup) => {
+                  const stageOptions = getCupStageOptions(
+                    cup.competition,
+                    cup.display_name
+                  );
+
+                  return (
+                    <CupPredictionRow
+                      key={cup.competition}
+                      cup={cup}
+                      stageOptions={stageOptions}
+                      saving={savingExtraKey === `cup-${cup.competition}`}
+                      onChange={updateCupPrediction}
+                    />
+                  );
+                })
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  Cup predictions loading or not available.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="mt-12 bg-[var(--nffc-black,#000000)]">
+            <h2 className="bg-[var(--nffc-red,#e50914)] px-5 py-4 text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+              Other Predictions
+            </h2>
+
+            <div className="grid gap-0 bg-[var(--nffc-black,#000000)]">
+              {extraData?.custom_answers?.length ? (
+                extraData.custom_answers.map((answer) => (
+                  <div
+                    key={answer.question_key}
+                    className={`grid gap-3 border-b border-[#242424] bg-[var(--nffc-black,#000000)] p-4 text-white last:border-b-0 lg:grid-cols-[minmax(320px,0.9fr)_1.1fr] ${
+                      answer.is_locked ? "opacity-70" : ""
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xl font-black uppercase leading-tight tracking-[0.08em] text-white md:text-2xl">
+                        {answer.question_text}
+                      </div>
+                      {answer.is_locked && (
+                        <div className="mt-2 text-sm font-black uppercase tracking-[0.14em] text-[var(--stat-yellow,#ffe44d)]">
+                          Locked
+                        </div>
+                      )}
+                    </div>
+
+                    <textarea
+                      value={answer.answer ?? ""}
+                      disabled={
+                        answer.is_locked ||
+                        savingExtraKey === `custom-${answer.question_key}`
+                      }
+                      onChange={(event) =>
+                        updateCustomAnswer(answer.question_key, event.target.value)
+                      }
+                      rows={3}
+                      className="w-full rounded-none border border-[#444444] bg-[#151515] px-4 py-3 text-lg font-black leading-7 text-white disabled:cursor-not-allowed disabled:bg-[#202020] disabled:text-white md:text-xl"
+                      placeholder="No answer"
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase tracking-[0.14em] text-white">
+                  Other predictions loading or not available.
+                </div>
+              )}
+            </div>
+          </section>
+        </section>
+      </section>
+      </main>
+    </>
+  );
+}
+
+function MobilePredictionEntry({
+  prediction,
+  saving,
+  onChange,
+}: {
+  prediction: PlayerPageData["predictions"][number];
+  saving: boolean;
+  onChange: (fixtureId: string, newPrediction: PredictionValue) => void;
+}) {
+  const deadlineAt = prediction.prediction_lock_at ?? prediction.kickoff_at;
+  const countdown = getDeadlineCountdown(deadlineAt);
+  const locked =
+    prediction.is_locked || isConfirmedPrediction(prediction) || countdown.expired;
+
+  return (
+    <article className={`px-px pb-1.5 pt-0.5 ${locked ? "opacity-60" : ""}`}>
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_60px] items-baseline gap-1 overflow-hidden">
+        <span className="truncate text-left text-[1.34rem] font-black uppercase leading-none tracking-[0.01em] text-white">
+          {prediction.opponent_short}{" "}
+          <span className="text-white">{prediction.venue}</span>
+        </span>
+
+        <span className="text-right text-[1.02rem] font-black uppercase tracking-[0.04em] text-[var(--nffc-red,#e50914)]">
+          {prediction.gameweek_label}
+        </span>
+      </div>
+
+      {locked ? (
+        <div className="mt-1 text-right text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--stat-wrong,#ff3030)]">
+          Locked
+        </div>
+      ) : null}
+
+      <div className="mt-0">
+        <PredictionButtons
+          fixtureId={prediction.fixture_id}
+          selected={prediction.prediction}
+          locked={locked}
+          saving={saving}
+          onChange={onChange}
+          fullWidth
+          mobileLarge
+        />
+      </div>
+    </article>
+  );
+}
+
+function mobileBonusValueClass(value: number, tone: "yellow" | "cyan" | "pink" | "green") {
+  if (value <= 0) return "text-[var(--stat-wrong,#ff3030)]";
+  return bonusValueClass(value, tone);
+}
+
+function MobileCleanScoreRow({
+  score,
+  expanded,
+  onToggle,
+}: {
+  score: ScoreRowWithRunning;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const correct = score.prediction === score.actual_result;
+  const runningTotal = getScoreRunningTotal(score);
+  const bonusTotal =
+    score.streak_bonus + score.maverick_bonus + score.rogue_bonus + score.cup_bonus;
+  const fixtureTotal = score.base_points + bonusTotal;
+  const resultTone = correct
+    ? "text-[var(--stat-green,#22e55e)]"
+    : "text-[var(--stat-wrong,#ff3030)]";
+  const pointsTone =
+    fixtureTotal > 0
+      ? "text-[var(--stat-green,#22e55e)]"
+      : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <article className="border-b border-[#242424] px-px py-1 last:border-b-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="grid w-full grid-cols-[44px_minmax(0,1fr)_56px_72px_22px] items-center gap-1 text-left"
+        aria-expanded={expanded}
+      >
+        <div className={`text-base font-black uppercase tracking-[0.04em] ${resultTone}`}>
+          {score.gameweek_label}
+        </div>
+
+        <div className={`truncate text-base font-black uppercase leading-none ${resultTone}`}>
+          {score.opponent_short} <span className={resultTone}>{score.venue}</span>
+        </div>
+
+        <div className="text-right text-[0.64rem] font-black uppercase tracking-[0.04em] text-white">
+          Pts{" "}
+          <span className={`text-sm ${pointsTone}`}>{formatPoints(fixtureTotal)}</span>
+        </div>
+
+        <div className={`text-right text-[0.64rem] font-black uppercase tracking-[0.04em] ${resultTone}`}>
+          Total{" "}
+          <span className="text-sm">{formatPoints(runningTotal)}</span>
+        </div>
+
+        <div className="text-right text-lg font-black leading-none text-white">
+          {expanded ? "−" : "+"}
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="mt-1 border-t border-[#242424] pt-1">
+          <div className="break-words text-xs font-black uppercase tracking-[0.07em] text-white">
+            Pick <span className="text-white">{score.prediction}</span>
+            <span className="px-2 text-[var(--nffc-red,#e50914)]">/</span>
+            Result <span className="text-white">{score.actual_result}</span>
+          </div>
+
+          <div className="mt-1 break-words text-xs font-black uppercase tracking-[0.07em] text-white">
+            Base{" "}
+            <span className={score.base_points > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>
+              {formatPoints(score.base_points)}
+            </span>
+            <span className="px-2 text-[var(--nffc-red,#e50914)]">+</span>
+            Bonus{" "}
+            <span className={bonusTotal > 0 ? "text-[var(--stat-cyan,#59efff)]" : "text-[var(--stat-wrong,#ff3030)]"}>
+              {formatPoints(bonusTotal)}
+            </span>
+            <span className="px-2 text-[var(--nffc-red,#e50914)]">=</span>
+            GW <span className={pointsTone}>{formatPoints(fixtureTotal)}</span>
+          </div>
+
+          <div className="mt-1 whitespace-nowrap text-[0.56rem] font-black uppercase tracking-[0.025em] text-white">
+            <span className="text-[var(--stat-yellow,#ffe44d)]">Streaker</span>{" "}
+            <span className={mobileBonusValueClass(score.streak_bonus, "yellow")}>{formatPoints(score.streak_bonus)}</span>
+            <span className="px-0.5 text-[#666666]">/</span>
+            <span className="text-[var(--stat-cyan,#59efff)]">Maverick</span>{" "}
+            <span className={mobileBonusValueClass(score.maverick_bonus, "cyan")}>{formatPoints(score.maverick_bonus)}</span>
+            <span className="px-0.5 text-[#666666]">/</span>
+            <span className="text-[var(--stat-pink,#ff4fd8)]">Rogue</span>{" "}
+            <span className={mobileBonusValueClass(score.rogue_bonus, "pink")}>{formatPoints(score.rogue_bonus)}</span>
+            <span className="px-0.5 text-[#666666]">/</span>
+            <span className="text-[var(--stat-green,#22e55e)]">Cup</span>{" "}
+            <span className={mobileBonusValueClass(score.cup_bonus, "green")}>{formatPoints(score.cup_bonus)}</span>
+          </div>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function AlertMessage({
+  type,
+  text,
+}: {
+  type: "success" | "error" | "pending";
+  text: string;
+}) {
+  const tone =
+    type === "success"
+      ? {
+          label: "Saved",
+          className:
+            "text-[var(--stat-green,#22e55e)]",
+        }
+      : type === "error"
+        ? {
+            label: "Action needed",
+            className:
+              "text-[var(--stat-wrong,#ff3030)]",
+          }
+        : {
+            label: "Pending",
+            className:
+              "text-[var(--stat-yellow,#ffe44d)]",
+          };
+
+  return (
+    <div className="grid gap-px bg-[#242424] text-white md:grid-cols-[260px_1fr]" role="status">
+      <div className={`bg-[var(--nffc-black,#000000)] px-5 py-3 text-lg font-black uppercase tracking-[0.18em] md:text-xl ${tone.className}`}>
+        {tone.label}
+      </div>
+
+      <div className="bg-[var(--nffc-black,#000000)] px-5 py-3 text-lg font-black uppercase tracking-[0.08em] text-white md:text-xl">
+        {text}
+      </div>
+    </div>
+  );
+}
+
+function PredictionInfoCell({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "green" | "yellow" | "cyan" | "red";
+}) {
+  const toneClass =
+    tone === "green"
+      ? "text-[var(--stat-green,#22e55e)]"
+      : tone === "yellow"
+        ? "text-[var(--stat-yellow,#ffe44d)]"
+        : tone === "cyan"
+          ? "text-[var(--stat-cyan,#59efff)]"
+          : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <div className="grid min-h-[112px] content-between gap-2 bg-[var(--nffc-black,#000000)] px-4 py-4">
+      <div className="text-base font-black uppercase leading-tight tracking-[0.08em] text-white md:text-lg">
+        {label}
+      </div>
+      <div className={`whitespace-nowrap text-4xl font-black uppercase leading-none md:text-5xl ${toneClass}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function CurrentPredictedPointsStrip({ value }: { value: number }) {
+  return (
+    <div className="mt-5 flex items-center justify-between bg-[var(--nffc-black,#000000)] px-5 py-4 text-white">
+      <div className="text-3xl font-black uppercase tracking-[0.08em] text-white md:text-4xl">
+        Current Predicted Points
+      </div>
+
+      <div className="text-6xl font-black leading-none text-white md:text-7xl">
+        {formatPoints(value)}
+      </div>
+    </div>
+  );
+}
+
+function TopStat({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: string | number;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-none border p-3 ${
+        highlight
+          ? "border-[#111111] bg-[var(--nffc-black,#000000)] text-white"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]"
+      }`}
+    >
+      <div className="text-[0.68rem] font-black uppercase tracking-wide opacity-65">
+        {label}
+      </div>
+      <div className="mt-1 text-xl font-black">{value}</div>
+    </div>
+  );
+}
+
+function ProjectionStat({
+  label,
+  value,
+  helper,
+  highlight = false,
+}: {
+  label: string;
+  value: string | number;
+  helper: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-none border p-3 ${
+        highlight
+          ? "border-[#C8102E] bg-[#C8102E] text-white"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]"
+      }`}
+    >
+      <div className="text-[0.68rem] font-black uppercase tracking-wide opacity-70">
+        {label}
+      </div>
+      <div className="mt-1 text-3xl font-black">{value}</div>
+      <div className="mt-1 text-[0.68rem] font-bold leading-4 opacity-65">
+        {helper}
+      </div>
+    </div>
+  );
+}
+
+function MobileHeaderStat({
+  label,
+  value,
+  tone = "white",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "green" | "yellow" | "cyan" | "red" | "white";
+}) {
+  const toneClass =
+    tone === "green"
+      ? "text-[var(--stat-green,#22e55e)]"
+      : tone === "yellow"
+        ? "text-[var(--stat-yellow,#ffe44d)]"
+        : tone === "cyan"
+          ? "text-[var(--stat-cyan,#59efff)]"
+          : tone === "red"
+            ? "text-[var(--stat-wrong,#ff3030)]"
+            : "text-white";
+
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] px-3 py-2 md:hidden">
+      <div className="text-[0.65rem] font-black uppercase tracking-[0.16em] text-[var(--nffc-muted,#a7a7a7)]">
+        {label}
+      </div>
+      <div className={`mt-1 text-xl font-black uppercase leading-none ${toneClass}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function PredictionEntryRow({
+  prediction,
+  saving,
+  onChange,
+}: {
+  prediction: PlayerPageData["predictions"][number];
+  saving: boolean;
+  onChange: (fixtureId: string, newPrediction: PredictionValue) => void;
+}) {
+  const deadlineAt = prediction.prediction_lock_at ?? prediction.kickoff_at;
+  const countdown = getDeadlineCountdown(deadlineAt);
+  const locked =
+    prediction.is_locked || isConfirmedPrediction(prediction) || countdown.expired;
+  const deadline = formatCompactDateTime(deadlineAt);
+
+  return (
+    <div
+      className={`grid items-center gap-0 border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-white last:border-b-0 lg:grid-cols-[100px_minmax(150px,1fr)_560px_230px] ${
+        locked ? "opacity-60" : ""
+      }`}
+    >
+      <div className="border-r border-[#242424] px-4 py-2 text-xl font-black uppercase tracking-[0.08em] text-[var(--nffc-red,#e50914)]">
+        {prediction.gameweek_label}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-3">
+        <div className="text-3xl font-black uppercase leading-none tracking-[0.04em]">
+          {prediction.opponent_short}
+          <span className="ml-3 text-white">{prediction.venue}</span>
+        </div>
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-1.5">
+        <div className="whitespace-nowrap text-2xl font-black uppercase leading-none tracking-[0.06em] text-white">
+          {deadline}
+          <span className="px-3 text-[var(--nffc-red,#e50914)]">/</span>
+          <span className={countdownTextClass(countdown.tone)}>
+            {locked ? "LOCKED" : countdown.label}
+          </span>
+        </div>
+      </div>
+
+      <div className="px-4 py-1.5">
+        <PredictionButtons
+          fixtureId={prediction.fixture_id}
+          selected={prediction.prediction}
+          locked={locked}
+          saving={saving}
+          onChange={onChange}
+          fullWidth
+        />
+      </div>
+    </div>
+  );
+}
+
+function PredictionButtons({
+  fixtureId,
+  selected,
+  locked,
+  saving,
+  onChange,
+  fullWidth = false,
+  mobileLarge = false,
+}: {
+  fixtureId: string;
+  selected: PredictionValue;
+  locked: boolean;
+  saving: boolean;
+  onChange: (fixtureId: string, newPrediction: PredictionValue) => void;
+  fullWidth?: boolean;
+  mobileLarge?: boolean;
+}) {
+  const options: PredictionValue[] = ["W", "D", "L"];
+
+  return (
+    <div className={`grid max-w-full grid-cols-3 gap-px overflow-hidden ${fullWidth ? "w-full" : ""}`}>
+      {options.map((option) => {
+        const isSelected = selected === option;
+
+        return (
+          <button
+            key={option}
+            type="button"
+            disabled={locked || saving}
+            onClick={() => onChange(fixtureId, option)}
+            className={`h-11 border text-2xl font-black uppercase tracking-[0.12em] transition ${
+              fullWidth ? "w-full" : "w-12"
+            } ${predictionButtonClass(option, isSelected)} ${
+              locked || saving
+                ? "cursor-not-allowed opacity-60"
+                : "cursor-pointer hover:brightness-125"
+            }`}
+          >
+            {saving && isSelected ? "…" : option}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function predictionButtonClass(option: PredictionValue, isSelected: boolean) {
+  if (!isSelected) {
+    return "border-[#444444] bg-[var(--nffc-black,#000000)] text-white";
+  }
+
+  if (option === "W") {
+    return "border-[var(--stat-green,#22e55e)] bg-[var(--stat-green,#22e55e)] text-black";
+  }
+
+  if (option === "D") {
+    return "border-[var(--stat-yellow,#ffe44d)] bg-[var(--stat-yellow,#ffe44d)] text-black";
+  }
+
+  return "border-[var(--stat-wrong,#ff3030)] bg-[var(--stat-wrong,#ff3030)] text-white";
+}
+
+function ExpandableButton({
+  open,
+  onClick,
+  title,
+  meta,
+}: {
+  open: boolean;
+  onClick: () => void;
+  title: string;
+  meta: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center justify-between gap-4 rounded-none border border-[#242424] bg-[var(--nffc-black,#000000)] px-4 py-4 text-left shadow-none transition hover:border-[#C8102E]"
+    >
+      <div>
+        <div className="text-lg font-black uppercase text-[var(--nffc-white,#f5f5f5)]">{title}</div>
+        <div className="mt-1 text-xs font-bold uppercase tracking-wide text-white">
+          {meta}
+        </div>
+      </div>
+
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-[var(--nffc-red,#e50914)] text-2xl font-black leading-none text-white">
+        {open ? "−" : "+"}
+      </div>
+    </button>
+  );
+}
+
+function ScoreStat({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-none border p-3 ${
+        highlight
+          ? "border-[#111111] bg-[var(--nffc-black,#000000)] text-white"
+          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]"
+      }`}
+    >
+      <div className="text-[0.68rem] font-bold uppercase tracking-wide opacity-70">
+        {label}
+      </div>
+      <div className="mt-1 text-2xl font-black">{value}</div>
+    </div>
+  );
+}
+
+function CupPredictionRow({
+  cup,
+  stageOptions,
+  saving,
+  onChange,
+}: {
+  cup: ExtraPredictionsData["cup_predictions"][number];
+  stageOptions: string[];
+  saving: boolean;
+  onChange: (competition: string, newValue: string) => void;
+}) {
+  return (
+    <div
+      className={`grid items-center border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-white last:border-b-0 lg:grid-cols-[minmax(260px,1fr)_240px_300px_260px_160px]`}
+    >
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-3xl font-black uppercase leading-none ${
+          cup.bonus_awarded > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-white"
+        }`}
+      >
+        {cup.display_name ?? cup.competition}
+        {cup.is_locked && (
+          <span className="ml-3 text-sm font-black uppercase tracking-[0.14em] text-[var(--stat-yellow,#ffe44d)]">
+            Locked
+          </span>
+        )}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-4 text-xl font-black uppercase tracking-[0.08em] text-white">
+        {formatCompactDateTime(cup.prediction_lock_at)}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-3">
+        <select
+          value={cup.predicted_round_reached ?? ""}
+          disabled={cup.is_locked || saving}
+          onChange={(event) => onChange(cup.competition, event.target.value)}
+          className="w-full rounded-none border border-[#444444] bg-[#151515] px-4 py-4 text-xl font-black uppercase text-white disabled:cursor-not-allowed disabled:bg-[#202020] disabled:text-white"
+        >
+          <option value="">No prediction</option>
+          {stageOptions.map((stage) => (
+            <option key={stage} value={stage}>
+              {stage}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-4 text-2xl font-black uppercase text-white">
+        {cup.actual_round_reached ?? "Not decided"}
+      </div>
+
+      <div
+        className={`px-4 py-4 text-center text-5xl font-black ${
+          cup.bonus_awarded > 0
+            ? "text-[var(--stat-green,#22e55e)]"
+            : "text-[var(--stat-wrong,#ff3030)]"
+        }`}
+      >
+        {formatPoints(cup.bonus_awarded)}
+      </div>
+    </div>
+  );
+}
+
+function getScoreRunningTotal(score: ScoreRowWithRunning) {
+  const source = score as ScoreRowWithRunning & {
+    running_total?: number | null;
+    runningTotal?: number | null;
+    running_total_points?: number | null;
+    runningTotalPoints?: number | null;
+  };
+
+  const value =
+    source.running_total ??
+    source.runningTotal ??
+    source.running_total_points ??
+    source.runningTotalPoints ??
+    0;
+
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : 0;
+}
+
+function bonusValueClass(value: number, tone: "yellow" | "cyan" | "pink" | "green") {
+  if (value <= 0) return "text-white";
+
+  if (tone === "yellow") return "text-[var(--stat-yellow,#ffe44d)]";
+  if (tone === "cyan") return "text-[var(--stat-cyan,#59efff)]";
+  if (tone === "pink") return "text-[var(--stat-pink,#ff4fd8)]";
+  return "text-[var(--stat-green,#22e55e)]";
+}
+
+function ScoreBreakdownRow({ score }: { score: ScoreRowWithRunning }) {
+  const correct = score.prediction === score.actual_result;
+  const runningTotal = getScoreRunningTotal(score);
+  const resultTone = correct
+    ? "text-[var(--stat-green,#22e55e)]"
+    : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <div className="grid items-center border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-white last:border-b-0 lg:grid-cols-[100px_minmax(240px,1fr)_170px_140px_110px_120px_120px_120px_100px_150px]">
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-2xl font-black uppercase ${resultTone}`}>
+        {score.gameweek_label}
+      </div>
+
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-3xl font-black uppercase leading-none ${resultTone}`}
+      >
+        {score.opponent_short}{" "}
+        <span className={resultTone}>
+          {score.venue}
+        </span>
+      </div>
+
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${
+          correct ? "text-[var(--stat-green,#22e55e)]" : "text-white"
+        }`}
+      >
+        {score.prediction}
+      </div>
+
+      <div className="border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none text-white">
+        {score.actual_result}
+      </div>
+
+      <div
+        className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${
+          score.base_points > 0
+            ? "text-[var(--stat-green,#22e55e)]"
+            : "text-[var(--stat-wrong,#ff3030)]"
+        }`}
+      >
+        {formatPoints(score.base_points)}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${bonusValueClass(score.streak_bonus, "yellow")}`}>
+        {formatPoints(score.streak_bonus)}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${bonusValueClass(score.maverick_bonus, "cyan")}`}>
+        {formatPoints(score.maverick_bonus)}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${bonusValueClass(score.rogue_bonus, "pink")}`}>
+        {formatPoints(score.rogue_bonus)}
+      </div>
+
+      <div className={`border-r border-[#242424] px-4 py-1.5 text-center text-4xl font-black leading-none ${bonusValueClass(score.cup_bonus, "green")}`}>
+        {formatPoints(score.cup_bonus)}
+      </div>
+
+      <div
+        className={`px-4 py-1.5 text-center text-4xl font-black leading-none ${resultTone}`}
+      >
+        {formatPoints(runningTotal)}
+      </div>
+    </div>
+  );
+}
+
+function MobileScoreBreakdownRow({ score }: { score: ScoreRowWithRunning }) {
+  const correct = score.prediction === score.actual_result;
+  const runningTotal = getScoreRunningTotal(score);
+  const resultTone = correct
+    ? "text-[var(--stat-green,#22e55e)]"
+    : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <article className="bg-[var(--nffc-black,#000000)] p-3 text-white">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+        <div className="min-w-0">
+          <div className={`text-sm font-black uppercase tracking-[0.16em] ${resultTone}`}>
+            {score.gameweek_label}
+          </div>
+          <div className={`mt-1 truncate text-2xl font-black uppercase leading-none ${resultTone}`}>
+            {score.opponent_short} {score.venue}
+          </div>
+        </div>
+
+        <div className={`text-right text-4xl font-black leading-none ${resultTone}`}>
+          {formatPoints(runningTotal)}
+          <div className="mt-1 text-[0.65rem] font-black uppercase tracking-[0.14em] text-white">
+            Running
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-[2px] bg-[#444444] text-center">
+        <div className="bg-[var(--nffc-black,#000000)] px-2 py-2">
+          <div className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-[var(--nffc-muted,#a7a7a7)]">
+            Pick
+          </div>
+          <div className={`mt-1 text-3xl font-black leading-none ${correct ? "text-[var(--stat-green,#22e55e)]" : "text-white"}`}>
+            {score.prediction}
+          </div>
+        </div>
+
+        <div className="bg-[var(--nffc-black,#000000)] px-2 py-2">
+          <div className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-[var(--nffc-muted,#a7a7a7)]">
+            Result
+          </div>
+          <div className="mt-1 text-3xl font-black leading-none text-white">
+            {score.actual_result}
+          </div>
+        </div>
+
+        <div className="bg-[var(--nffc-black,#000000)] px-2 py-2">
+          <div className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-[var(--nffc-muted,#a7a7a7)]">
+            Pts
+          </div>
+          <div className={`mt-1 text-3xl font-black leading-none ${score.base_points > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}`}>
+            {formatPoints(score.base_points)}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-[2px] grid grid-cols-4 gap-[2px] bg-[#444444] text-center">
+        <MobileBonusCell label="S" value={score.streak_bonus} tone="yellow" />
+        <MobileBonusCell label="M" value={score.maverick_bonus} tone="cyan" />
+        <MobileBonusCell label="R" value={score.rogue_bonus} tone="pink" />
+        <MobileBonusCell label="Cup" value={score.cup_bonus} tone="green" />
+      </div>
+    </article>
+  );
+}
+
+function MobileBonusCell({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "yellow" | "cyan" | "pink" | "green";
+}) {
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] px-2 py-2">
+      <div className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-[var(--nffc-muted,#a7a7a7)]">
+        {label}
+      </div>
+      <div className={`mt-1 text-2xl font-black leading-none ${bonusValueClass(value, tone)}`}>
+        {formatPoints(value)}
+      </div>
+    </div>
+  );
+}
+
+function MiniScore({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-none border border-[rgba(245,245,245,0.35)] bg-[var(--nffc-black,#000000)] px-3 py-2">
+      <div className="text-[0.62rem] uppercase tracking-wide text-white">
+        {label}
+      </div>
+      <div className="mt-0.5 text-lg text-[var(--nffc-white,#f5f5f5)]">{value}</div>
+    </div>
+  );
+}
+
+function BreakdownPart({
+  label,
+  value,
+  dark = false,
+}: {
+  label: string;
+  value: number;
+  dark?: boolean;
+}) {
+  return (
+    <span
+      className={`rounded-none border px-3 py-1 text-xs font-black uppercase tracking-wide ${
+        dark
+          ? "border-[#111111] bg-[var(--nffc-black,#000000)] text-white"
+          : value > 0
+            ? "border-green-200 bg-green-50 text-green-700"
+            : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-white"
+      }`}
+    >
+      {value} {label}
+    </span>
+  );
+}
+
+function InlineInfoPill({
+  label,
+  value,
+  tone = "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)]",
+}: {
+  label: string;
+  value: string;
+  tone?: string;
+}) {
+  return (
+    <span
+      className={`inline-flex flex-wrap items-center gap-2 rounded-none border px-3 py-1 text-xs font-black uppercase tracking-wide ${tone}`}
+    >
+      <span className="opacity-60">{label}</span>
+      <span>{value}</span>
+    </span>
+  );
+}
+
+function LockedBadge() {
+  return (
+    <span className="rounded-none bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-bold uppercase text-white">
+      Locked
+    </span>
+  );
+}

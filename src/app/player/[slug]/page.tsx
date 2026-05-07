@@ -6,6 +6,8 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import PublicPageShell from "@/components/layout/PublicPageShell";
 import PublicMasthead from "@/components/layout/PublicMasthead";
+import MobileCeefaxMasthead from "@/components/layout/MobileCeefaxMasthead";
+import { getPredictionProfile } from "@/lib/predictionProfiles";
 
 type PredictionValue = "W" | "D" | "L";
 
@@ -13,6 +15,11 @@ type PlayerProfileRow = {
   player_id: string;
   player_name: string;
   short_name: string | null;
+  table_display_name?: string | null;
+  rank_position?: number | null;
+  accuracy_whole_percentage?: number | null;
+  bonus_points?: number | null;
+  points_this_week?: number | null;
   team_name: string;
   base_points: number;
   streak_bonus: number;
@@ -23,8 +30,6 @@ type PlayerProfileRow = {
   correct_predictions: number;
   fixtures_scored: number;
   accuracy_percentage: number;
-  bonus_points: number | null;
-  accuracy_whole_percentage: number | null;
   best_streak: number | null;
   current_streak: number | null;
   team_display_name: string | null;
@@ -36,6 +41,8 @@ type PlayerProfileRow = {
   team_slug?: string | null;
   slug?: string | null;
   player_slug: string;
+  individual_rank?: number | null;
+  rank?: number | null;
   player_profile?: string | null;
   prediction_profile?: string | null;
   profile_label?: string | null;
@@ -105,7 +112,14 @@ type WeeklyScoreRow = {
   player_slug: string;
 };
 
+type PlayerWeeklyRankRow = {
+  player_id: string;
+  gameweek: number;
+  overall_rank_after_gw: number | null;
+};
+
 type DerivedWeeklyScoreRow = WeeklyScoreRow & {
+  overall_rank_after_gw?: number | null;
   derived_fixture_points_this_week: number;
   derived_cup_bonus_this_week: number;
   derived_total_points_this_week: number;
@@ -163,21 +177,7 @@ function getTeamHref(player: PlayerProfileRow) {
 }
 
 function getPublicPlayerProfileTag(player: PlayerProfileRow) {
-  const explicitProfile =
-    player.prediction_profile ??
-    player.profile_tag ??
-    player.profile_label ??
-    player.player_profile;
-
-  if (explicitProfile) return explicitProfile.toUpperCase();
-
-  const projectedPoints = safeNumber(player.projected_forest_points);
-
-  if (projectedPoints >= 60) return "OPTIMIST";
-  if (projectedPoints >= 52) return "POSITIVE";
-  if (projectedPoints >= 45) return "REALIST";
-  if (projectedPoints >= 38) return "CAUTIOUS";
-  return "PESSIMIST";
+  return getPredictionProfile(player);
 }
 
 function predictionTone(value: PredictionValue | null | undefined) {
@@ -337,6 +337,7 @@ export default function PublicPlayerProfilePage() {
       { data: cupData, error: cupError },
       { data: individualData, error: individualError },
       { data: predictionProfileData, error: predictionProfileError },
+      { data: playerRankData, error: playerRankError },
       { data: teamLookupData, error: teamLookupError },
     ] = await Promise.all([
       supabase
@@ -362,9 +363,13 @@ export default function PublicPlayerProfilePage() {
       supabase
         .from("player_prediction_profiles")
         .select("*")
-        .eq("player_slug", cleanSlug)
+        .eq("player_id", loadedProfile.player_id)
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from("player_weekly_rank_history")
+        .select("player_id, gameweek, overall_rank_after_gw")
+        .eq("player_id", loadedProfile.player_id),
       supabase
         .from("team_leaderboard")
         .select("*")
@@ -373,7 +378,7 @@ export default function PublicPlayerProfilePage() {
         .maybeSingle(),
     ]);
 
-    if (weeklyError || cupError || individualError || predictionProfileError || teamLookupError) {
+    if (weeklyError || cupError || individualError || predictionProfileError || playerRankError || teamLookupError) {
       setMessage(
         weeklyError?.message ??
           cupError?.message ??
@@ -396,7 +401,17 @@ export default function PublicPlayerProfilePage() {
       ...(predictionProfileData ?? {}),
       team_slug: teamLookup.team_slug ?? teamLookup.slug ?? loadedProfile.team_slug ?? null,
     } as PlayerProfileRow);
-    setWeeklyRows((weeklyData ?? []) as WeeklyScoreRow[]);
+    const playerRankRows = (playerRankData ?? []) as PlayerWeeklyRankRow[];
+    const playerRankMap = new Map(
+      playerRankRows.map((row) => [Number(row.gameweek), row.overall_rank_after_gw])
+    );
+
+    setWeeklyRows(
+      ((weeklyData ?? []) as WeeklyScoreRow[]).map((row) => ({
+        ...row,
+        overall_rank_after_gw: playerRankMap.get(Number(row.gameweek)) ?? null,
+      }))
+    );
     setCupRows((cupData ?? []) as CupPredictionRow[]);
     setIndividualSnapshotRows((individualData ?? []) as IndividualSnapshotRow[]);
     setLoading(false);
@@ -473,6 +488,14 @@ export default function PublicPlayerProfilePage() {
       bonusPoints,
       latestGameweek: latestWeeklyRow?.gameweek_label ?? "—",
       latestRunningTotal: latestWeeklyRow?.derived_running_total ?? totalScore,
+      correctPredictions:
+        latestWeeklyRow?.derived_running_correct_predictions ??
+        profile?.correct_predictions ??
+        0,
+      fixturesScored:
+        latestWeeklyRow?.derived_running_fixtures_scored ??
+        profile?.fixtures_scored ??
+        0,
       accuracy:
         latestWeeklyRow?.derived_running_accuracy_percentage ??
         profile?.accuracy_whole_percentage ??
@@ -538,9 +561,25 @@ export default function PublicPlayerProfilePage() {
   }
 
   return (
-    <PublicPageShell topPadding="reduced">
+    <PublicPageShell topPadding="reduced" mobileFullBleed>
+      <MobilePlayerProfilePage
+        profile={profile}
+        playerProfileTag={playerProfileTag}
+        summary={summary}
+        latestWeeklyRow={latestWeeklyRow}
+        derivedWeeklyRows={derivedWeeklyRows}
+        cupRows={cupRows}
+        rank={
+          profile.individual_rank ??
+          profile.rank ??
+          individualSnapshot.find((row) => row.isCurrent)?.displayRank ??
+          null
+        }
+      />
+
+      <div className="hidden md:block">
         <PublicMasthead active="none" title="Player Terminal" />
-      <section className="w-full">
+        <section className="w-full">
         <section className="mb-6 grid gap-[2px] bg-[#444444]">
           <header className="grid gap-[2px] bg-[#444444] xl:grid-cols-[minmax(0,1.05fr)_minmax(520px,0.95fr)]">
             <section className="bg-[var(--nffc-black,#000000)] p-5 md:p-6">
@@ -703,7 +742,8 @@ export default function PublicPlayerProfilePage() {
             </div>
           </div>
         </section>
-      </section>
+        </section>
+      </div>
     </PublicPageShell>
   );
 }
@@ -865,6 +905,520 @@ function PlayerTerminalLink({ href, label }: { href: string; label: string }) {
       {label}
     </Link>
   );
+}
+
+
+function formatOrdinal(value: number | string | null | undefined) {
+  const number = Math.round(safeNumber(value));
+
+  if (!number) return "—";
+
+  const lastTwo = number % 100;
+  const lastOne = number % 10;
+
+  if (lastTwo >= 11 && lastTwo <= 13) return `${number}th`;
+  if (lastOne === 1) return `${number}st`;
+  if (lastOne === 2) return `${number}nd`;
+  if (lastOne === 3) return `${number}rd`;
+
+  return `${number}th`;
+}
+
+function MobilePlayerProfilePage({
+  profile,
+  playerProfileTag,
+  summary,
+  latestWeeklyRow,
+  derivedWeeklyRows,
+  cupRows,
+  rank,
+}: {
+  profile: PlayerProfileRow;
+  playerProfileTag: string;
+  summary: {
+    fixturePoints: number;
+    runningCupBonus: number;
+    totalScore: number;
+    correctPredictions: number;
+    fixturesScored: number;
+    accuracy: number;
+  };
+  latestWeeklyRow: DerivedWeeklyScoreRow | null;
+  derivedWeeklyRows: DerivedWeeklyScoreRow[];
+  cupRows: CupPredictionRow[];
+  rank: number | null;
+}) {
+  const recentRows = [...derivedWeeklyRows].reverse();
+  const predictedWinRows = [...derivedWeeklyRows]
+    .filter((row) => row.prediction === "W")
+    .reverse();
+  const lockedCupRows = cupRows.filter(isLockedCupPrediction);
+  const [expandedScoreRows, setExpandedScoreRows] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  function toggleScoreRow(rowKey: string) {
+    setExpandedScoreRows((current) => {
+      const next = new Set(current);
+
+      if (next.has(rowKey)) {
+        next.delete(rowKey);
+      } else {
+        next.add(rowKey);
+      }
+
+      return next;
+    });
+  }
+
+  return (
+    <main className="min-h-dvh w-full overflow-x-hidden overflow-y-auto bg-[var(--nffc-black,#000000)] pb-24 text-white md:hidden">
+      <MobileCeefaxMasthead active="none" />
+
+      <section className="px-0 py-1">
+        <h1 className="truncate text-[1.9rem] font-black uppercase leading-none tracking-[-0.03em] text-white">
+          {profile.table_display_name ?? profile.short_name ?? profile.player_name}
+        </h1>
+        <Link
+          href={getTeamHref(profile)}
+          className="mt-1 block truncate text-[0.95rem] font-black uppercase leading-none tracking-[0.08em] text-[var(--nffc-red,#e50914)] transition hover:text-[var(--stat-green,#22e55e)]"
+        >
+          {profile.team_display_name ?? profile.team_name}
+        </Link>
+
+        <div className="mt-2 grid grid-cols-2 gap-px bg-[#242424]">
+          <MobilePlayerStat label="Rank" value={formatOrdinal(rank)} />
+          <MobilePlayerStat label="Score" value={formatPoints(summary.totalScore)} tone="green" />
+          <MobilePlayerStat label="Accuracy" value={formatPercent(summary.accuracy)} tone="green" />
+          <MobilePlayerStat label="Profile" value={playerProfileTag} tone={profileTone(playerProfileTag)} />
+        </div>
+      </section>
+
+      <MobileRedDivider />
+
+      <section>
+        <MobileSectionHeader title="Season Forecast" />
+        <div className="grid gap-px bg-[#242424]">
+          <MobileStatLine
+            label="Projected pts"
+            value={formatPoints(profile.projected_forest_points)}
+            tone="green"
+          />
+          <MobileWdlForecastLine
+            wins={profile.predicted_wins}
+            draws={profile.predicted_draws}
+            losses={profile.predicted_losses}
+          />
+        </div>
+      </section>
+
+      <MobileRedDivider />
+
+      <section>
+        <MobileSectionHeader title="Points Breakdown" />
+        <MobilePointsCalc
+          base={safeNumber(profile.base_points)}
+          streaker={safeNumber(profile.streak_bonus)}
+          maverick={safeNumber(profile.maverick_bonus)}
+          rogue={safeNumber(profile.rogue_bonus)}
+          cup={safeNumber(summary.runningCupBonus)}
+          total={safeNumber(summary.totalScore)}
+          bestStreak={safeNumber(profile.best_streak)}
+          currentStreak={safeNumber(profile.current_streak)}
+        />
+      </section>
+
+      {lockedCupRows.length ? (
+        <>
+          <MobileRedDivider />
+
+          <section>
+            <MobileSectionHeader title="Cup Predictions" />
+            <div className="grid gap-px bg-[#242424]">
+              {lockedCupRows.map((cup) => (
+                <MobileCupPredictionRow key={cup.id} cup={cup} />
+              ))}
+            </div>
+          </section>
+        </>
+      ) : null}
+
+      <MobileRedDivider />
+
+      <section>
+        <MobileSectionHeader title="Scorecard" />
+        <div className="grid gap-px bg-[#242424]">
+          {recentRows.length ? (
+            recentRows.map((row) => {
+              const rowKey = `${row.gameweek_label}-${row.opponent_short}`;
+
+              return (
+                <MobilePlayerScoreRow
+                  key={rowKey}
+                  row={row}
+                  expanded={expandedScoreRows.has(rowKey)}
+                  onToggle={() => toggleScoreRow(rowKey)}
+                />
+              );
+            })
+          ) : (
+            <div className="bg-[var(--nffc-black,#000000)] px-1 py-2 text-[0.72rem] font-black uppercase tracking-[0.08em] text-white">
+              No scored fixtures yet.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <MobileRedDivider />
+
+      <section className="pb-16">
+        <MobileSectionHeader title="Predicted Forest Wins" />
+        <div className="grid gap-px bg-[#242424]">
+          {predictedWinRows.length ? (
+            predictedWinRows.map((row) => (
+              <MobilePredictedWinRow
+                key={`${row.gameweek_label}-${row.opponent_short}-predicted-win`}
+                row={row}
+              />
+            ))
+          ) : (
+            <div className="bg-[var(--nffc-black,#000000)] px-1 py-2 text-[0.72rem] font-black uppercase tracking-[0.08em] text-white">
+              No locked Forest win predictions yet.
+            </div>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function MobilePlayerStat({
+  label,
+  value,
+  tone = "white",
+}: {
+  label: string;
+  value: string;
+  tone?: "green" | "yellow" | "red" | "cyan" | "white";
+}) {
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] px-1 py-1.5">
+      <div className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-[#8f8f8f]">
+        {label}
+      </div>
+      <div className={`mt-0.5 truncate text-[0.95rem] font-black uppercase leading-none ${mobileToneClass(tone)}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function MobileRedDivider() {
+  return <div className="my-2 h-[2px] w-full bg-[var(--nffc-red,#e50914)]" />;
+}
+
+function MobileSectionHeader({ title }: { title: string }) {
+  return (
+    <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1.5 py-0.5 text-base font-black uppercase tracking-[0.08em] text-white">
+      {title}
+    </h2>
+  );
+}
+
+function MobileStatLine({
+  label,
+  value,
+  tone = "white",
+}: {
+  label: string;
+  value: string;
+  tone?: "green" | "yellow" | "red" | "cyan" | "white";
+}) {
+  return (
+    <div className="grid grid-cols-[112px_minmax(0,1fr)] items-center bg-[var(--nffc-black,#000000)] px-1 py-1">
+      <div className="text-[0.62rem] font-black uppercase tracking-[0.1em] text-[#8f8f8f]">
+        {label}
+      </div>
+      <div className={`truncate text-right text-[0.78rem] font-black uppercase tracking-[0.04em] ${mobileToneClass(tone)}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function MobileWdlForecastLine({
+  wins,
+  draws,
+  losses,
+}: {
+  wins: number | null | undefined;
+  draws: number | null | undefined;
+  losses: number | null | undefined;
+}) {
+  return (
+    <div className="grid grid-cols-[112px_minmax(0,1fr)] items-center bg-[var(--nffc-black,#000000)] px-1 py-1">
+      <div className="text-[0.62rem] font-black uppercase tracking-[0.1em] text-[#8f8f8f]">
+        Predicted W/D/L
+      </div>
+      <div className="truncate text-right text-[0.78rem] font-black uppercase tracking-[0.04em]">
+        <span className="text-[var(--stat-green,#22e55e)]">W {formatPoints(wins)}</span>
+        <span className="px-1 text-[#666666]">/</span>
+        <span className="text-[var(--stat-yellow,#ffe44d)]">D {formatPoints(draws)}</span>
+        <span className="px-1 text-[#666666]">/</span>
+        <span className="text-[var(--stat-wrong,#ff3030)]">L {formatPoints(losses)}</span>
+      </div>
+    </div>
+  );
+}
+
+function MobilePointsCalc({
+  base,
+  streaker,
+  maverick,
+  rogue,
+  cup,
+  total,
+  bestStreak,
+  currentStreak,
+}: {
+  base: number;
+  streaker: number;
+  maverick: number;
+  rogue: number;
+  cup: number;
+  total: number;
+  bestStreak: number;
+  currentStreak: number;
+}) {
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] px-1 py-1">
+      <div className="whitespace-nowrap text-[0.58rem] font-black uppercase tracking-[0.02em] text-white">
+        <span className="text-[var(--stat-green,#22e55e)]">Base</span>{" "}
+        <span className={base > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(base)}</span>
+        <span className="px-0.5 text-[#666666]">+</span>
+        <span className="text-[var(--stat-yellow,#ffe44d)]">Streaker</span>{" "}
+        <span className={streaker > 0 ? "text-[var(--stat-yellow,#ffe44d)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(streaker)}</span>
+        <span className="px-0.5 text-[#666666]">+</span>
+        <span className="text-[var(--stat-cyan,#59efff)]">Mav</span>{" "}
+        <span className={maverick > 0 ? "text-[var(--stat-cyan,#59efff)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(maverick)}</span>
+      </div>
+      <div className="mt-0.5 whitespace-nowrap text-[0.58rem] font-black uppercase tracking-[0.02em] text-white">
+        <span className="text-[var(--stat-pink,#ff4fd8)]">Rogue</span>{" "}
+        <span className={rogue > 0 ? "text-[var(--stat-pink,#ff4fd8)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(rogue)}</span>
+        <span className="px-0.5 text-[#666666]">+</span>
+        <span className="text-[var(--stat-green,#22e55e)]">Cup</span>{" "}
+        <span className={cup > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(cup)}</span>
+        <span className="px-0.5 text-[var(--nffc-red,#e50914)]">=</span>
+        <span className="text-white">Total</span>{" "}
+        <span className="text-[var(--stat-green,#22e55e)]">{formatPoints(total)}</span>
+      </div>
+
+      <div className="mt-0.5 whitespace-nowrap text-[0.58rem] font-black uppercase tracking-[0.02em] text-white">
+        <span className="text-[var(--stat-yellow,#ffe44d)]">Best Streak</span>{" "}
+        <span className={bestStreak > 0 ? "text-[var(--stat-yellow,#ffe44d)]" : "text-[var(--stat-wrong,#ff3030)]"}>
+          {formatPoints(bestStreak)}
+        </span>
+        <span className="px-0.5 text-[#666666]">/</span>
+        <span className="text-[var(--stat-yellow,#ffe44d)]">Current Streak</span>{" "}
+        <span className={currentStreak > 0 ? "text-[var(--stat-yellow,#ffe44d)]" : "text-[var(--stat-wrong,#ff3030)]"}>
+          {formatPoints(currentStreak)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+
+function isLockedCupPrediction(cup: CupPredictionRow) {
+  const cupWithLock = cup as CupPredictionRow & {
+    is_locked?: boolean | null;
+    prediction_locked?: boolean | null;
+    locked?: boolean | null;
+  };
+
+  return Boolean(
+    cupWithLock.is_locked ??
+      cupWithLock.prediction_locked ??
+      cupWithLock.locked ??
+      cup.actual_round_reached ??
+      cup.awarded_gameweek ??
+      cup.awarded_gameweek_label ??
+      cup.bonus_awarded !== null
+  );
+}
+
+function MobileCupPredictionRow({ cup }: { cup: CupPredictionRow }) {
+  const bonusWon = Boolean(cup.bonus_awarded);
+  const decided = Boolean(cup.actual_round_reached);
+  const bonusTone = bonusWon
+    ? "text-[var(--stat-green,#22e55e)]"
+    : decided
+      ? "text-[var(--stat-wrong,#ff3030)]"
+      : "text-white";
+  const competitionTone = bonusTone;
+
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] px-1 py-1">
+      <div className="grid grid-cols-[minmax(0,1fr)_52px] items-center gap-1">
+        <div className={`truncate text-sm font-black uppercase leading-none ${competitionTone}`}>
+          {cup.competition}
+        </div>
+
+        <div className={`text-right text-sm font-black uppercase leading-none ${bonusTone}`}>
+          {bonusWon ? "+3" : "0"}
+        </div>
+      </div>
+
+      <div className="mt-0.5 grid grid-cols-[64px_minmax(0,1fr)] items-center gap-1 text-[0.62rem] font-black uppercase tracking-[0.06em]">
+        <div className="text-[#8f8f8f]">Pred</div>
+        <div className="truncate text-right text-white">
+          {cup.predicted_round_reached ?? "—"}
+        </div>
+      </div>
+
+      <div className="mt-0.5 grid grid-cols-[64px_minmax(0,1fr)] items-center gap-1 text-[0.62rem] font-black uppercase tracking-[0.06em]">
+        <div className="text-[#8f8f8f]">Actual</div>
+        <div className={`truncate text-right ${cup.actual_round_reached ? "text-white" : "text-[#8f8f8f]"}`}>
+          {cup.actual_round_reached ?? "Not decided"}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function MobilePredictedWinRow({ row }: { row: DerivedWeeklyScoreRow }) {
+  const correct = row.prediction === row.actual_result;
+  const tone = correct
+    ? "text-[var(--stat-green,#22e55e)]"
+    : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <div className="grid grid-cols-[48px_minmax(0,1fr)_52px] items-center bg-[var(--nffc-black,#000000)] px-1 py-1">
+      <div className={`text-sm font-black uppercase ${tone}`}>
+        {row.gameweek_label}
+      </div>
+
+      <div className="truncate text-sm font-black uppercase text-white">
+        {row.opponent_short} <span className="text-white">{row.venue}</span>
+      </div>
+
+      <div className={`text-right text-xs font-black uppercase ${tone}`}>
+        {correct ? "Won" : "No"}
+      </div>
+    </div>
+  );
+}
+
+function MobilePlayerScoreRow({
+  row,
+  expanded,
+  onToggle,
+}: {
+  row: DerivedWeeklyScoreRow;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const fixturePoints = safeNumber(row.derived_fixture_points_this_week);
+  const cupPoints = safeNumber(row.derived_cup_bonus_this_week);
+  const totalThisWeek = safeNumber(row.derived_total_points_this_week);
+  const runningTotal = safeNumber(row.derived_running_total);
+  const pointsTone =
+    totalThisWeek > 0
+      ? "text-[var(--stat-green,#22e55e)]"
+      : "text-[var(--stat-wrong,#ff3030)]";
+  const gameweekTone =
+    row.prediction === row.actual_result
+      ? "text-[var(--stat-green,#22e55e)]"
+      : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <article className="border-b border-[#242424] bg-[var(--nffc-black,#000000)] px-1 py-1 last:border-b-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="grid w-full grid-cols-[46px_minmax(0,1fr)_34px_46px_54px_20px] items-center gap-1 text-left"
+        aria-expanded={expanded}
+      >
+        <div className={`text-sm font-black uppercase ${gameweekTone}`}>
+          {row.gameweek_label}
+        </div>
+
+        <div className="truncate text-sm font-black uppercase text-white">
+          {row.opponent_short} <span className="text-white">{row.venue}</span>
+        </div>
+
+        <div className="text-right text-xs font-black uppercase text-[var(--stat-cyan,#59efff)]">
+          {row.overall_rank_after_gw ? `#${row.overall_rank_after_gw}` : "—"}
+        </div>
+
+        <div className={`text-right text-sm font-black uppercase ${pointsTone}`}>
+          {formatPoints(totalThisWeek)}
+        </div>
+
+        <div className="text-right text-sm font-black uppercase text-[var(--stat-green,#22e55e)]">
+          {formatPoints(runningTotal)}
+        </div>
+
+        <div className="text-right text-base font-black leading-none text-white">
+          {expanded ? "−" : "+"}
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="mt-1 border-t border-[#242424] pt-1">
+          <div className="text-[0.62rem] font-black uppercase tracking-[0.08em] text-white">
+            Pick <span className="text-white">{row.prediction}</span>
+            <span className="px-1 text-[var(--nffc-red,#e50914)]">/</span>
+            Result <span className="text-white">{row.actual_result ?? "TBC"}</span>
+          </div>
+
+          <div className="mt-1 whitespace-nowrap text-[0.58rem] font-black uppercase tracking-[0.02em] text-white">
+            <span className="text-[var(--stat-green,#22e55e)]">Base</span>{" "}
+            <span className={fixturePoints > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>
+              {formatPoints(fixturePoints)}
+            </span>
+            <span className="px-0.5 text-[#666666]">+</span>
+            <span className="text-[var(--stat-green,#22e55e)]">Cup</span>{" "}
+            <span className={cupPoints > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>
+              {formatPoints(cupPoints)}
+            </span>
+            <span className="px-0.5 text-[var(--nffc-red,#e50914)]">=</span>
+            <span className="text-white">GW</span>{" "}
+            <span className={pointsTone}>{formatPoints(totalThisWeek)}</span>
+          </div>
+
+          <div className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-[#8f8f8f]">
+            Running total{" "}
+            <span className="text-[var(--stat-green,#22e55e)]">
+              {formatPoints(runningTotal)}
+            </span>
+            <span className="px-1 text-[#666666]">/</span>
+            Accuracy{" "}
+            <span className="text-[var(--stat-green,#22e55e)]">
+              {formatPercent(row.derived_running_accuracy_percentage)}
+            </span>
+          </div>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function mobileToneClass(tone: "green" | "yellow" | "red" | "cyan" | "white") {
+  if (tone === "green") return "text-[var(--stat-green,#22e55e)]";
+  if (tone === "yellow") return "text-[var(--stat-yellow,#ffe44d)]";
+  if (tone === "red") return "text-[var(--stat-wrong,#ff3030)]";
+  if (tone === "cyan") return "text-[var(--stat-cyan,#59efff)]";
+  return "text-white";
+}
+
+function profileTone(profile: string | null | undefined): "green" | "yellow" | "red" | "cyan" | "white" {
+  if (profile === "EUROPE & BEYOND") return "cyan";
+  if (profile === "TOP HALF HOPES") return "green";
+  if (profile === "SAFE & STEADY") return "yellow";
+  if (profile === "SURVIVAL MODE") return "red";
+  return "white";
 }
 
 function TerminalInfoPanel({

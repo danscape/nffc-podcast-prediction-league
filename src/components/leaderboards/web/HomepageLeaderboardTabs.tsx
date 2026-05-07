@@ -142,7 +142,7 @@ export default function HomepageLeaderboardTabs({
 
  <div className="2xl:hidden">
  {activeTab === "teams" ? (
- <CompactTeamLeaderboard rows={teamRows} />
+ <CompactTeamLeaderboard rows={teamRows} playerRows={individualRows} />
  ) : activeTab === "players" ? (
  <CompactIndividualLeaderboard rows={individualRows} />
  ) : (
@@ -177,15 +177,16 @@ function TableButton({
  <button
  type="button"
  onClick={onClick}
- className={`relative border px-5 py-4 text-center text-lg font-black uppercase tracking-[0.14em] transition md:text-lg ${
+ className={`relative border px-1 py-2 text-center text-[0.62rem] font-black uppercase tracking-[0.08em] transition md:px-5 md:py-4 md:text-lg md:tracking-[0.14em] ${
  active
  ? "border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] text-[var(--stat-green,#22e55e)] after:absolute after:bottom-0 after:left-0 after:h-[3px] after:w-full after:bg-[var(--stat-green,#22e55e)]"
  : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] text-[var(--nffc-white,#f5f5f5)] hover:border-[var(--stat-green,#22e55e)] hover:text-[var(--stat-green,#22e55e)]"
  }`}
  >
  <span className="inline-flex items-center justify-center gap-2">
- {active && <span className="text-[var(--stat-green,#22e55e)]">█</span>}
- <span>{active ? `ACTIVE / ${label}` : `> ${label}`}</span>
+ {active && <span className="hidden text-[var(--stat-green,#22e55e)] md:inline">█</span>}
+ <span className="md:hidden">{label.replace(" Table", "")}</span>
+ <span className="hidden md:inline">{active ? `ACTIVE / ${label}` : `> ${label}`}</span>
  </span>
  </button>
  );
@@ -235,7 +236,15 @@ function FixtureTable({
  );
 
  if (compact) {
- return tableRows;
+ return (
+ <section className="bg-[var(--nffc-black,#000000)]">
+ <div className="grid gap-px bg-[#242424]">
+ {rows.map((row) => (
+ <MobileFixtureTableRow key={`${row.fixture_id}-mobile`} row={row} />
+ ))}
+ </div>
+ </section>
+ );
  }
 
  return (
@@ -249,6 +258,36 @@ function FixtureTable({
 
  {tableRows}
  </section>
+ );
+}
+
+function MobileFixtureTableRow({ row }: { row: FixtureTableRow }) {
+ const hasResult = hasFixtureResult(row);
+ const resultTone = hasResult ? resultTextClass(row.forest_result) : "text-white";
+
+ return (
+ <div className="grid grid-cols-[minmax(0,1fr)_118px] items-center bg-[var(--nffc-black,#000000)] px-1 py-1.5 text-white">
+ <div className="min-w-0">
+ <div className={`truncate text-xl font-black uppercase leading-none ${resultTone}`}>
+ {row.opponent_short} <span className="text-white">{row.venue}</span>
+ </div>
+ <div className="mt-0.5 text-xs font-black uppercase tracking-[0.08em] text-[var(--nffc-red,#e50914)]">
+ {row.gameweek_label}
+ </div>
+ </div>
+
+ <div className="text-right">
+ <div className="grid grid-cols-3 gap-px text-center text-[0.7rem] font-black uppercase leading-none">
+ <div className="text-[var(--stat-green,#22e55e)]">W {formatPercent(row.forest_win_percent)}</div>
+ <div className="text-[var(--stat-yellow,#ffe44d)]">D {formatPercent(row.draw_percent)}</div>
+ <div className="text-[var(--stat-wrong,#ff3030)]">L {formatPercent(row.forest_loss_percent)}</div>
+ </div>
+
+ <div className={`mt-1 text-xs font-black uppercase tracking-[0.08em] ${resultTone}`}>
+ Result {hasResult ? resultLabel(row.forest_result) : "TBC"}
+ </div>
+ </div>
+ </div>
  );
 }
 

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import PublicMasthead from "@/components/layout/PublicMasthead";
 import PublicPageShell from "@/components/layout/PublicPageShell";
+import MobileCeefaxMasthead from "@/components/layout/MobileCeefaxMasthead";
 
 type PredictionValue = "W" | "D" | "L";
 type Tone = "green" | "yellow" | "cyan" | "pink" | "red" | "white" | "muted";
@@ -483,31 +484,301 @@ export default function AdminSocialResultsPage() {
   }
 
   return (
-    <PublicPageShell compact>
-        <Masthead />
+    <PublicPageShell compact mobileFullBleed>
+      {message && (
+        <div className="mb-4 border border-[var(--stat-wrong,#ff3030)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-[var(--stat-wrong,#ff3030)]">
+          {message}
+        </div>
+      )}
 
-        {message && (
-          <div className="mb-4 border border-[var(--stat-wrong,#ff3030)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-[var(--stat-wrong,#ff3030)]">
-            {message}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="border border-[#2a2a2a] bg-[var(--nffc-black,#000000)] px-4 py-8 text-center text-xl font-black uppercase tracking-[0.14em] text-white">
-            Loading weekly results...
-          </div>
-        ) : (
-          <SocialResultsGraphic
+      {loading ? (
+        <div className="border border-[#2a2a2a] bg-[var(--nffc-black,#000000)] px-4 py-8 text-center text-xl font-black uppercase tracking-[0.14em] text-white">
+          Loading weekly results...
+        </div>
+      ) : (
+        <>
+          <MobileWeeklyResultsPage
             summary={summary}
             teamGroups={teamGroups}
-            topScorers={topScorers}
-            topTeam={topTeam}
-            predictionSplit={predictionSplit}
           />
-        )}
+
+          <div className="hidden md:block">
+            <Masthead />
+
+            <SocialResultsGraphic
+              summary={summary}
+              teamGroups={teamGroups}
+              topScorers={topScorers}
+              topTeam={topTeam}
+              predictionSplit={predictionSplit}
+            />
+          </div>
+        </>
+      )}
     </PublicPageShell>
   );
 }
+
+
+function MobileWeeklyResultsPage({
+  summary,
+  teamGroups,
+}: {
+  summary: LatestResultSummaryRow | null;
+  teamGroups: TeamGroup[];
+}) {
+  const [expandedTeamKeys, setExpandedTeamKeys] = useState<Set<string>>(
+    () => new Set()
+  );
+  const actual = getActualResult(summary);
+
+  function toggleTeam(teamKey: string) {
+    setExpandedTeamKeys((current) => {
+      const next = new Set(current);
+
+      if (next.has(teamKey)) {
+        next.delete(teamKey);
+      } else {
+        next.add(teamKey);
+      }
+
+      return next;
+    });
+  }
+
+  return (
+    <main className="min-h-dvh w-full overflow-x-hidden overflow-y-auto bg-[var(--nffc-black,#000000)] pb-20 text-white md:hidden">
+      <MobileCeefaxMasthead active="results" />
+
+      <section className="px-0 py-1">
+        <h1 className="text-[1.75rem] font-black uppercase leading-none tracking-[-0.03em] text-white">
+          Weekly Results
+        </h1>
+
+        <div className="mt-1 text-[0.8rem] font-black uppercase tracking-[0.1em] text-[var(--nffc-red,#e50914)]">
+          {getScoreText(summary)}
+        </div>
+
+        <div className="mt-2 grid grid-cols-3 gap-px bg-[#242424]">
+          <MobileWeeklyHeaderStat
+            label="Result"
+            value={actual ?? "TBC"}
+            tone={actual ? "green" : "white"}
+          />
+          <MobileWeeklyHeaderStat
+            label="Correct"
+            value={`${getCorrectCount(summary)}/${getTotalPredictions(summary)}`}
+            tone={getCorrectCount(summary) > 0 ? "green" : "red"}
+          />
+          <MobileWeeklyHeaderStat
+            label="Accuracy"
+            value={formatPercent(getCorrectPercentage(summary))}
+            tone={getCorrectPercentage(summary) > 0 ? "green" : "red"}
+          />
+        </div>
+      </section>
+
+      <MobileWeeklyDivider />
+
+      <section>
+        <MobileWeeklySectionHeader title="Team Results" />
+
+        <div className="grid gap-px bg-[#242424]">
+          <div className="grid grid-cols-[minmax(0,1fr)_52px_58px_22px] bg-[var(--nffc-black,#000000)] px-1 py-1 text-[0.56rem] font-black uppercase tracking-[0.08em] text-white">
+            <div>Team</div>
+            <div className="text-right">Correct</div>
+            <div className="text-right">Score</div>
+            <div />
+          </div>
+
+          {teamGroups.length ? (
+            teamGroups.map((group) => {
+              const expanded = expandedTeamKeys.has(group.key);
+              const sortedPlayers = [...group.players].sort((a, b) => {
+                const correctDiff =
+                  Number(isCorrectPick(b, summary)) - Number(isCorrectPick(a, summary));
+                if (correctDiff !== 0) return correctDiff;
+
+                const pointsDiff = getPlayerTotal(b) - getPlayerTotal(a);
+                if (pointsDiff !== 0) return pointsDiff;
+
+                return getPlayerName(a).localeCompare(getPlayerName(b));
+              });
+
+              const totalPlayers = sortedPlayers.length;
+              const correctPlayers = sortedPlayers.filter((player) =>
+                isCorrectPick(player, summary)
+              ).length;
+              const fallbackCorrectPercentage = totalPlayers
+                ? (correctPlayers / totalPlayers) * 100
+                : 0;
+              const correctPercentage =
+                group.teamResult &&
+                (group.teamResult.correct_percentage !== null ||
+                  group.teamResult.accuracy_percentage !== null)
+                  ? getTeamCorrectPercentage(group.teamResult)
+                  : fallbackCorrectPercentage;
+              const teamPoints = getTeamWeeklyPoints(group.teamResult);
+              const scoreTone =
+                teamPoints > 0
+                  ? "text-[var(--stat-green,#22e55e)]"
+                  : "text-[var(--stat-wrong,#ff3030)]";
+
+              return (
+                <article
+                  key={group.key}
+                  className="bg-[var(--nffc-black,#000000)]"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleTeam(group.key)}
+                    className="grid w-full grid-cols-[minmax(0,1fr)_52px_58px_22px] items-center gap-1 px-1 py-1 text-left"
+                    aria-expanded={expanded}
+                  >
+                    <div className="truncate text-[0.82rem] font-black uppercase leading-none text-white">
+                      {group.teamName}
+                    </div>
+
+                    <div
+                      className={`text-right text-[0.72rem] font-black uppercase ${
+                        correctPercentage > 0
+                          ? "text-[var(--stat-green,#22e55e)]"
+                          : "text-[var(--stat-wrong,#ff3030)]"
+                      }`}
+                    >
+                      {formatPercent(correctPercentage)}
+                    </div>
+
+                    <div className={`text-right text-sm font-black uppercase ${scoreTone}`}>
+                      {formatTeamPoints(teamPoints)}
+                    </div>
+
+                    <div className="text-right text-base font-black leading-none text-white">
+                      {expanded ? "−" : "+"}
+                    </div>
+                  </button>
+
+                  {expanded && (
+                    <div className="border-t border-[#242424]">
+                      <div className="grid grid-cols-[minmax(0,1fr)_32px_32px_116px] bg-[var(--nffc-black,#000000)] px-1 py-1 text-[0.54rem] font-black uppercase tracking-[0.08em] text-[#8f8f8f]">
+                        <div>Player</div>
+                        <div className="text-right">Pick</div>
+                        <div className="text-right">Res</div>
+                        <div className="text-right">B+S+M+R+C</div>
+                      </div>
+
+                      {sortedPlayers.length ? (
+                        sortedPlayers.map((player) => (
+                          <MobileWeeklyPlayerResultRow
+                            key={`${group.key}-${player.player_id ?? getPlayerName(player)}`}
+                            player={player}
+                            summary={summary}
+                          />
+                        ))
+                      ) : (
+                        <div className="px-1 py-2 text-[0.68rem] font-black uppercase tracking-[0.08em] text-[#8f8f8f]">
+                          No player rows.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </article>
+              );
+            })
+          ) : (
+            <div className="bg-[var(--nffc-black,#000000)] px-1 py-2 text-[0.72rem] font-black uppercase tracking-[0.08em] text-white">
+              No team results available.
+            </div>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function MobileWeeklyPlayerResultRow({
+  player,
+  summary,
+}: {
+  player: LatestBonusResultRow;
+  summary: LatestResultSummaryRow | null;
+}) {
+  const correct = isCorrectPick(player, summary);
+  const result = player.actual_result ?? player.forest_result ?? getActualResult(summary);
+  const basePoints = getBasePoints(player);
+  const streakBonus = toNumber(player.streak_bonus);
+  const maverickBonus = toNumber(player.maverick_bonus);
+  const rogueBonus = toNumber(player.rogue_bonus);
+  const cupBonus = toNumber(player.cup_bonus);
+  const total = getPlayerTotal(player);
+  const tone = correct
+    ? "text-[var(--stat-green,#22e55e)]"
+    : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_32px_32px_116px] items-center border-t border-[#181818] px-1 py-1">
+      <div className={`truncate text-[0.72rem] font-black uppercase leading-none ${tone}`}>
+        {getPlayerName(player)}
+      </div>
+
+      <div className={`text-right text-[0.7rem] font-black uppercase ${tone}`}>
+        {player.prediction ?? "—"}
+      </div>
+
+      <div className="text-right text-[0.7rem] font-black uppercase text-white">
+        {result ?? "—"}
+      </div>
+
+      <div className="text-right text-[0.58rem] font-black uppercase tracking-[0.01em] text-white">
+        <span className={basePoints > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(basePoints)}</span>
+        <span className="text-[#666666]">+</span>
+        <span className={streakBonus > 0 ? "text-[var(--stat-yellow,#ffe44d)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(streakBonus)}</span>
+        <span className="text-[#666666]">+</span>
+        <span className={maverickBonus > 0 ? "text-[var(--stat-cyan,#59efff)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(maverickBonus)}</span>
+        <span className="text-[#666666]">+</span>
+        <span className={rogueBonus > 0 ? "text-[var(--stat-pink,#ff4fd8)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(rogueBonus)}</span>
+        <span className="text-[#666666]">+</span>
+        <span className={cupBonus > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(cupBonus)}</span>
+        <span className="px-0.5 text-[var(--nffc-red,#e50914)]">=</span>
+        <span className={tone}>{formatPoints(total)}</span>
+      </div>
+    </div>
+  );
+}
+
+function MobileWeeklyHeaderStat({
+  label,
+  value,
+  tone = "white",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "green" | "red" | "white";
+}) {
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] px-1 py-1.5">
+      <div className="text-[0.56rem] font-black uppercase tracking-[0.12em] text-[#8f8f8f]">
+        {label}
+      </div>
+      <div className={`mt-0.5 truncate text-[0.95rem] font-black uppercase leading-none ${textTone(tone)}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function MobileWeeklyDivider() {
+  return <div className="my-2 h-[2px] w-full bg-[var(--nffc-red,#e50914)]" />;
+}
+
+function MobileWeeklySectionHeader({ title }: { title: string }) {
+  return (
+    <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1.5 py-0.5 text-base font-black uppercase tracking-[0.08em] text-white">
+      {title}
+    </h2>
+  );
+}
+
 
 function Masthead() {
   return (

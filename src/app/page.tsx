@@ -4,6 +4,7 @@ import HomepageLeaderboardTabs from "@/components/leaderboards/web/HomepageLeade
 import LatestNewsGraphic from "@/components/social-graphics/LatestNewsGraphic";
 import RunInMoodGraphic from "@/components/social-graphics/RunInMoodGraphic";
 import PublicMasthead from "@/components/layout/PublicMasthead";
+import MobileCeefaxMasthead from "@/components/layout/MobileCeefaxMasthead";
 import PublicPageShell from "@/components/layout/PublicPageShell";
 
 type AppSetting = {
@@ -13,6 +14,7 @@ type AppSetting = {
 
 type IndividualLeaderboardRow = {
   player_id: string;
+  prediction_profile?: string | null;
   player_slug?: string | null;
   player_name: string;
   short_name: string | null;
@@ -33,6 +35,12 @@ type IndividualLeaderboardRow = {
   accuracy_whole_percentage: number | null;
   best_streak: number | null;
   current_streak: number | null;
+  projected_forest_points?: number | null;
+  projected_points?: number | null;
+  forest_points?: number | null;
+  predicted_wins?: number | null;
+  predicted_draws?: number | null;
+  predicted_losses?: number | null;
   team_logo_url?: string | null;
   team_logo_alt?: string | null;
   team_brand_colour?: string | null;
@@ -59,6 +67,13 @@ type TeamLeaderboardRow = {
   latest_gameweek_label?: string | null;
   latest_opponent_short?: string | null;
   points_this_week?: number | null;
+  team_rank_change?: number | null;
+  average_projected_forest_points?: number | null;
+  average_predicted_wins?: number | null;
+  average_predicted_draws?: number | null;
+  average_predicted_losses?: number | null;
+  prediction_profile?: string | null;
+  rank_change?: number | null;
 };
 
 type InFormPlayer = {
@@ -145,6 +160,41 @@ type RemainingFixtureMoodRow = {
   forest_win_percent: number;
   draw_percent: number;
   forest_loss_percent: number;
+};
+
+type CurrentPredictionRow = {
+  player_id: string;
+  prediction: "W" | "D" | "L" | null;
+};
+
+type PlayerPredictionProfileRow = {
+  player_id: string;
+  predicted_wins: number;
+  predicted_draws: number;
+  predicted_losses: number;
+  projected_forest_points: number;
+  prediction_profile: string;
+};
+
+type PlayerRankHistoryRow = {
+  player_id: string;
+  gameweek: number;
+  overall_rank_after_gw: number | null;
+};
+
+type TeamRankHistoryRow = {
+  team_id: string;
+  gameweek: number;
+  team_rank: number | null;
+};
+
+type TeamPredictionProfileRow = {
+  team_id: string;
+  average_projected_forest_points: number;
+  average_predicted_wins: number;
+  average_predicted_draws: number;
+  average_predicted_losses: number;
+  prediction_profile: string;
 };
 
 type InsightCard = {
@@ -318,6 +368,72 @@ function insightTeamHref(card: InsightCard | null) {
   return card?.slug ? `/team/${card.slug}` : null;
 }
 
+
+function buildRankMovementMap<T extends { gameweek: number }>(
+  rows: T[],
+  getId: (row: T) => string | null | undefined,
+  getRank: (row: T) => number | null | undefined
+) {
+  const gameweeks = Array.from(
+    new Set(rows.map((row) => Number(row.gameweek)).filter(Boolean))
+  ).sort((a, b) => b - a);
+
+  const latestGameweek = gameweeks[0] ?? null;
+  const previousGameweek = gameweeks[1] ?? null;
+  const latestRanks = new Map<string, number>();
+  const previousRanks = new Map<string, number>();
+
+  rows.forEach((row) => {
+    const id = getId(row);
+    const rank = getRank(row);
+
+    if (!id || rank === null || rank === undefined) return;
+
+    if (Number(row.gameweek) === latestGameweek) {
+      latestRanks.set(id, Number(rank));
+    }
+
+    if (Number(row.gameweek) === previousGameweek) {
+      previousRanks.set(id, Number(rank));
+    }
+  });
+
+  const movementMap = new Map<string, number | null>();
+
+  latestRanks.forEach((latestRank, id) => {
+    const previousRank = previousRanks.get(id);
+
+    if (!previousRank) {
+      movementMap.set(id, null);
+      return;
+    }
+
+    movementMap.set(id, previousRank - latestRank);
+  });
+
+  return movementMap;
+}
+
+
+function getExistingRankMovement(
+  row: Record<string, unknown>,
+  keys: string[]
+) {
+  for (const key of keys) {
+    const value = row[key];
+
+    if (value === null || value === undefined || value === "") continue;
+
+    const numericValue = Number(value);
+
+    if (Number.isFinite(numericValue)) {
+      return numericValue;
+    }
+  }
+
+  return null;
+}
+
 export default async function HomePage() {
   const supabase = getSupabaseClient();
 
@@ -326,7 +442,10 @@ export default async function HomePage() {
     { count: playerCount },
     { data: settingsData },
     { data: individualData },
+    { data: currentPredictionData },
+    { data: playerProfileData },
     { data: teamData },
+    { data: teamProfileData },
     { data: nextFixtureData },
     { data: completedFixturesData },
     { data: fixtureTableData },
@@ -355,6 +474,12 @@ export default async function HomePage() {
       .order("player_name", { ascending: true })
       .range(0, 1000),
     supabase
+      .from("current_predictions")
+      .select("player_id, prediction"),
+    supabase
+      .from("player_prediction_profiles")
+      .select("*"),
+    supabase
       .from("team_leaderboard")
       .select("*")
       .order("total_team_points", { ascending: false })
@@ -363,6 +488,9 @@ export default async function HomePage() {
       .order("best_player_accuracy_percentage", { ascending: false })
       .order("team_name", { ascending: true })
       .range(0, 1000),
+    supabase
+      .from("team_prediction_profiles")
+      .select("*"),
     supabase
       .from("fixtures")
       .select(
@@ -405,8 +533,211 @@ export default async function HomePage() {
   const season =
     settings.get("season_label") ?? settings.get("current_season") ?? "2025/26";
 
-  const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
-  const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
+  const rawIndividualRows = (individualData ?? []) as IndividualLeaderboardRow[];
+  const playerProfileRows =
+    (playerProfileData ?? []) as PlayerPredictionProfileRow[];
+
+  const playerProfileMap = new Map(
+    playerProfileRows.map((row) => [row.player_id, row])
+  );
+  const currentPredictionRows =
+    (currentPredictionData ?? []) as CurrentPredictionRow[];
+
+  const playerPredictionTotals = currentPredictionRows.reduce(
+    (totals, predictionRow) => {
+      if (!predictionRow.player_id || !predictionRow.prediction) return totals;
+
+      const existing =
+        totals.get(predictionRow.player_id) ?? {
+          predicted_wins: 0,
+          predicted_draws: 0,
+          predicted_losses: 0,
+          projected_forest_points: 0,
+        };
+
+      if (predictionRow.prediction === "W") {
+        existing.predicted_wins += 1;
+        existing.projected_forest_points += 3;
+      }
+
+      if (predictionRow.prediction === "D") {
+        existing.predicted_draws += 1;
+        existing.projected_forest_points += 1;
+      }
+
+      if (predictionRow.prediction === "L") {
+        existing.predicted_losses += 1;
+      }
+
+      totals.set(predictionRow.player_id, existing);
+      return totals;
+    },
+    new Map<
+      string,
+      {
+        predicted_wins: number;
+        predicted_draws: number;
+        predicted_losses: number;
+        projected_forest_points: number;
+      }
+    >()
+  );
+
+  const individualRows = rawIndividualRows.map((row) => {
+    const predictionTotals = playerPredictionTotals.get(row.player_id);
+    const profileRow = playerProfileMap.get(row.player_id);
+
+    if (!predictionTotals && !profileRow) return row;
+
+    const projectedForestPoints = Number(
+      profileRow?.projected_forest_points ??
+        predictionTotals?.projected_forest_points ??
+        row.projected_forest_points ??
+        row.projected_points ??
+        row.forest_points ??
+        0
+    );
+
+    const existingPredictionProfile = (row as IndividualLeaderboardRow & {
+      prediction_profile?: string | null;
+    }).prediction_profile;
+
+    const predictionProfile =
+      profileRow?.prediction_profile ??
+      existingPredictionProfile ??
+      (projectedForestPoints >= 60
+        ? "EUROPE & BEYOND"
+        : projectedForestPoints >= 50
+          ? "TOP HALF HOPES"
+          : projectedForestPoints >= 43
+            ? "SAFE & STEADY"
+            : "SURVIVAL MODE");
+
+    return {
+      ...row,
+      ...(predictionTotals ?? {}),
+      projected_points: projectedForestPoints,
+      forest_points: projectedForestPoints,
+      projected_forest_points: projectedForestPoints,
+      predicted_wins: Number(
+        profileRow?.predicted_wins ?? predictionTotals?.predicted_wins ?? row.predicted_wins ?? 0
+      ),
+      predicted_draws: Number(
+        profileRow?.predicted_draws ?? predictionTotals?.predicted_draws ?? row.predicted_draws ?? 0
+      ),
+      predicted_losses: Number(
+        profileRow?.predicted_losses ?? predictionTotals?.predicted_losses ?? row.predicted_losses ?? 0
+      ),
+      prediction_profile: predictionProfile,
+    };
+  });
+
+  const rawTeamRows = (teamData ?? []) as TeamLeaderboardRow[];
+  const teamProfileRows =
+    (teamProfileData ?? []) as TeamPredictionProfileRow[];
+
+  const teamProfileMap = new Map(
+    teamProfileRows.map((row) => [row.team_id, row])
+  );
+
+  const teamRows = rawTeamRows.map((row) => {
+    const profileRow = teamProfileMap.get(row.team_id);
+
+    if (!profileRow) return row;
+
+    return {
+      ...row,
+      average_projected_forest_points: Number(
+        profileRow.average_projected_forest_points ?? 0
+      ),
+      average_predicted_wins: Number(profileRow.average_predicted_wins ?? 0),
+      average_predicted_draws: Number(profileRow.average_predicted_draws ?? 0),
+      average_predicted_losses: Number(profileRow.average_predicted_losses ?? 0),
+      prediction_profile: profileRow.prediction_profile,
+    };
+  });
+  const [{ data: playerRankHistoryData }, { data: teamRankHistoryData }] =
+    await Promise.all([
+      supabase
+        .from("player_weekly_rank_history")
+        .select("player_id, gameweek, overall_rank_after_gw"),
+      supabase
+        .from("team_rank_history")
+        .select("team_id, gameweek, team_rank"),
+    ]);
+
+  const playerRankHistoryRows =
+    (playerRankHistoryData ?? []) as PlayerRankHistoryRow[];
+  const playerGameweeks = Array.from(
+    new Set(
+      playerRankHistoryRows
+        .map((row) => Number(row.gameweek))
+        .filter(Boolean)
+    )
+  ).sort((a, b) => b - a);
+
+  const latestConfirmedPlayerGameweek = playerGameweeks[0] ?? null;
+  const previousConfirmedPlayerGameweek = playerGameweeks[1] ?? null;
+
+  const latestPlayerRankMap = new Map<string, number>();
+  const previousPlayerRankMap = new Map<string, number>();
+
+  playerRankHistoryRows.forEach((row) => {
+    if (!row.player_id || row.overall_rank_after_gw === null) return;
+
+    if (Number(row.gameweek) === latestConfirmedPlayerGameweek) {
+      latestPlayerRankMap.set(row.player_id, Number(row.overall_rank_after_gw));
+    }
+
+    if (Number(row.gameweek) === previousConfirmedPlayerGameweek) {
+      previousPlayerRankMap.set(row.player_id, Number(row.overall_rank_after_gw));
+    }
+  });
+
+  const teamRankMovementMap = buildRankMovementMap(
+    (teamRankHistoryData ?? []) as TeamRankHistoryRow[],
+    (row) => row.team_id,
+    (row) => row.team_rank
+  );
+
+  const individualRowsWithMovement = individualRows.map((row) => {
+    const sourceRow = row as IndividualLeaderboardRow & Record<string, unknown>;
+
+    return {
+      ...row,
+      rank_change: getExistingRankMovement(sourceRow, [
+        "rank_change",
+        "position_change",
+        "rank_movement",
+        "movement",
+        "change",
+        "rank_delta",
+        "individual_rank_change",
+        "individual_position_change",
+        "player_rank_change",
+        "player_position_change",
+      ]),
+    };
+  });
+
+  const teamRowsWithMovement = teamRows.map((row) => {
+    const sourceRow = row as TeamLeaderboardRow & Record<string, unknown>;
+
+    return {
+      ...row,
+      team_rank_change: getExistingRankMovement(sourceRow, [
+        "team_rank_change",
+        "position_change",
+        "rank_change",
+        "rank_movement",
+        "movement",
+        "change",
+        "rank_delta",
+        "team_position_change",
+      ]),
+    };
+  });
+
   const fixtureRows = (fixtureTableData ?? []) as FixtureTableRow[];
   const remainingFixtureMoodRows =
     (remainingFixtureMoodData ?? []) as RemainingFixtureMoodRow[];
@@ -498,18 +829,78 @@ export default async function HomePage() {
   const moodTracker = insights?.mood_tracker ?? null;
 
   return (
-    <PublicPageShell topPadding="reduced">
-                <PublicMasthead active="home" title="Leaderboard Terminal" />
+    <PublicPageShell topPadding="reduced" mobileFullBleed>
+        <div className="md:hidden">
+          <MobileCeefaxMasthead active="home" />
+        </div>
+
+        <div className="hidden md:block">
+          <PublicMasthead active="home" title="Leaderboard Terminal" />
+        </div>
+
+        <section className="md:hidden">
+          <div className="grid grid-cols-3 gap-px bg-[#242424]">
+            <div className="bg-[var(--nffc-black,#000000)] px-1 py-2">
+              <div className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-[#8f8f8f]">
+                Accuracy
+              </div>
+              <div className="mt-0.5 text-lg font-black uppercase leading-none text-[var(--stat-green,#22e55e)]">
+                {formatPercent(averageAccuracy)}
+              </div>
+            </div>
+
+            <div className="bg-[var(--nffc-black,#000000)] px-1 py-2">
+              <div className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-[#8f8f8f]">
+                Top Team
+              </div>
+              <div className="mt-0.5 truncate text-[clamp(0.58rem,3vw,0.86rem)] font-black uppercase leading-none tracking-[-0.03em] text-white">
+                {displayTeamName(leadingTeam)}
+              </div>
+            </div>
+
+            <div className="bg-[var(--nffc-black,#000000)] px-1 py-2">
+              <div className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-[#8f8f8f]">
+                Top Player
+              </div>
+              <div className="mt-0.5 truncate text-[clamp(0.58rem,3vw,0.86rem)] font-black uppercase leading-none tracking-[-0.03em] text-white">
+                {displayPlayerName(currentLeader)}
+              </div>
+            </div>
+          </div>
+
+          <div className="my-2 h-[2px] w-full bg-[var(--nffc-red,#e50914)]" />
+        </section>
 
         <HomepageLeaderboardTabs
-          individualRows={individualRows}
-          teamRows={teamRows}
+          individualRows={individualRowsWithMovement}
+          teamRows={teamRowsWithMovement}
           fixtureRows={allFixtureRows}
         />
 
-        <div className="h-12 bg-[var(--nffc-black,#000000)]" />
+        <section className="md:hidden">
+          <div className="my-3 h-[2px] w-full bg-[var(--nffc-red,#e50914)]" />
 
-        <section className="mb-4 grid gap-4 xl:grid-cols-2">
+          <MobileFunStats
+            inFormPlayer={inFormPlayer}
+            inFormTeam={inFormTeam}
+            latestNews={latestNews ?? null}
+            moodTracker={moodTracker ?? null}
+            individualRows={individualRows}
+            mostOptimisticTeam={
+              insights?.personality_cards.most_optimistic_team ?? null
+            }
+            mostCautiousTeam={
+              insights?.personality_cards.most_cautious_team ?? null
+            }
+            drawMerchants={insights?.personality_cards.draw_merchants ?? null}
+          />
+        </section>
+
+        <MobileGwConfidenceSection rows={allFixtureRows} />
+
+        <div className="hidden h-12 bg-[var(--nffc-black,#000000)] md:block" />
+
+        <section className="mb-4 hidden gap-4 md:grid xl:grid-cols-2">
           <LatestNewsGraphic
             nextFixture={nextFixture}
             averageAccuracy={averageAccuracy}
@@ -533,7 +924,9 @@ export default async function HomePage() {
           />
         </section>
 
-        <FixtureSnapshotTable rows={fixtureSnapshotRows} />
+        <div className="hidden md:block">
+          <FixtureSnapshotTable rows={fixtureSnapshotRows} />
+        </div>
 
         <footer className="mt-12 border-t-4 border-[var(--nffc-red,#e50914)] pt-5">
           <div className="flex justify-center">
@@ -671,6 +1064,257 @@ function SnapshotSplit({
   return (
     <div className={`text-xl font-black uppercase leading-none ${toneClass}`}>
       {formatPercent(value)}
+    </div>
+  );
+}
+
+function getCurrentStreaker(rows: IndividualLeaderboardRow[]) {
+  return (
+    [...rows]
+      .filter((row) => Number(row.current_streak ?? 0) > 0)
+      .sort((a, b) => {
+        const streakDifference =
+          Number(b.current_streak ?? 0) - Number(a.current_streak ?? 0);
+
+        if (streakDifference !== 0) return streakDifference;
+
+        return Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
+      })[0] ?? null
+  );
+}
+
+function insightCardName(card: InsightCard | null | undefined) {
+  if (!card) return "TBC";
+
+  return card.team_name ?? "TBC";
+}
+
+function insightCardSubValue(_card: InsightCard | null | undefined) {
+  return null;
+}
+
+
+function MobileGwConfidenceSection({
+  rows,
+}: {
+  rows: FixtureTableRow[];
+}) {
+  const confidenceRows = [...rows]
+    .filter((row) => Number(row.total_predictions ?? 0) > 0)
+    .sort((a, b) => {
+      const winDiff =
+        Number(b.forest_win_percent ?? 0) - Number(a.forest_win_percent ?? 0);
+      if (winDiff !== 0) return winDiff;
+
+      const drawDiff =
+        Number(b.draw_percent ?? 0) - Number(a.draw_percent ?? 0);
+      if (drawDiff !== 0) return drawDiff;
+
+      return Number(a.gameweek ?? 0) - Number(b.gameweek ?? 0);
+    });
+
+  return (
+    <section className="bg-[var(--nffc-black,#000000)] md:hidden">
+      <div className="my-3 h-[2px] w-full bg-[var(--nffc-red,#e50914)]" />
+
+      <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1.5 py-0.5 text-base font-black uppercase tracking-[0.08em] text-white">
+        GW Confidence
+      </h2>
+
+      <div className="grid gap-px bg-[#242424]">
+        {confidenceRows.length ? (
+          confidenceRows.map((row) => (
+            <div
+              key={`${row.fixture_id}-mobile-confidence`}
+              className="grid grid-cols-[46px_minmax(0,1fr)_112px] items-center bg-[var(--nffc-black,#000000)] px-1 py-1 text-white"
+            >
+              <div className="text-sm font-black uppercase text-white">
+                {row.gameweek_label}
+              </div>
+
+              <div className="truncate text-sm font-black uppercase text-white">
+                {row.opponent_short} <span className="text-white">{row.venue}</span>
+              </div>
+
+              <div className="text-right text-[0.62rem] font-black uppercase text-white">
+                W {formatPercent(row.forest_win_percent)}
+                <span className="px-0.5 text-[#666666]">/</span>
+                D {formatPercent(row.draw_percent)}
+                <span className="px-0.5 text-[#666666]">/</span>
+                L {formatPercent(row.forest_loss_percent)}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="bg-[var(--nffc-black,#000000)] px-1 py-2 text-[0.72rem] font-black uppercase tracking-[0.08em] text-white">
+            No confidence data available.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function MobileFunStats({
+  inFormPlayer,
+  inFormTeam,
+  latestNews,
+  moodTracker,
+  individualRows,
+  mostOptimisticTeam,
+  mostCautiousTeam,
+  drawMerchants,
+}: {
+  inFormPlayer: InFormPlayer;
+  inFormTeam: InFormTeam;
+  latestNews: HomepageInsights["latest_news"] | null;
+  moodTracker: HomepageInsights["mood_tracker"] | null;
+  individualRows: IndividualLeaderboardRow[];
+  mostOptimisticTeam: InsightCard | null;
+  mostCautiousTeam: InsightCard | null;
+  drawMerchants: InsightCard | null;
+}) {
+  const currentStreaker = getCurrentStreaker(individualRows);
+
+  return (
+    <section className="bg-[var(--nffc-black,#000000)]">
+      <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1.5 py-0.5 text-base font-black uppercase tracking-[0.08em] text-white">
+        Stats
+      </h2>
+
+      <div className="grid gap-px bg-[#242424]">
+        <MobileFunStatLine
+          label="In-form player"
+          value={
+            inFormPlayer
+              ? inFormPlayer.playerName
+              : "TBC"
+          }
+          tone="green"
+        />
+
+        <MobileFunStatLine
+          label="In-form team"
+          value={
+            inFormTeam
+              ? inFormTeam.teamName
+              : "TBC"
+          }
+          tone="green"
+        />
+
+        <MobileFunStatLine
+          label="Current streaker"
+          value={
+            currentStreaker
+              ? `${displayPlayerName(currentStreaker)} / ${currentStreaker.current_streak ?? 0}`
+              : latestNews?.streaker_of_the_week_name
+                ? `${latestNews.streaker_of_the_week_name} / ${
+                    latestNews.streaker_of_the_week_value ?? 0
+                  }`
+                : "TBC"
+          }
+          tone="yellow"
+        />
+
+        <MobileWdlStatLine moodTracker={moodTracker} />
+
+        <MobileFunStatLine
+          label="Most optimistic team"
+          value={insightCardSubValue(mostOptimisticTeam)
+            ? `${insightCardName(mostOptimisticTeam)} / ${insightCardSubValue(
+                mostOptimisticTeam
+              )}`
+            : insightCardName(mostOptimisticTeam)}
+          tone="green"
+        />
+
+        <MobileFunStatLine
+          label="Most cautious team"
+          value={insightCardSubValue(mostCautiousTeam)
+            ? `${insightCardName(mostCautiousTeam)} / ${insightCardSubValue(
+                mostCautiousTeam
+              )}`
+            : insightCardName(mostCautiousTeam)}
+          tone="red"
+        />
+
+        <MobileFunStatLine
+          label="Draw merchants"
+          value={insightCardSubValue(drawMerchants)
+            ? `${insightCardName(drawMerchants)} / ${insightCardSubValue(
+                drawMerchants
+              )}`
+            : insightCardName(drawMerchants)}
+          tone="yellow"
+        />
+      </div>
+    </section>
+  );
+}
+
+function MobileWdlStatLine({
+  moodTracker,
+}: {
+  moodTracker: HomepageInsights["mood_tracker"] | null;
+}) {
+  return (
+    <div className="grid grid-cols-[118px_minmax(0,1fr)] items-center bg-[var(--nffc-black,#000000)] px-1 py-1.5">
+      <div className="text-[0.62rem] font-black uppercase tracking-[0.1em] text-[#8f8f8f]">
+        Remaining W/D/L
+      </div>
+
+      {moodTracker ? (
+        <div className="truncate text-right text-[0.78rem] font-black uppercase tracking-[0.04em]">
+          <span className="text-[var(--stat-green,#22e55e)]">
+            W {formatPercent(moodTracker.forest_win_rate)}
+          </span>
+          <span className="px-1 text-[#666666]">/</span>
+          <span className="text-[var(--stat-yellow,#ffe44d)]">
+            D {formatPercent(moodTracker.draw_rate)}
+          </span>
+          <span className="px-1 text-[#666666]">/</span>
+          <span className="text-[var(--stat-wrong,#ff3030)]">
+            L {formatPercent(moodTracker.forest_loss_rate)}
+          </span>
+        </div>
+      ) : (
+        <div className="text-right text-[0.78rem] font-black uppercase tracking-[0.04em] text-white">
+          TBC
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MobileFunStatLine({
+  label,
+  value,
+  tone = "white",
+}: {
+  label: string;
+  value: string;
+  tone?: "green" | "yellow" | "red" | "cyan" | "white";
+}) {
+  const toneClass =
+    tone === "green"
+      ? "text-[var(--stat-green,#22e55e)]"
+      : tone === "yellow"
+        ? "text-[var(--stat-yellow,#ffe44d)]"
+        : tone === "red"
+          ? "text-[var(--stat-wrong,#ff3030)]"
+          : tone === "cyan"
+            ? "text-[var(--stat-cyan,#59efff)]"
+            : "text-white";
+
+  return (
+    <div className="grid grid-cols-[118px_minmax(0,1fr)] items-center bg-[var(--nffc-black,#000000)] px-1 py-1.5">
+      <div className="text-[0.62rem] font-black uppercase tracking-[0.1em] text-[#8f8f8f]">
+        {label}
+      </div>
+      <div className={`truncate text-right text-[0.78rem] font-black uppercase tracking-[0.04em] ${toneClass}`}>
+        {value}
+      </div>
     </div>
   );
 }

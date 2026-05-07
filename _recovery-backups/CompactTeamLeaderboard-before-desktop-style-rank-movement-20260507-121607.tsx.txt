@@ -1,0 +1,317 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
+type TeamLeaderboardRow = {
+  team_id: string;
+  team_name: string;
+  display_name: string | null;
+  slug?: string | null;
+  total_team_points: number | null;
+  team_rank?: number | null;
+  rank?: number | null;
+  position?: number | null;
+  logo_url?: string | null;
+  logo_alt?: string | null;
+  average_projected_forest_points?: number | null;
+  average_predicted_wins?: number | null;
+  average_predicted_draws?: number | null;
+  average_predicted_losses?: number | null;
+  prediction_profile?: string | null;
+};
+
+type IndividualLeaderboardRow = {
+  player_id: string;
+  player_slug?: string | null;
+  player_name: string;
+  short_name: string | null;
+  table_display_name?: string | null;
+  team_id?: string | null;
+  team_name: string;
+  team_display_name?: string | null;
+  team_abbreviation?: string | null;
+  total_points: number | null;
+  correct_predictions: number;
+  fixtures_scored: number;
+  accuracy_percentage: number;
+  accuracy_whole_percentage: number | null;
+};
+
+
+function RankMovement({ change }: { change: number | null | undefined }) {
+  if (change === null || change === undefined || change === 0) {
+    return (
+      <span className="mt-0.5 block text-[0.58rem] font-black leading-none text-[#777777]">
+        —
+      </span>
+    );
+  }
+
+  if (change > 0) {
+    return (
+      <span className="mt-0.5 block text-[0.58rem] font-black leading-none text-[var(--stat-green,#22e55e)]">
+        ▲{change}
+      </span>
+    );
+  }
+
+  return (
+    <span className="mt-0.5 block text-[0.58rem] font-black leading-none text-[var(--stat-wrong,#ff3030)]">
+      ▼{Math.abs(change)}
+    </span>
+  );
+}
+
+function formatTeamPoints(value: number | null | undefined) {
+  return Number(value ?? 0).toFixed(2);
+}
+
+function formatPoints(value: number | null | undefined) {
+  return Number(value ?? 0).toFixed(2).replace(".00", "");
+}
+
+function formatPercent(value: number | null | undefined) {
+  return `${Math.round(Number(value ?? 0))}%`;
+}
+
+function getRank(row: TeamLeaderboardRow, index: number) {
+  return row.team_rank ?? row.rank ?? row.position ?? index + 1;
+}
+
+function displayTeamName(row: TeamLeaderboardRow) {
+  return row.display_name ?? row.team_name;
+}
+
+function displayTeamProfile(row: TeamLeaderboardRow) {
+  return row.prediction_profile ?? "PROFILE TBC";
+}
+
+function formatOneDecimal(value: number | null | undefined) {
+  return Number(value ?? 0).toFixed(1).replace(".0", "");
+}
+
+function teamProfileTone(profile: string | null | undefined) {
+  if (profile === "EUROPE & BEYOND") return "text-[var(--stat-cyan,#59efff)]";
+  if (profile === "TOP HALF HOPES") return "text-[var(--stat-green,#22e55e)]";
+  if (profile === "SAFE & STEADY") return "text-[var(--stat-yellow,#ffe44d)]";
+  if (profile === "SURVIVAL MODE") return "text-[var(--stat-wrong,#ff3030)]";
+  return "text-white";
+}
+
+function displayPlayerName(row: IndividualLeaderboardRow) {
+  return row.table_display_name ?? row.short_name ?? row.player_name;
+}
+
+function getAccuracy(row: IndividualLeaderboardRow) {
+  return (
+    row.accuracy_whole_percentage ??
+    Math.round(Number(row.accuracy_percentage ?? 0))
+  );
+}
+
+function teamMatchesPlayer(
+  team: TeamLeaderboardRow,
+  player: IndividualLeaderboardRow
+) {
+  if (player.team_id && player.team_id === team.team_id) return true;
+
+  const teamNames = [
+    team.team_name,
+    team.display_name,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).trim().toLowerCase());
+
+  const playerTeamNames = [
+    player.team_name,
+    player.team_display_name,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).trim().toLowerCase());
+
+  return playerTeamNames.some((name) => teamNames.includes(name));
+}
+
+export default function CompactTeamLeaderboard({
+  rows,
+  playerRows = [],
+}: {
+  rows: TeamLeaderboardRow[];
+  playerRows?: IndividualLeaderboardRow[];
+}) {
+  const [expandedTeamIds, setExpandedTeamIds] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  function toggleTeam(teamId: string) {
+    setExpandedTeamIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(teamId)) {
+        next.delete(teamId);
+      } else {
+        next.add(teamId);
+      }
+
+      return next;
+    });
+  }
+
+  if (!rows.length) {
+    return (
+      <div className="border border-[#242424] bg-[var(--nffc-black,#000000)] px-3 py-4 text-sm font-black uppercase tracking-[0.12em] text-white">
+        Team table not available yet.
+      </div>
+    );
+  }
+
+  return (
+    <section className="bg-[var(--nffc-black,#000000)]">
+      <div className="overflow-hidden border border-[#242424]">
+        <div className="grid grid-cols-[30px_30px_minmax(0,1fr)_58px_22px] border-b border-[var(--nffc-red,#e50914)] bg-[var(--nffc-black,#000000)] text-[0.56rem] font-black uppercase tracking-[0.08em] text-white">
+          <div className="px-1 py-1 text-left text-[var(--nffc-red,#e50914)]">Rk</div>
+          <div className="px-1 py-1 text-center">Logo</div>
+          <div className="px-1 py-1 text-left">Team Name</div>
+          <div className="px-1 py-1 text-right">Pts</div>
+          <div className="px-1 py-1 text-right">+</div>
+        </div>
+
+        {rows.map((row, index) => {
+          const expanded = expandedTeamIds.has(row.team_id);
+          const teamPlayers = playerRows
+            .filter((player) => teamMatchesPlayer(row, player))
+            .sort((a, b) => {
+              const accuracyDifference = getAccuracy(b) - getAccuracy(a);
+              if (accuracyDifference !== 0) return accuracyDifference;
+
+              return Number(b.total_points ?? 0) - Number(a.total_points ?? 0);
+            });
+
+          return (
+            <div
+              key={row.team_id}
+              className="border-b border-[#242424] bg-[var(--nffc-black,#000000)] last:border-b-0"
+            >
+              <div className="grid grid-cols-[30px_30px_minmax(0,1fr)_58px_22px] items-center text-white">
+                <div className="px-1 py-1 text-left text-base font-black uppercase leading-none text-[var(--nffc-red,#e50914)]">
+                  <span>{getRank(row, index)}</span><RankMovement change={row.team_rank_change} />
+                </div>
+
+                <div className="flex items-center justify-center px-1 py-1">
+                  {row.logo_url ? (
+                    <img
+                      src={row.logo_url}
+                      alt={row.logo_alt ?? displayTeamName(row)}
+                      className="h-5 w-5 object-contain"
+                    />
+                  ) : (
+                    <span className="text-[0.58rem] font-black uppercase text-[#8f8f8f]">
+                      —
+                    </span>
+                  )}
+                </div>
+
+                <div className="min-w-0 px-1 py-1">
+                  {row.slug ? (
+                    <Link
+                      href={`/team/${row.slug}`}
+                      className="block truncate text-[0.86rem] font-black uppercase leading-none tracking-[-0.02em] text-white"
+                    >
+                      {displayTeamName(row)}
+                    </Link>
+                  ) : (
+                    <div className="truncate text-[0.86rem] font-black uppercase leading-none tracking-[-0.02em] text-white">
+                      {displayTeamName(row)}
+                    </div>
+                  )}
+                </div>
+
+                <div className="px-1 py-1 text-right text-sm font-black uppercase leading-none text-[var(--stat-green,#22e55e)]">
+                  {formatTeamPoints(row.total_team_points)}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => toggleTeam(row.team_id)}
+                  className="px-1 py-1 text-right text-base font-black leading-none text-white"
+                  aria-expanded={expanded}
+                  aria-label={`Toggle ${displayTeamName(row)} players`}
+                >
+                  {expanded ? "−" : "+"}
+                </button>
+              </div>
+
+              {expanded && (
+                <div className="border-t border-[#242424] bg-[var(--nffc-black,#000000)]">
+                  <div className="grid grid-cols-[64px_minmax(0,1fr)] border-b border-[#242424] px-1 py-1">
+                    <div className="text-[0.62rem] font-black uppercase tracking-[0.08em] text-[#8f8f8f]">
+                      Profile
+                    </div>
+                    <div className={`truncate text-right text-[0.72rem] font-black uppercase tracking-[0.04em] ${teamProfileTone(row.prediction_profile)}`}>
+                      {displayTeamProfile(row)}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-[64px_minmax(0,1fr)] border-b border-[#242424] px-1 py-1">
+                    <div className="text-[0.62rem] font-black uppercase tracking-[0.08em] text-[#8f8f8f]">
+                      Forecast
+                    </div>
+                    <div className="truncate text-right text-[0.68rem] font-black uppercase tracking-[0.03em] text-white">
+                      <span className="text-[var(--stat-green,#22e55e)]">
+                        {formatOneDecimal(row.average_projected_forest_points)} pts
+                      </span>
+                      <span className="px-0.5 text-[#666666]">/</span>
+                      W {formatOneDecimal(row.average_predicted_wins)}
+                      <span className="px-0.5 text-[#666666]">/</span>
+                      D {formatOneDecimal(row.average_predicted_draws)}
+                      <span className="px-0.5 text-[#666666]">/</span>
+                      L {formatOneDecimal(row.average_predicted_losses)}
+                    </div>
+                  </div>
+
+                  {teamPlayers.length ? (
+                    teamPlayers.map((player) => {
+                      const playerLine = (
+                        <div className="grid grid-cols-[60px_minmax(0,1fr)_44px_44px] items-center border-b border-[#181818] px-1 py-1 last:border-b-0">
+                          <div className="text-[0.58rem] font-black uppercase tracking-[0.08em] text-[#555555]">
+                            —
+                          </div>
+                          <div className="truncate text-[0.74rem] font-black uppercase tracking-[0.02em] text-white">
+                            {displayPlayerName(player)}
+                          </div>
+                          <div className="text-right text-[0.68rem] font-black uppercase text-[var(--stat-green,#22e55e)]">
+                            {formatPercent(getAccuracy(player))}
+                          </div>
+                          <div className="text-right text-[0.68rem] font-black uppercase text-white">
+                            {formatPoints(player.total_points)}
+                          </div>
+                        </div>
+                      );
+
+                      return player.player_slug ? (
+                        <Link
+                          key={player.player_id}
+                          href={`/player/${player.player_slug}`}
+                          className="block"
+                        >
+                          {playerLine}
+                        </Link>
+                      ) : (
+                        <div key={player.player_id}>{playerLine}</div>
+                      );
+                    })
+                  ) : (
+                    <div className="px-1 py-1 text-[0.68rem] font-black uppercase tracking-[0.08em] text-[#8f8f8f]">
+                      No player rows found.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}

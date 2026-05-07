@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import PublicPageShell from "@/components/layout/PublicPageShell";
 import PublicMasthead from "@/components/layout/PublicMasthead";
+import MobileCeefaxMasthead from "@/components/layout/MobileCeefaxMasthead";
 
 type ResultValue = "W" | "D" | "L";
 
@@ -184,6 +185,51 @@ type TeamPageData = {
   } | null;
 };
 
+
+type TeamPredictionProfileRow = {
+  team_id: string;
+  average_projected_forest_points: number | string | null;
+  average_predicted_wins: number | string | null;
+  average_predicted_draws: number | string | null;
+  average_predicted_losses: number | string | null;
+  prediction_profile: string | null;
+};
+
+type TeamPlayerWeeklyScoreRow = {
+  player_id: string;
+  player_name: string;
+  short_name: string | null;
+  player_slug: string | null;
+  gameweek: number;
+  gameweek_label: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  prediction: ResultValue | null;
+  actual_result: ResultValue | null;
+  derived_total_points_this_week?: number | string | null;
+  total_points_this_week?: number | string | null;
+};
+
+type TeamRankHistoryRow = {
+  team_id: string;
+  fixture_id: string;
+  gameweek: number;
+  gameweek_label: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  team_fixture_points: number | string | null;
+  running_team_points: number | string | null;
+  team_rank: number | null;
+  team_rank_out_of: number | null;
+};
+
+type MobileTeamScoreRow = TeamPageData["form"][number] & {
+  playerRows: TeamPlayerWeeklyScoreRow[];
+  overall_team_rank_after_gw?: number | null;
+  running_team_points_after_gw?: number | string | null;
+};
+
+
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -313,11 +359,79 @@ export default async function TeamPage({
   const form = [...(pageData.form ?? [])].sort((a, b) => a.gameweek - b.gameweek);
   const fixtures = pageData.fixtures ?? [];
 
-  return (
-    <PublicPageShell topPadding="reduced">
-      <PublicMasthead active="none" title="Team Terminal" />
+  const playerIds = players.map((player) => player.player_id).filter(Boolean);
 
-      <section className="w-full">
+  const [
+    { data: teamProfileData },
+    { data: playerWeeklyScoreData },
+    { data: teamRankHistoryData },
+  ] = await Promise.all([
+    supabase
+      .from("team_prediction_profiles")
+      .select("*")
+      .eq("team_id", team.team_id)
+      .limit(1)
+      .maybeSingle(),
+    playerIds.length
+      ? supabase
+          .from("public_player_weekly_scores")
+          .select("*")
+          .in("player_id", playerIds)
+          .order("gameweek", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from("team_rank_history")
+      .select("*")
+      .eq("team_id", team.team_id),
+  ]);
+
+  const teamProfile = teamProfileData as TeamPredictionProfileRow | null;
+  const playerWeeklyRows =
+    (playerWeeklyScoreData ?? []) as TeamPlayerWeeklyScoreRow[];
+  const teamRankHistoryRows =
+    (teamRankHistoryData ?? []) as TeamRankHistoryRow[];
+
+  const teamRankHistoryMap = new Map(
+    teamRankHistoryRows.map((row) => [Number(row.gameweek), row])
+  );
+
+  const mobileScoreRows: MobileTeamScoreRow[] = fixtures
+    .filter((row) => Number(row.gameweek ?? 0) > 0 && row.forest_result !== null)
+    .sort((a, b) => Number(b.gameweek ?? 0) - Number(a.gameweek ?? 0))
+    .map((row) => {
+      const rankRow = teamRankHistoryMap.get(Number(row.gameweek));
+
+      return {
+        ...row,
+        team_fixture_points: Number(
+          rankRow?.team_fixture_points ?? row.team_fixture_points ?? 0
+        ),
+        overall_team_rank_after_gw: rankRow?.team_rank ?? null,
+        running_team_points_after_gw: Number(
+          rankRow?.running_team_points ?? row.team_fixture_points ?? 0
+        ),
+        playerRows: playerWeeklyRows.filter(
+          (playerRow) => Number(playerRow.gameweek) === Number(row.gameweek)
+        ),
+      };
+    });
+
+  return (
+    <PublicPageShell topPadding="reduced" mobileFullBleed>
+      <MobileTeamProfilePage
+        team={team}
+        leaderboard={leaderboard}
+        summary={summary}
+        players={players}
+        scoreRows={mobileScoreRows}
+        fixtures={fixtures}
+        teamProfile={teamProfile}
+      />
+
+      <div className="hidden md:block">
+        <PublicMasthead active="none" title="Team Terminal" />
+
+        <section className="w-full">
         <header className="mb-6 bg-[var(--nffc-black,#000000)]">
           <section className="grid gap-[2px] bg-[#444444] lg:grid-cols-[minmax(0,1fr)_520px]">
             <div className="bg-[var(--nffc-black,#000000)] p-5 md:p-6">
@@ -741,10 +855,605 @@ export default async function TeamPage({
             </table>
           </div>
         </TerminalPanel>
-      </section>
+        </section>
+      </div>
     </PublicPageShell>
   );
 }
+
+
+function MobileTeamProfilePage({
+  team,
+  leaderboard,
+  summary,
+  players,
+  scoreRows,
+  fixtures,
+  teamProfile,
+}: {
+  team: NonNullable<TeamPageData["team"]>;
+  leaderboard: TeamPageData["leaderboard"];
+  summary: TeamPageData["summary"];
+  players: TeamPageData["players"];
+  scoreRows: MobileTeamScoreRow[];
+  fixtures: TeamPageData["fixtures"];
+  teamProfile: TeamPredictionProfileRow | null;
+}) {
+  const teamName = displayTeamName(team);
+  const sortedPlayers = [...players].sort((a, b) => {
+    const pointsDifference = toNumber(b.total_points) - toNumber(a.total_points);
+    if (pointsDifference !== 0) return pointsDifference;
+
+    return toNumber(b.accuracy_percentage) - toNumber(a.accuracy_percentage);
+  });
+
+  const confirmedFixtureRows = [...fixtures]
+    .filter((fixture) => fixture.forest_result !== null)
+    .sort((a, b) => Number(a.gameweek ?? 0) - Number(b.gameweek ?? 0));
+
+  const unityRows = confirmedFixtureRows.filter((fixture) => {
+    const playerCount = toNumber(fixture.team_player_count);
+
+    if (playerCount <= 0) return false;
+
+    return (
+      toNumber(fixture.predicted_w_count) === playerCount ||
+      toNumber(fixture.predicted_d_count) === playerCount ||
+      toNumber(fixture.predicted_l_count) === playerCount
+    );
+  });
+
+  const strongestWinRows = [...confirmedFixtureRows]
+    .filter((fixture) => toNumber(fixture.team_player_count) > 0)
+    .sort((a, b) => {
+      const aWinRate = getTeamPickRate(a.predicted_w_count, a.team_player_count);
+      const bWinRate = getTeamPickRate(b.predicted_w_count, b.team_player_count);
+
+      if (bWinRate !== aWinRate) return bWinRate - aWinRate;
+
+      const aDrawRate = getTeamPickRate(a.predicted_d_count, a.team_player_count);
+      const bDrawRate = getTeamPickRate(b.predicted_d_count, b.team_player_count);
+
+      if (bDrawRate !== aDrawRate) return bDrawRate - aDrawRate;
+
+      return Number(a.gameweek ?? 0) - Number(b.gameweek ?? 0);
+    });
+
+  return (
+    <main className="min-h-dvh w-full overflow-x-hidden overflow-y-auto bg-[var(--nffc-black,#000000)] pb-24 text-white md:hidden">
+      <MobileCeefaxMasthead active="none" />
+
+      <section className="px-0 py-1">
+        <div className="flex items-center gap-2">
+          {team.logo_url ? (
+            <img
+              src={team.logo_url}
+              alt={team.logo_alt ?? teamName}
+              className="h-9 w-9 shrink-0 object-contain"
+            />
+          ) : null}
+
+          <div className="min-w-0">
+            <h1 className="truncate text-[1.75rem] font-black uppercase leading-none tracking-[-0.03em] text-white">
+              {teamName}
+            </h1>
+            <div className="mt-1 truncate text-[0.8rem] font-black uppercase tracking-[0.1em] text-[var(--nffc-red,#e50914)]">
+              Team Terminal
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-2 grid grid-cols-2 gap-px bg-[#242424]">
+          <MobileTeamStat
+            label="Rank"
+            value={formatOrdinal(leaderboard?.team_rank ?? null)}
+          />
+          <MobileTeamStat
+            label="Points"
+            value={formatPoints(leaderboard?.total_team_points)}
+            tone="green"
+          />
+          <MobileTeamStat
+            label="Accuracy"
+            value={formatPercent(summary?.correct_prediction_rate)}
+            tone={toNumber(summary?.correct_prediction_rate) >= 40 ? "green" : "red"}
+          />
+          <MobileTeamStat
+            label="Clean / Blank"
+            value={`${leaderboard?.clean_sweeps ?? 0}/${leaderboard?.blanks ?? 0}`}
+            tone="yellow"
+          />
+        </div>
+      </section>
+
+      <MobileTeamDivider />
+
+      <section>
+        <MobileTeamSectionHeader title="Team Profile" />
+        <div className="grid gap-px bg-[#242424]">
+          <MobileTeamLine
+            label="Profile"
+            value={teamProfile?.prediction_profile ?? "PROFILE TBC"}
+            tone={profileTone(teamProfile?.prediction_profile)}
+          />
+          <MobileTeamLine
+            label="Optimists"
+            value={`${formatOneDecimal(teamProfile?.average_projected_forest_points)} pts`}
+            tone="cyan"
+          />
+          <MobileTeamPickLine
+            label="Forest wins"
+            value={teamProfile?.average_predicted_wins}
+          />
+          <MobileTeamPickLine
+            label="Draw picks"
+            value={teamProfile?.average_predicted_draws}
+            tone="yellow"
+          />
+          <MobileTeamPickLine
+            label="Forest losses"
+            value={teamProfile?.average_predicted_losses}
+            tone="red"
+          />
+        </div>
+      </section>
+
+      <MobileTeamDivider />
+
+      <section>
+        <MobileTeamSectionHeader title="Team Players" />
+        <div className="grid gap-px bg-[#242424]">
+          <div className="grid grid-cols-[30px_minmax(0,1fr)_46px_54px] bg-[var(--nffc-black,#000000)] px-1 py-1 text-[0.56rem] font-black uppercase tracking-[0.08em] text-white">
+            <div className="text-[var(--nffc-red,#e50914)]">Rk</div>
+            <div>Player</div>
+            <div className="text-right">Acc</div>
+            <div className="text-right">Pts</div>
+          </div>
+
+          {sortedPlayers.map((player, index) => (
+            <MobileTeamPlayerRow
+              key={player.player_id}
+              player={player}
+              rank={index + 1}
+            />
+          ))}
+        </div>
+      </section>
+
+      <MobileTeamDivider />
+
+      <section>
+        <MobileTeamSectionHeader title="Scorecard" />
+        <div className="grid gap-px bg-[#242424]">
+          {scoreRows.length ? (
+            scoreRows.map((row) => (
+              <MobileTeamScorecardRow
+                key={`${row.gameweek_label}-${row.opponent_short}`}
+                row={row}
+              />
+            ))
+          ) : (
+            <div className="bg-[var(--nffc-black,#000000)] px-1 py-2 text-[0.72rem] font-black uppercase tracking-[0.08em] text-white">
+              No scored fixtures yet.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <MobileTeamDivider />
+
+      <section>
+        <MobileTeamSectionHeader title="Unity Chart" />
+        <div className="grid gap-px bg-[#242424]">
+          {unityRows.length ? (
+            unityRows.map((fixture) => (
+              <MobileTeamUnityRow
+                key={`${fixture.gameweek_label}-${fixture.opponent_short}-unity`}
+                fixture={fixture}
+              />
+            ))
+          ) : (
+            <div className="bg-[var(--nffc-black,#000000)] px-1 py-2 text-[0.72rem] font-black uppercase tracking-[0.08em] text-white">
+              No full-team unity picks yet.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <MobileTeamDivider />
+
+      <section className="pb-16">
+        <MobileTeamSectionHeader title="Strongest Picks" />
+        <div className="grid gap-px bg-[#242424]">
+          {strongestWinRows.length ? (
+            strongestWinRows.map((fixture) => (
+              <MobileTeamStrongPickRow
+                key={`${fixture.gameweek_label}-${fixture.opponent_short}-wins`}
+                fixture={fixture}
+              />
+            ))
+          ) : (
+            <div className="bg-[var(--nffc-black,#000000)] px-1 py-2 text-[0.72rem] font-black uppercase tracking-[0.08em] text-white">
+              No win picks yet.
+            </div>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+
+function getTeamPickRate(
+  pickCount: number | string | null | undefined,
+  playerCount: number | string | null | undefined
+) {
+  const total = toNumber(playerCount);
+
+  if (total <= 0) return 0;
+
+  return Math.round((toNumber(pickCount) / total) * 100);
+}
+
+function getUnityPick(fixture: TeamPageData["fixtures"][number]) {
+  const playerCount = toNumber(fixture.team_player_count);
+
+  if (playerCount <= 0) return null;
+  if (toNumber(fixture.predicted_w_count) === playerCount) return "W";
+  if (toNumber(fixture.predicted_d_count) === playerCount) return "D";
+  if (toNumber(fixture.predicted_l_count) === playerCount) return "L";
+
+  return null;
+}
+
+function pickTone(pick: "W" | "D" | "L" | null) {
+  if (pick === "W") return "text-[var(--stat-green,#22e55e)]";
+  if (pick === "D") return "text-[var(--stat-yellow,#ffe44d)]";
+  if (pick === "L") return "text-[var(--stat-wrong,#ff3030)]";
+  return "text-white";
+}
+
+function MobileTeamUnityRow({
+  fixture,
+}: {
+  fixture: TeamPageData["fixtures"][number];
+}) {
+  const pick = getUnityPick(fixture);
+  const pickLabel =
+    pick === "W"
+      ? "Forest Win"
+      : pick === "D"
+        ? "Draw"
+        : pick === "L"
+          ? "Forest Loss"
+          : "Mixed";
+
+  return (
+    <div className="grid grid-cols-[48px_minmax(0,1fr)_86px] items-center bg-[var(--nffc-black,#000000)] px-1 py-1">
+      <div className={`text-sm font-black uppercase ${pickTone(pick)}`}>
+        {fixture.gameweek_label}
+      </div>
+
+      <div className="truncate text-sm font-black uppercase text-white">
+        {fixture.opponent_short} <span className="text-white">{fixture.venue}</span>
+      </div>
+
+      <div className={`truncate text-right text-[0.68rem] font-black uppercase ${pickTone(pick)}`}>
+        {pickLabel}
+      </div>
+    </div>
+  );
+}
+
+function MobileTeamStrongPickRow({
+  fixture,
+}: {
+  fixture: TeamPageData["fixtures"][number];
+}) {
+  const winPercentage = getTeamPickRate(
+    fixture.predicted_w_count,
+    fixture.team_player_count
+  );
+  const drawPercentage = getTeamPickRate(
+    fixture.predicted_d_count,
+    fixture.team_player_count
+  );
+  const lossPercentage = Math.max(0, 100 - winPercentage - drawPercentage);
+  const positivePercentage = winPercentage + drawPercentage;
+  const drawIsHighest =
+    drawPercentage > winPercentage && drawPercentage > lossPercentage;
+  const rowTone = drawIsHighest
+    ? "text-[var(--stat-yellow,#ffe44d)]"
+    : positivePercentage >= 50
+      ? "text-[var(--stat-green,#22e55e)]"
+      : "text-[var(--stat-wrong,#ff3030)]";
+
+  return (
+    <div className="grid grid-cols-[48px_minmax(0,1fr)_98px] items-center bg-[var(--nffc-black,#000000)] px-1 py-1">
+      <div className={`text-sm font-black uppercase ${rowTone}`}>
+        {fixture.gameweek_label}
+      </div>
+
+      <div className={`truncate text-sm font-black uppercase ${rowTone}`}>
+        {fixture.opponent_short} <span className={rowTone}>{fixture.venue}</span>
+      </div>
+
+      <div className={`text-right text-[0.68rem] font-black uppercase ${rowTone}`}>
+        W {winPercentage}%
+        <span className="px-0.5 text-[#666666]">/</span>
+        D {drawPercentage}%
+      </div>
+    </div>
+  );
+}
+
+function MobileTeamMiniSubHeader({ title }: { title: string }) {
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] px-1 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] text-[var(--nffc-red,#e50914)]">
+      {title}
+    </div>
+  );
+}
+
+function MobileTeamPlayerRow({
+  player,
+  rank,
+}: {
+  player: TeamPageData["players"][number];
+  rank: number;
+}) {
+  const name = player.short_name ?? player.player_name;
+
+  return (
+    <div className="grid grid-cols-[30px_minmax(0,1fr)_46px_54px] items-center bg-[var(--nffc-black,#000000)] px-1 py-1">
+      <div className="text-sm font-black uppercase text-[var(--nffc-red,#e50914)]">
+        {rank}
+      </div>
+
+      <div className="min-w-0">
+        {player.player_slug ? (
+          <Link
+            href={`/player/${player.player_slug}`}
+            className="block truncate text-[0.82rem] font-black uppercase leading-none text-white"
+          >
+            {name}
+          </Link>
+        ) : (
+          <div className="truncate text-[0.82rem] font-black uppercase leading-none text-white">
+            {name}
+          </div>
+        )}
+      </div>
+
+      <div className="text-right text-[0.72rem] font-black uppercase text-[var(--stat-green,#22e55e)]">
+        {formatPercent(player.accuracy_percentage)}
+      </div>
+
+      <div className="text-right text-sm font-black uppercase text-[var(--stat-green,#22e55e)]">
+        {formatPoints(player.total_points)}
+      </div>
+    </div>
+  );
+}
+
+function MobileTeamScorecardRow({ row }: { row: MobileTeamScoreRow }) {
+  const teamFixturePoints = toNumber(row.team_fixture_points);
+  const scoreTone =
+    teamFixturePoints > 0
+      ? "text-[var(--stat-green,#22e55e)]"
+      : "text-[var(--stat-wrong,#ff3030)]";
+  const correctPlayers = row.playerRows.filter(
+    (player) => player.prediction && player.prediction === player.actual_result
+  );
+  const wrongPlayers = row.playerRows.filter(
+    (player) => player.prediction && player.actual_result && player.prediction !== player.actual_result
+  );
+
+  return (
+    <details className="border-b border-[#242424] bg-[var(--nffc-black,#000000)] px-1 py-1 last:border-b-0">
+      <summary className="grid cursor-pointer list-none grid-cols-[46px_minmax(0,1fr)_34px_48px_20px] items-center gap-1">
+        <div className={`text-sm font-black uppercase ${scoreTone}`}>
+          {row.gameweek_label}
+        </div>
+
+        <div className="truncate text-sm font-black uppercase text-white">
+          {row.opponent_short} <span className="text-white">{row.venue}</span>
+        </div>
+
+        <div className="text-right text-xs font-black uppercase text-[var(--stat-cyan,#59efff)]">
+          {row.overall_team_rank_after_gw ? `#${row.overall_team_rank_after_gw}` : "—"}
+        </div>
+
+        <div className={`text-right text-sm font-black uppercase ${scoreTone}`}>
+          {formatTeamScoreValue(row.team_fixture_points)}
+        </div>
+
+        <div className="text-right text-base font-black text-white">+</div>
+      </summary>
+
+      <div className="mt-1 border-t border-[#242424] pt-1">
+        <div className="mb-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-[#8f8f8f]">
+          Running total{" "}
+          <span className="text-[var(--stat-green,#22e55e)]">
+            {formatTeamScoreValue(row.running_team_points_after_gw)}
+          </span>
+          <span className="px-1 text-[#666666]">/</span>
+          Overall rank{" "}
+          <span className="text-[var(--stat-cyan,#59efff)]">
+            {row.overall_team_rank_after_gw ? `#${row.overall_team_rank_after_gw}` : "—"}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-px bg-[#242424]">
+          <div className="bg-[var(--nffc-black,#000000)] px-1 py-1">
+            <div className="text-[0.58rem] font-black uppercase tracking-[0.08em] text-[var(--stat-green,#22e55e)]">
+              Correct
+            </div>
+            <div className="mt-1 grid gap-0.5">
+              {correctPlayers.length ? (
+                correctPlayers.map((player) => (
+                  <MobileTeamPlayerPick
+                    key={`${player.player_id}-correct-${row.gameweek}`}
+                    player={player}
+                    correct
+                  />
+                ))
+              ) : (
+                <div className="text-[0.62rem] font-black uppercase text-[#8f8f8f]">
+                  None
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-[var(--nffc-black,#000000)] px-1 py-1">
+            <div className="text-[0.58rem] font-black uppercase tracking-[0.08em] text-[var(--stat-wrong,#ff3030)]">
+              Wrong
+            </div>
+            <div className="mt-1 grid gap-0.5">
+              {wrongPlayers.length ? (
+                wrongPlayers.map((player) => (
+                  <MobileTeamPlayerPick
+                    key={`${player.player_id}-wrong-${row.gameweek}`}
+                    player={player}
+                    correct={false}
+                  />
+                ))
+              ) : (
+                <div className="text-[0.62rem] font-black uppercase text-[#8f8f8f]">
+                  None
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function MobileTeamPlayerPick({
+  player,
+  correct,
+}: {
+  player: TeamPlayerWeeklyScoreRow;
+  correct: boolean;
+}) {
+  const name = player.short_name ?? player.player_name;
+
+  return (
+    <div className={`truncate text-[0.62rem] font-black uppercase ${correct ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}`}>
+      {name} / {player.prediction ?? "—"}
+    </div>
+  );
+}
+
+function MobileTeamStat({
+  label,
+  value,
+  tone = "white",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "green" | "yellow" | "red" | "cyan" | "white";
+}) {
+  return (
+    <div className="bg-[var(--nffc-black,#000000)] px-1 py-1.5">
+      <div className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-[#8f8f8f]">
+        {label}
+      </div>
+      <div className={`mt-0.5 truncate text-[0.95rem] font-black uppercase leading-none ${toneClass(tone)}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function MobileTeamLine({
+  label,
+  value,
+  tone = "white",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "green" | "yellow" | "red" | "cyan" | "white";
+}) {
+  return (
+    <div className="grid grid-cols-[112px_minmax(0,1fr)] items-center bg-[var(--nffc-black,#000000)] px-1 py-1">
+      <div className="text-[0.62rem] font-black uppercase tracking-[0.1em] text-[#8f8f8f]">
+        {label}
+      </div>
+      <div className={`truncate text-right text-[0.78rem] font-black uppercase tracking-[0.04em] ${toneClass(tone)}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function MobileTeamPickLine({
+  label,
+  value,
+  tone = "green",
+}: {
+  label: string;
+  value: number | string | null | undefined;
+  tone?: "green" | "yellow" | "red";
+}) {
+  const count = toNumber(value);
+  const percent = count > 0 ? Math.round((count / 38) * 100) : 0;
+
+  return (
+    <MobileTeamLine
+      label={label}
+      value={`${formatOneDecimal(count)} / ${percent}%`}
+      tone={tone}
+    />
+  );
+}
+
+function MobileTeamDivider() {
+  return <div className="my-2 h-[2px] w-full bg-[var(--nffc-red,#e50914)]" />;
+}
+
+function MobileTeamSectionHeader({ title }: { title: string }) {
+  return (
+    <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1.5 py-0.5 text-base font-black uppercase tracking-[0.08em] text-white">
+      {title}
+    </h2>
+  );
+}
+
+function profileTone(profile: string | null | undefined): "green" | "yellow" | "red" | "cyan" | "white" {
+  if (profile === "EUROPE & BEYOND") return "cyan";
+  if (profile === "TOP HALF HOPES") return "green";
+  if (profile === "SAFE & STEADY") return "yellow";
+  if (profile === "SURVIVAL MODE") return "red";
+  return "white";
+}
+
+function formatOrdinal(value: number | string | null | undefined) {
+  const number = Math.round(toNumber(value));
+
+  if (!number) return "—";
+
+  const lastTwo = number % 100;
+  const lastOne = number % 10;
+
+  if (lastTwo >= 11 && lastTwo <= 13) return `${number}th`;
+  if (lastOne === 1) return `${number}st`;
+  if (lastOne === 2) return `${number}nd`;
+  if (lastOne === 3) return `${number}rd`;
+
+  return `${number}th`;
+}
+
+function formatTeamScoreValue(value: number | string | null | undefined) {
+  return toNumber(value).toFixed(2);
+}
+
+function formatOneDecimal(value: number | string | null | undefined) {
+  return toNumber(value).toFixed(1).replace(".0", "");
+}
+
 
 function TerminalStat({
   label,
