@@ -1318,7 +1318,7 @@ function MobileSeasonPointsTally({
   return (
     <section className="mt-4 border-t-2 border-[var(--nffc-red,#e50914)] pt-2">
       <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1 py-1 text-base font-black uppercase tracking-[0.08em] text-white">
-        Season Points Prediction
+        Season Points Tally
       </h2>
 
       <div className="mt-1 grid grid-cols-3 gap-px bg-[#242424]">

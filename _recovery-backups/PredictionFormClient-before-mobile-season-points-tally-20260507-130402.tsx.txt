@@ -916,8 +916,6 @@ export default function PredictionFormClient({
                 </div>
               )}
             </div>
-
-            <MobileSeasonPointsTally projection={projection} />
           </section>
 
           <div className="my-5 h-[2px] w-full bg-[var(--nffc-red,#e50914)]" />
@@ -1286,88 +1284,6 @@ export default function PredictionFormClient({
       </section>
       </main>
     </>
-  );
-}
-
-
-function MobileSeasonPointsTally({
-  projection,
-}: {
-  projection: Record<string, unknown>;
-}) {
-  const actualPoints = Number(
-    projection.actual_points_so_far ??
-      projection.actualPointsSoFar ??
-      projection.actual_points ??
-      0
-  );
-
-  const futurePoints = Number(
-    projection.remaining_predicted_points ??
-      projection.remainingPredictedPoints ??
-      projection.remaining_points_predicted ??
-      0
-  );
-
-  const totalPoints = Number(
-    projection.total_now_predicted ??
-      projection.totalNowPredicted ??
-      actualPoints + futurePoints
-  );
-
-  return (
-    <section className="mt-4 border-t-2 border-[var(--nffc-red,#e50914)] pt-2">
-      <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1 py-1 text-base font-black uppercase tracking-[0.08em] text-white">
-        Season Points Prediction
-      </h2>
-
-      <div className="mt-1 grid grid-cols-3 gap-px bg-[#242424]">
-        <MobileTallyCell
-          label="Actual"
-          value={`${formatPoints(actualPoints)} pts`}
-        />
-        <MobileTallyCell
-          label="Predicted"
-          value={`${formatPoints(futurePoints)} pts`}
-        />
-        <MobileTallyCell
-          label="Total"
-          value={`${formatPoints(totalPoints)} pts`}
-          tone="green"
-        />
-      </div>
-
-      <div className="mt-px bg-[var(--nffc-black,#000000)] px-1 py-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-white">
-        Forest actual points + remaining predictions
-      </div>
-    </section>
-  );
-}
-
-function MobileTallyCell({
-  label,
-  value,
-  tone = "white",
-}: {
-  label: string;
-  value: string;
-  tone?: "green" | "white";
-}) {
-  return (
-    <div className="bg-[var(--nffc-black,#000000)] px-1 py-1.5">
-      <div className="text-[0.56rem] font-black uppercase tracking-[0.12em] text-[#8f8f8f]">
-        {label}
-      </div>
-      <div
-        className={`mt-0.5 text-[0.95rem] font-black uppercase leading-none ${
-          tone === "green"
-            ? "text-[var(--stat-green,#22e55e)]"
-            : "text-white"
-        }`}
-      >
-        {value}
-      </div>
-    </div>
   );
 }
 
