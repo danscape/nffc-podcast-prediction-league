@@ -977,7 +977,7 @@ function MobileTeamProfilePage({
             tone={profileTone(teamProfile?.prediction_profile)}
           />
           <MobileTeamLine
-            label="Points Predicted"
+            label="Prediction Points"
             value={`${formatWholeNumber(teamProfile?.average_projected_forest_points)} pts`}
             tone="cyan"
           />
