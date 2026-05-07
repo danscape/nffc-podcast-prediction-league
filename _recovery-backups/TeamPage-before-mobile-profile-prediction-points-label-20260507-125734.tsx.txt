@@ -977,8 +977,8 @@ function MobileTeamProfilePage({
             tone={profileTone(teamProfile?.prediction_profile)}
           />
           <MobileTeamLine
-            label="Prediction Points"
-            value={`${formatWholeNumber(teamProfile?.average_projected_forest_points)} pts`}
+            label="Optimists"
+            value={`${formatOneDecimal(teamProfile?.average_projected_forest_points)} pts`}
             tone="cyan"
           />
           <MobileTeamPickLine
@@ -1444,10 +1444,6 @@ function formatOrdinal(value: number | string | null | undefined) {
   if (lastOne === 3) return `${number}rd`;
 
   return `${number}th`;
-}
-
-function formatWholeNumber(value: number | string | null | undefined) {
-  return String(Math.round(toNumber(value)));
 }
 
 function formatTeamScoreValue(value: number | string | null | undefined) {

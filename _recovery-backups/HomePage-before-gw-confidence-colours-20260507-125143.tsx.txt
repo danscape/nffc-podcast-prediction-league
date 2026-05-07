@@ -87,6 +87,7 @@ type InFormPlayer = {
 type InFormPlayerViewRow = {
   player_id: string;
   player_name: string;
+  points: number;
   fixtures_count: number | null;
   from_gameweek: number | null;
   to_gameweek: number | null;
@@ -103,6 +104,7 @@ type InFormTeam = {
 type InFormTeamViewRow = {
   team_id: string;
   team_name: string;
+  points: number;
   fixtures_count: number | null;
   from_gameweek: number | null;
   to_gameweek: number | null;
@@ -792,20 +794,7 @@ export default async function HomePage() {
   const inFormPlayer: InFormPlayer = inFormPlayerRow
     ? {
         playerName: inFormPlayerRow.player_name,
-        points: Number(
-          (inFormPlayerRow as InFormPlayerViewRow & {
-            points?: number | string | null;
-            total_points?: number | string | null;
-            form_points?: number | string | null;
-          }).points ??
-            (inFormPlayerRow as InFormPlayerViewRow & {
-              total_points?: number | string | null;
-            }).total_points ??
-            (inFormPlayerRow as InFormPlayerViewRow & {
-              form_points?: number | string | null;
-            }).form_points ??
-            0
-        ),
+        points: Number(inFormPlayerRow.points ?? 0),
         fixturesCount: inFormPlayerRow.fixtures_count,
         fromGameweek: inFormPlayerRow.from_gameweek,
         toGameweek: inFormPlayerRow.to_gameweek,
@@ -818,24 +807,7 @@ export default async function HomePage() {
   const inFormTeam: InFormTeam = inFormTeamRow
     ? {
         teamName: inFormTeamRow.team_name,
-        points: Number(
-          (inFormTeamRow as InFormTeamViewRow & {
-            points?: number | string | null;
-            total_points?: number | string | null;
-            form_points?: number | string | null;
-            team_points?: number | string | null;
-          }).points ??
-            (inFormTeamRow as InFormTeamViewRow & {
-              total_points?: number | string | null;
-            }).total_points ??
-            (inFormTeamRow as InFormTeamViewRow & {
-              form_points?: number | string | null;
-            }).form_points ??
-            (inFormTeamRow as InFormTeamViewRow & {
-              team_points?: number | string | null;
-            }).team_points ??
-            0
-        ),
+        points: Number(inFormTeamRow.points ?? 0),
         fixturesCount: inFormTeamRow.fixtures_count,
         fromGameweek: inFormTeamRow.from_gameweek,
         toGameweek: inFormTeamRow.to_gameweek,
@@ -1151,37 +1123,28 @@ function MobileGwConfidenceSection({
 
       <div className="grid gap-px bg-[#242424]">
         {confidenceRows.length ? (
-          confidenceRows.map((row) => {
-            const rowTone =
-              Number(row.forest_win_percent ?? 0) > 50
-                ? "text-[var(--stat-green,#22e55e)]"
-                : Number(row.forest_loss_percent ?? 0) > 50
-                  ? "text-[var(--stat-wrong,#ff3030)]"
-                  : "text-[var(--stat-yellow,#ffe44d)]";
-
-            return (
-              <div
-                key={`${row.fixture_id}-mobile-confidence`}
-                className={`grid grid-cols-[46px_minmax(0,1fr)_112px] items-center bg-[var(--nffc-black,#000000)] px-1 py-1 ${rowTone}`}
-              >
-                <div className="text-sm font-black uppercase">
-                  {row.gameweek_label}
-                </div>
-
-                <div className="truncate text-sm font-black uppercase">
-                  {row.opponent_short} <span>{row.venue}</span>
-                </div>
-
-                <div className="text-right text-[0.62rem] font-black uppercase">
-                  W {formatPercent(row.forest_win_percent)}
-                  <span className="px-0.5 text-[#666666]">/</span>
-                  D {formatPercent(row.draw_percent)}
-                  <span className="px-0.5 text-[#666666]">/</span>
-                  L {formatPercent(row.forest_loss_percent)}
-                </div>
+          confidenceRows.map((row) => (
+            <div
+              key={`${row.fixture_id}-mobile-confidence`}
+              className="grid grid-cols-[46px_minmax(0,1fr)_112px] items-center bg-[var(--nffc-black,#000000)] px-1 py-1 text-white"
+            >
+              <div className="text-sm font-black uppercase text-white">
+                {row.gameweek_label}
               </div>
-            );
-          })
+
+              <div className="truncate text-sm font-black uppercase text-white">
+                {row.opponent_short} <span className="text-white">{row.venue}</span>
+              </div>
+
+              <div className="text-right text-[0.62rem] font-black uppercase text-white">
+                W {formatPercent(row.forest_win_percent)}
+                <span className="px-0.5 text-[#666666]">/</span>
+                D {formatPercent(row.draw_percent)}
+                <span className="px-0.5 text-[#666666]">/</span>
+                L {formatPercent(row.forest_loss_percent)}
+              </div>
+            </div>
+          ))
         ) : (
           <div className="bg-[var(--nffc-black,#000000)] px-1 py-2 text-[0.72rem] font-black uppercase tracking-[0.08em] text-white">
             No confidence data available.

@@ -792,20 +792,7 @@ export default async function HomePage() {
   const inFormPlayer: InFormPlayer = inFormPlayerRow
     ? {
         playerName: inFormPlayerRow.player_name,
-        points: Number(
-          (inFormPlayerRow as InFormPlayerViewRow & {
-            points?: number | string | null;
-            total_points?: number | string | null;
-            form_points?: number | string | null;
-          }).points ??
-            (inFormPlayerRow as InFormPlayerViewRow & {
-              total_points?: number | string | null;
-            }).total_points ??
-            (inFormPlayerRow as InFormPlayerViewRow & {
-              form_points?: number | string | null;
-            }).form_points ??
-            0
-        ),
+        points: Number(inFormPlayerRow.points ?? 0),
         fixturesCount: inFormPlayerRow.fixtures_count,
         fromGameweek: inFormPlayerRow.from_gameweek,
         toGameweek: inFormPlayerRow.to_gameweek,
@@ -818,24 +805,7 @@ export default async function HomePage() {
   const inFormTeam: InFormTeam = inFormTeamRow
     ? {
         teamName: inFormTeamRow.team_name,
-        points: Number(
-          (inFormTeamRow as InFormTeamViewRow & {
-            points?: number | string | null;
-            total_points?: number | string | null;
-            form_points?: number | string | null;
-            team_points?: number | string | null;
-          }).points ??
-            (inFormTeamRow as InFormTeamViewRow & {
-              total_points?: number | string | null;
-            }).total_points ??
-            (inFormTeamRow as InFormTeamViewRow & {
-              form_points?: number | string | null;
-            }).form_points ??
-            (inFormTeamRow as InFormTeamViewRow & {
-              team_points?: number | string | null;
-            }).team_points ??
-            0
-        ),
+        points: Number(inFormTeamRow.points ?? 0),
         fixturesCount: inFormTeamRow.fixtures_count,
         fromGameweek: inFormTeamRow.from_gameweek,
         toGameweek: inFormTeamRow.to_gameweek,

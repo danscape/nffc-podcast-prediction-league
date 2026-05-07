@@ -8,32 +8,13 @@ type TeamLeaderboardRow = {
   team_name: string;
   display_name: string | null;
   slug?: string | null;
-  x_handle?: string | null;
-
   total_team_points: number | null;
   points_this_week?: number | null;
-  clean_sweeps?: number | null;
-  blanks?: number | null;
-  best_player_accuracy_percentage?: number | null;
-
   team_rank?: number | null;
   rank?: number | null;
   position?: number | null;
-  team_rank_change?: number | null;
-
   logo_url?: string | null;
   logo_alt?: string | null;
-  brand_colour?: string | null;
-
-  mvp_player_id?: string | null;
-  mvp_player_name?: string | null;
-  mvp_short_name?: string | null;
-  mvp_accuracy_percentage?: number | null;
-
-  latest_gameweek?: number | null;
-  latest_gameweek_label?: string | null;
-  latest_opponent_short?: string | null;
-
   average_projected_forest_points?: number | null;
   average_predicted_wins?: number | null;
   average_predicted_draws?: number | null;
