@@ -29,6 +29,7 @@ type ReminderSendResult = {
   sentCount?: number;
   failedCount?: number;
   dryRun?: boolean;
+  manualGameweek?: number | null;
   reminders?: ReminderRow[];
   sent?: {
     player: string;
@@ -58,6 +59,7 @@ function formatDateTime(value: string | null) {
 export default function AdminRemindersPage() {
   const [loading, setLoading] = useState(false);
   const [lastAction, setLastAction] = useState<"dry-run" | "send" | null>(null);
+  const [manualGameweek, setManualGameweek] = useState("36");
   const [result, setResult] = useState<ReminderSendResult | null>(null);
   const [message, setMessage] = useState<{
     type: "success" | "error" | "info";
@@ -69,7 +71,7 @@ export default function AdminRemindersPage() {
     return data.session?.access_token ?? null;
   }
 
-  async function runReminderCheck(dryRun: boolean) {
+  async function runReminderCheck(dryRun: boolean, selectedGameweek?: number | null) {
     setLoading(true);
     setLastAction(dryRun ? "dry-run" : "send");
     setResult(null);
@@ -100,6 +102,7 @@ export default function AdminRemindersPage() {
         headers,
         body: JSON.stringify({
           dryRun,
+          ...(selectedGameweek ? { manualGameweek: selectedGameweek } : {}),
         }),
       });
 
@@ -141,6 +144,33 @@ export default function AdminRemindersPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function getManualGameweekNumber() {
+    const parsed = Number.parseInt(manualGameweek, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+
+  async function runManualGameweekCheck(dryRun: boolean) {
+    const selectedGameweek = getManualGameweekNumber();
+
+    if (!selectedGameweek) {
+      setMessage({
+        type: "error",
+        text: "Enter a valid GW number before running a manual reminder send.",
+      });
+      return;
+    }
+
+    if (!dryRun) {
+      const confirmed = window.confirm(
+        `Send live reminder emails for GW${selectedGameweek}? This will email players who have not already been logged for this fixture.`
+      );
+
+      if (!confirmed) return;
+    }
+
+    await runReminderCheck(dryRun, selectedGameweek);
   }
 
   const dueReminders = result?.reminders ?? [];
@@ -230,6 +260,56 @@ export default function AdminRemindersPage() {
 
           <div className="mt-5 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
             Reminder window: scheduled Premier League fixtures with kick-off roughly 47–48 hours away. Each player should receive only one reminder per fixture.
+          </div>
+        </section>
+
+        <section className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-6">
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div>
+              <h2 className="text-2xl font-black uppercase">
+                Manual GW reminder send
+              </h2>
+              <p className="mt-1 text-sm text-[var(--nffc-muted,#a7a7a7)]">
+                Use this when the scheduled window says no emails are due, but you need to send reminders for a specific gameweek. The live send still checks the reminder log to prevent duplicate emails.
+              </p>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-[120px_1fr_1fr]">
+              <label className="block">
+                <span className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-[#C8102E]">
+                  GW
+                </span>
+                <input
+                  type="number"
+                  min="1"
+                  value={manualGameweek}
+                  onChange={(event) => setManualGameweek(event.target.value)}
+                  className="w-full rounded-none border border-[#444444] bg-[var(--nffc-black,#000000)] px-3 py-3 text-sm font-black uppercase text-white outline-none focus:border-[#C8102E]"
+                />
+              </label>
+
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => runManualGameweekCheck(true)}
+                className="self-end rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading && lastAction === "dry-run" ? "Checking…" : "Dry run GW"}
+              </button>
+
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => runManualGameweekCheck(false)}
+                className="self-end rounded-full bg-[#C8102E] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#111111] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading && lastAction === "send" ? "Sending…" : "Send GW reminders"}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-none border border-[#C8102E] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-white">
+            Manual send bypasses the Wednesday scheduled check, but it does not bypass duplicate protection. Players already recorded in email_reminder_log for that fixture will be skipped.
           </div>
         </section>
 
