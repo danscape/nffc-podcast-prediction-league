@@ -19,6 +19,8 @@ type DueReminder = {
   venue: "H" | "A";
   kickoff_at: string | null;
   prediction_lock_at: string | null;
+  reminder_window_start?: string | null;
+  reminder_window_end?: string | null;
   player_id: string;
   legacy_code: string;
   player_name: string;
@@ -720,6 +722,9 @@ export async function POST(request: Request) {
               player_id: reminder.player_id,
               email: reminder.email,
               reminder_type: "fixture_prediction_reminder",
+              reminder_window_start: reminder.reminder_window_start ?? null,
+              reminder_window_end: reminder.reminder_window_end ?? null,
+              gmail_message_id: messageId ?? null,
             });
 
           if (logError) {
