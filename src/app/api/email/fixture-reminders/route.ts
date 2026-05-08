@@ -428,77 +428,122 @@ async function sendReminderEmail({
     },
   });
 
+  const deadlineText = formatDateTime(reminder.prediction_lock_at);
+  const fixtureText = `${reminder.gameweek_label} — Forest ${
+    reminder.venue === "H" ? "v" : "at"
+  } ${reminder.opponent_short}`;
+
   const html = `
-    <div style="margin: 0; padding: 0; background: #ffffff;">
-      <div style="max-width: 680px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; color: #111111; background: #ffffff;">
-        <div style="background: #ffffff; border: 1px solid #D9D6D1; border-radius: 18px; padding: 22px;">
+    <div style="margin:0;padding:0;background:#000000;">
+      <div style="max-width:720px;margin:0 auto;padding:10px;background:#000000;font-family:Arial,Helvetica,sans-serif;color:#ffffff;">
+        <div style="border:1px solid #333333;background:#000000;">
           ${
             testMode
-              ? `<div style="background: #FFF1F2; border: 1px solid #F5C2CB; color: #C8102E; border-radius: 14px; padding: 12px; margin: 0 0 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px;">
-                  Test send only — this email has not been logged as the real fixture reminder.
+              ? `<div style="background:#C8102E;color:#ffffff;padding:8px 10px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;">
+                  TEST SEND ONLY — NOT LOGGED AS LIVE REMINDER
                 </div>`
               : ""
           }
 
-          <div style="font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 900; color: #C8102E; border-bottom: 2px solid #C8102E; display: inline-block; padding-bottom: 6px;">
+          <div style="background:#C8102E;color:#ffffff;padding:10px 12px;font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;">
             NFFC Podcast Prediction League
           </div>
 
-          <h1 style="margin: 16px 0 8px; color: #C8102E; font-size: 28px; line-height: 1.1;">
-            ${escapeHtml(reminder.gameweek_label)} prediction reminder
-          </h1>
-
-          <p style="margin: 0 0 16px; line-height: 1.5; color: #111111;">
-            ${escapeHtml(playerName)}, Forest's next Premier League fixture is coming up.
-          </p>
-
-          <div style="background: #ffffff; border: 1px solid #D9D6D1; border-radius: 14px; padding: 14px; margin: 16px 0;">
-            <p style="margin: 0; color: #111111;"><strong>Player:</strong> ${escapeHtml(playerName)}</p>
-            <p style="margin: 6px 0 0; color: #111111;"><strong>Team:</strong> ${escapeHtml(teamName)}</p>
-            <p style="margin: 6px 0 0; color: #111111;"><strong>Next fixture:</strong> ${escapeHtml(reminder.gameweek_label)} — ${escapeHtml(reminder.opponent_short)} ${escapeHtml(reminder.venue)}</p>
-            <p style="margin: 6px 0 0; color: #111111;"><strong>Kick-off:</strong> ${escapeHtml(formatDateTime(reminder.kickoff_at))}</p>
-            <p style="margin: 6px 0 0; color: #111111;"><strong>Prediction lock:</strong> ${escapeHtml(formatDateTime(reminder.prediction_lock_at))}</p>
+          <div style="padding:12px;border-bottom:1px solid #333333;">
+            <div style="font-size:34px;line-height:0.95;font-weight:900;text-transform:uppercase;letter-spacing:-0.04em;color:#ffffff;">
+              ${escapeHtml(reminder.gameweek_label)} Deadline Reminder
+            </div>
+            <div style="margin-top:8px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#FFE44D;">
+              Deadline: ${escapeHtml(deadlineText)}
+            </div>
           </div>
 
-          <p style="margin: 18px 0;">
-            <a href="${escapeHtml(predictionUrl)}" style="display: inline-block; background: #111111; color: #ffffff; text-decoration: none; font-weight: 900; padding: 12px 18px; border-radius: 999px;">
-              Review or update your predictions
-            </a>
-          </p>
-
-          <h2 style="margin: 24px 0 10px; font-size: 20px; color: #111111;">
-            Current remaining predictions
-          </h2>
-
-          <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #111111;">
-            <thead>
-              <tr style="background: #111111; color: #ffffff;">
-                <th style="text-align: left; padding: 8px;">GW</th>
-                <th style="text-align: left; padding: 8px;">Fixture</th>
-                <th style="text-align: left; padding: 8px;">Pick</th>
-                <th style="text-align: left; padding: 8px;">Meaning</th>
-                <th style="text-align: left; padding: 8px;">Kick-off</th>
+          <div style="padding:12px;border-bottom:1px solid #333333;">
+            <table role="presentation" style="width:100%;border-collapse:collapse;color:#ffffff;font-size:13px;text-transform:uppercase;font-weight:900;">
+              <tr>
+                <td style="padding:5px 0;color:#C8102E;width:135px;">Player</td>
+                <td style="padding:5px 0;color:#ffffff;">${escapeHtml(playerName)}</td>
               </tr>
-            </thead>
-            <tbody>
-              ${buildPredictionRows(predictionData.predictions)}
-            </tbody>
-          </table>
+              <tr>
+                <td style="padding:5px 0;color:#C8102E;">Team</td>
+                <td style="padding:5px 0;color:#ffffff;">${escapeHtml(teamName)}</td>
+              </tr>
+              <tr>
+                <td style="padding:5px 0;color:#C8102E;">Fixture</td>
+                <td style="padding:5px 0;color:#ffffff;">${escapeHtml(fixtureText)}</td>
+              </tr>
+              <tr>
+                <td style="padding:5px 0;color:#C8102E;">Kick-off</td>
+                <td style="padding:5px 0;color:#ffffff;">${escapeHtml(formatDateTime(reminder.kickoff_at))}</td>
+              </tr>
+            </table>
+          </div>
 
-          ${buildEmailSnapshotLeaderboardsBlock({
-            individualRows,
-            teamRows,
-            targetPlayerId: reminder.player_id,
-            targetTeamName: teamName,
-          })}
+          <div style="padding:12px;border-bottom:1px solid #333333;">
+            <div style="background:#C8102E;color:#ffffff;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+              Update Your Predictions
+            </div>
+            <div style="padding:12px 0 0;">
+              <a href="${escapeHtml(predictionUrl)}" style="display:inline-block;background:#000000;border:2px solid #22E55E;color:#22E55E;text-decoration:none;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;padding:11px 14px;">
+                Open Prediction Terminal
+              </a>
+            </div>
+          </div>
 
-          <p style="margin: 20px 0 0;">
-            <a href="${escapeHtml(leaderboardsUrl)}" style="display: inline-block; background: #C8102E; color: #ffffff; text-decoration: none; font-weight: 900; padding: 12px 18px; border-radius: 999px;">
-              View full leaderboards
+          <div style="padding:12px;border-bottom:1px solid #333333;">
+            <div style="background:#C8102E;color:#ffffff;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+              Your Current Remaining Predictions
+            </div>
+
+            <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12px;color:#ffffff;text-transform:uppercase;font-weight:900;">
+              <thead>
+                <tr style="border-bottom:1px solid #C8102E;">
+                  <th style="text-align:left;padding:7px 5px;color:#ffffff;">GW</th>
+                  <th style="text-align:left;padding:7px 5px;color:#ffffff;">Fixture</th>
+                  <th style="text-align:left;padding:7px 5px;color:#ffffff;">Pick</th>
+                  <th style="text-align:left;padding:7px 5px;color:#ffffff;">Meaning</th>
+                  <th style="text-align:left;padding:7px 5px;color:#ffffff;">Kick-off</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${buildPredictionRows(predictionData.predictions)}
+              </tbody>
+            </table>
+          </div>
+
+          <div style="padding:12px;border-bottom:1px solid #333333;">
+            <div style="background:#C8102E;color:#ffffff;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+              Leaderboard Snapshot
+            </div>
+
+            <div style="margin-top:8px;">
+              ${buildEmailSnapshotLeaderboardsBlock({
+                individualRows,
+                teamRows,
+                targetPlayerId: reminder.player_id,
+                targetTeamName: teamName,
+              })}
+            </div>
+          </div>
+
+          <div style="padding:12px;border-bottom:1px solid #333333;">
+            <div style="background:#C8102E;color:#ffffff;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+              Latest News Snapshot
+            </div>
+            <div style="padding:9px 0 0;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#ffffff;line-height:1.5;">
+              Full Ceefax news panel coming next: in-form player, in-form team, latest average season points and overall accuracy.
+            </div>
+          </div>
+
+          <div style="padding:12px;">
+            <a href="${escapeHtml(leaderboardsUrl)}" style="display:inline-block;background:#C8102E;color:#ffffff;text-decoration:none;font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;padding:10px 13px;">
+              View Full Leaderboards
             </a>
-          </p>
+          </div>
 
-          ${buildEmailSignoffHtml()}
+          <div style="padding:0 12px 12px;">
+            ${buildEmailSignoffHtml()}
+          </div>
         </div>
       </div>
     </div>
@@ -507,32 +552,32 @@ async function sendReminderEmail({
   const text = [
     "NFFC Podcast Prediction League",
     "",
-    `${reminder.gameweek_label} prediction reminder`,
-    "",
-    `${playerName}, Forest's next Premier League fixture is coming up.`,
+    `${reminder.gameweek_label} Deadline Reminder`,
+    `Deadline: ${deadlineText}`,
     "",
     `Player: ${playerName}`,
     `Team: ${teamName}`,
-    `Next fixture: ${reminder.gameweek_label} — ${reminder.opponent_short} ${reminder.venue}`,
+    `Fixture: ${fixtureText}`,
     `Kick-off: ${formatDateTime(reminder.kickoff_at)}`,
-    `Prediction lock: ${formatDateTime(reminder.prediction_lock_at)}`,
     "",
-    `Review or update your predictions: ${predictionUrl}`,
+    `Update your predictions: ${predictionUrl}`,
     "",
     "Current remaining predictions",
     buildPredictionText(predictionData.predictions),
     "",
-    "Your league snapshot",
+    "Player leaderboard snapshot",
     buildEmailIndividualSnapshotText({
       rows: individualRows,
       targetPlayerId: reminder.player_id,
     }),
     "",
-    "Your team snapshot",
+    "Team leaderboard snapshot",
     buildEmailTeamSnapshotText({
       rows: teamRows,
       targetTeamName: teamName,
     }),
+    "",
+    "Latest news snapshot coming next: in-form player, in-form team, average predicted season points and overall accuracy.",
     "",
     `View full leaderboards: ${leaderboardsUrl}`,
     "",
@@ -543,9 +588,7 @@ async function sendReminderEmail({
     from: process.env.EMAIL_FROM ?? `NFFC Stats <${process.env.GMAIL_USER}>`,
     to: reminder.email,
     replyTo: process.env.EMAIL_REPLY_TO ?? process.env.GMAIL_USER,
-    subject: `${testMode ? "[TEST] " : ""}${reminder.gameweek_label} prediction reminder: Forest ${
-      reminder.venue === "H" ? "v" : "at"
-    } ${reminder.opponent_short}`,
+    subject: `${testMode ? "[TEST] " : ""}${reminder.gameweek_label} Deadline Reminder: ${deadlineText}`,
     html,
     text,
   });
