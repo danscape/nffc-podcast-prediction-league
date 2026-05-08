@@ -77,6 +77,7 @@ type PlayerPageData = {
     kickoff_at: string | null;
     prediction: "W" | "D" | "L";
     predicted_forest_points: number;
+    actual_forest_points?: number | null;
     status: string;
     forest_result: "W" | "D" | "L" | null;
   }[];
@@ -229,7 +230,7 @@ function buildPredictionRows(predictions: PlayerPageData["predictions"]) {
   if (!remaining.length) {
     return `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #E7E2DA;" colspan="5">
+        <td style="padding: 8px; border-bottom: 1px solid #E7E2DA;" colspan="4">
           No remaining league predictions.
         </td>
       </tr>
@@ -248,9 +249,6 @@ function buildPredictionRows(predictions: PlayerPageData["predictions"]) {
           </td>
           <td style="padding: 8px; border-bottom: 1px solid #E7E2DA; font-weight: 900; color: #111111;">
             ${escapeHtml(prediction.prediction)}
-          </td>
-          <td style="padding: 8px; border-bottom: 1px solid #E7E2DA; color: #111111;">
-            ${escapeHtml(predictionLabel(prediction.prediction))}
           </td>
           <td style="padding: 8px; border-bottom: 1px solid #E7E2DA; color: #111111;">
             ${escapeHtml(formatDateTime(prediction.kickoff_at))}
@@ -275,9 +273,7 @@ function buildPredictionText(predictions: PlayerPageData["predictions"]) {
     .map((prediction) => {
       return `${prediction.gameweek_label} | ${prediction.opponent_short} ${
         prediction.venue
-      } | ${prediction.prediction} (${predictionLabel(
-        prediction.prediction
-      )}) | ${formatDateTime(prediction.kickoff_at)}`;
+      } | ${prediction.prediction} | ${formatDateTime(prediction.kickoff_at)}`;
     })
     .join("\n");
 }
@@ -387,17 +383,103 @@ async function getManualGameweekReminders({
   };
 }
 
+
+function getRecordNumber(row: Record<string, unknown>, key: string) {
+  const value = Number(row[key] ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getRecordText(row: Record<string, unknown>, keys: string[], fallback = "TBC") {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== null && value !== undefined && String(value).trim()) {
+      return String(value);
+    }
+  }
+
+  return fallback;
+}
+
+function buildLatestNewsSnapshotHtml(snapshot: {
+  inFormPlayerName: string;
+  inFormPlayerPoints: number;
+  inFormTeamName: string;
+  inFormTeamPoints: number;
+  averagePredictedForestPoints: number;
+  latestOverallAccuracy: number;
+}) {
+  return `
+    <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:8px;background:#000000;color:#FFFFFF;font-size:12px;font-weight:900;text-transform:uppercase;">
+      <tr style="border-bottom:1px solid #242424;">
+        <td style="padding:7px 5px;color:#FFE44D;-webkit-text-fill-color:#FFE44D;">In-form player</td>
+        <td style="padding:7px 5px;text-align:right;color:#FFFFFF;-webkit-text-fill-color:#FFFFFF;">${escapeHtml(snapshot.inFormPlayerName)} / ${escapeHtml(Math.round(snapshot.inFormPlayerPoints))} pts</td>
+      </tr>
+      <tr style="border-bottom:1px solid #242424;">
+        <td style="padding:7px 5px;color:#59EFFF;-webkit-text-fill-color:#59EFFF;">In-form team</td>
+        <td style="padding:7px 5px;text-align:right;color:#FFFFFF;-webkit-text-fill-color:#FFFFFF;">${escapeHtml(snapshot.inFormTeamName)} / ${escapeHtml(Math.round(snapshot.inFormTeamPoints))} pts</td>
+      </tr>
+      <tr style="border-bottom:1px solid #242424;">
+        <td style="padding:7px 5px;color:#22E55E;-webkit-text-fill-color:#22E55E;">Avg season points</td>
+        <td style="padding:7px 5px;text-align:right;color:#FFFFFF;-webkit-text-fill-color:#FFFFFF;">${escapeHtml(Math.round(snapshot.averagePredictedForestPoints))} pts</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 5px;color:#FFFFFF;-webkit-text-fill-color:#FFFFFF;">Overall accuracy</td>
+        <td style="padding:7px 5px;text-align:right;color:#22E55E;-webkit-text-fill-color:#22E55E;">${escapeHtml(Math.round(snapshot.latestOverallAccuracy))}%</td>
+      </tr>
+    </table>
+  `;
+}
+
+function buildLatestNewsSnapshotText(snapshot: {
+  inFormPlayerName: string;
+  inFormPlayerPoints: number;
+  inFormTeamName: string;
+  inFormTeamPoints: number;
+  averagePredictedForestPoints: number;
+  latestOverallAccuracy: number;
+}) {
+  return [
+    `In-form player: ${snapshot.inFormPlayerName} / ${Math.round(snapshot.inFormPlayerPoints)} pts`,
+    `In-form team: ${snapshot.inFormTeamName} / ${Math.round(snapshot.inFormTeamPoints)} pts`,
+    `Avg predicted Forest points: ${Math.round(snapshot.averagePredictedForestPoints)} pts`,
+    `Overall accuracy: ${Math.round(snapshot.latestOverallAccuracy)}%`,
+  ].join("\\n");
+}
+
+
+function getSnapshotNumber(value: unknown) {
+  const numericValue = Number(value ?? 0);
+  return Number.isFinite(numericValue) ? numericValue : 0;
+}
+
+function getSnapshotText(value: unknown, fallback = "TBC") {
+  if (value === null || value === undefined) return fallback;
+  const textValue = String(value).trim();
+  return textValue ? textValue : fallback;
+}
+
 async function sendReminderEmail({
   reminder,
   predictionData,
   individualRows,
   teamRows,
+  newsSnapshot,
+  actualForestPointsTotal,
   testMode = false,
 }: {
   reminder: DueReminder;
   predictionData: PlayerPageData;
   individualRows: IndividualLeaderboardRow[];
   teamRows: TeamLeaderboardRow[];
+  newsSnapshot: {
+    inFormPlayerName: string;
+    inFormPlayerPoints: number;
+    inFormTeamName: string;
+    inFormTeamPoints: number;
+    averagePredictedForestPoints: number;
+    latestOverallAccuracy: number;
+  };
+  actualForestPointsTotal: number;
   testMode?: boolean;
 }) {
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
@@ -420,6 +502,33 @@ async function sendReminderEmail({
     reminder.team_display_name ??
     reminder.team_name;
 
+  const currentPlayerLeaderboardRow = individualRows.find(
+    (row) => row.player_id === reminder.player_id
+  ) as Record<string, unknown> | undefined;
+
+  const currentGameScore = getSnapshotNumber(
+    currentPlayerLeaderboardRow?.total_points
+  );
+
+  const remainingPredictedForestPoints = predictionData.predictions.reduce(
+    (total, prediction) => {
+      const isFinished =
+        prediction.status === "finished" ||
+        prediction.status === "confirmed" ||
+        Boolean(prediction.forest_result);
+
+      if (isFinished) return total;
+
+      return total + getSnapshotNumber(prediction.predicted_forest_points);
+    },
+    0
+  );
+
+  const predictedPointsTotal =
+    actualForestPointsTotal + remainingPredictedForestPoints;
+
+
+
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -433,76 +542,116 @@ async function sendReminderEmail({
     reminder.venue === "H" ? "v" : "at"
   } ${reminder.opponent_short}`;
 
-  const html = `
-    <div style="margin:0;padding:0;background:#000000;">
-      <div style="max-width:720px;margin:0 auto;padding:10px;background:#000000;font-family:Arial,Helvetica,sans-serif;color:#ffffff;">
+
+
+  const html = `<!doctype html>
+    <html>
+      <head>
+        <meta name="color-scheme" content="light only">
+        <meta name="supported-color-schemes" content="light only">
+        <style>
+          :root {
+            color-scheme: light only;
+            supported-color-schemes: light only;
+          }
+          body, table, td, div, p, span, a, h1, h2 {
+            color-scheme: light only !important;
+          }
+          .ceefax-white {
+            color: #FFFFFF !important;
+            -webkit-text-fill-color: #FFFFFF !important;
+          }
+          .ceefax-yellow {
+            color: #FFE44D !important;
+            -webkit-text-fill-color: #FFE44D !important;
+          }
+          .ceefax-green {
+            color: #22E55E !important;
+            -webkit-text-fill-color: #22E55E !important;
+          }
+          .ceefax-red {
+            color: #FF4F5E !important;
+            -webkit-text-fill-color: #FF4F5E !important;
+          }
+        </style>
+      </head>
+      <body style="margin:0;padding:0;background:#000000 !important;color:#FFFFFF !important;">
+    <div style="margin:0;padding:0;background:#000000 !important;color:#FFFFFF !important;">
+      <div style="max-width:720px;margin:0 auto;padding:10px;background:#000000;font-family:Arial,Helvetica,sans-serif;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">
         <div style="border:1px solid #333333;background:#000000;">
           ${
             testMode
-              ? `<div style="background:#C8102E;color:#ffffff;padding:8px 10px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;">
+              ? `<div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:8px 10px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;">
                   TEST SEND ONLY — NOT LOGGED AS LIVE REMINDER
                 </div>`
               : ""
           }
 
-          <div style="background:#C8102E;color:#ffffff;padding:10px 12px;font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;">
+          <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:10px 12px;font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;">
             NFFC Podcast Prediction League
           </div>
 
           <div style="padding:12px;border-bottom:1px solid #333333;">
-            <div style="font-size:34px;line-height:0.95;font-weight:900;text-transform:uppercase;letter-spacing:-0.04em;color:#ffffff;">
+            <div style="font-size:34px;line-height:0.95;font-weight:900;text-transform:uppercase;letter-spacing:-0.04em;color:#FFE44D !important;-webkit-text-fill-color:#FFE44D !important;">
               ${escapeHtml(reminder.gameweek_label)} Deadline Reminder
             </div>
-            <div style="margin-top:8px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#FFE44D;">
+            <div style="margin-top:8px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#FFE44D !important;-webkit-text-fill-color:#FFE44D !important;">
               Deadline: ${escapeHtml(deadlineText)}
             </div>
           </div>
 
           <div style="padding:12px;border-bottom:1px solid #333333;">
-            <table role="presentation" style="width:100%;border-collapse:collapse;color:#ffffff;font-size:13px;text-transform:uppercase;font-weight:900;">
+            <table role="presentation" style="width:100%;border-collapse:collapse;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-size:13px;text-transform:uppercase;font-weight:900;">
               <tr>
-                <td style="padding:5px 0;color:#C8102E;width:135px;">Player</td>
-                <td style="padding:5px 0;color:#ffffff;">${escapeHtml(playerName)}</td>
+                <td style="padding:5px 0;color:#FF4F5E !important;-webkit-text-fill-color:#FF4F5E !important;width:135px;">Player</td>
+                <td style="padding:5px 0;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:900;">${escapeHtml(playerName)}</td>
               </tr>
               <tr>
-                <td style="padding:5px 0;color:#C8102E;">Team</td>
-                <td style="padding:5px 0;color:#ffffff;">${escapeHtml(teamName)}</td>
+                <td style="padding:5px 0;color:#FF4F5E !important;-webkit-text-fill-color:#FF4F5E !important;">Team</td>
+                <td style="padding:5px 0;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:900;">${escapeHtml(teamName)}</td>
               </tr>
               <tr>
-                <td style="padding:5px 0;color:#C8102E;">Fixture</td>
-                <td style="padding:5px 0;color:#ffffff;">${escapeHtml(fixtureText)}</td>
+                <td style="padding:5px 0;color:#FF4F5E !important;-webkit-text-fill-color:#FF4F5E !important;">Total Score</td>
+                <td style="padding:5px 0;color:#22E55E !important;-webkit-text-fill-color:#22E55E !important;font-weight:900;">${escapeHtml(Math.round(currentGameScore))} pts</td>
               </tr>
               <tr>
-                <td style="padding:5px 0;color:#C8102E;">Kick-off</td>
-                <td style="padding:5px 0;color:#ffffff;">${escapeHtml(formatDateTime(reminder.kickoff_at))}</td>
+                <td style="padding:5px 0;color:#FF4F5E !important;-webkit-text-fill-color:#FF4F5E !important;">Predicted Points Total</td>
+                <td style="padding:5px 0;color:#22E55E !important;-webkit-text-fill-color:#22E55E !important;font-weight:900;">${escapeHtml(Math.round(predictedPointsTotal))} pts</td>
+              </tr>
+              <tr>
+                <td style="padding:5px 0;color:#FF4F5E !important;-webkit-text-fill-color:#FF4F5E !important;">Fixture</td>
+                <td style="padding:5px 0;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:900;">${escapeHtml(fixtureText)}</td>
+              </tr>
+              <tr>
+                <td style="padding:5px 0;color:#FF4F5E !important;-webkit-text-fill-color:#FF4F5E !important;">Kick-off</td>
+                <td style="padding:5px 0;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:900;">${escapeHtml(formatDateTime(reminder.kickoff_at))}</td>
               </tr>
             </table>
           </div>
 
           <div style="padding:12px;border-bottom:1px solid #333333;">
-            <div style="background:#C8102E;color:#ffffff;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+            <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
               Update Your Predictions
             </div>
             <div style="padding:12px 0 0;">
-              <a href="${escapeHtml(predictionUrl)}" style="display:inline-block;background:#000000;border:2px solid #22E55E;color:#22E55E;text-decoration:none;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;padding:11px 14px;">
+              <a href="${escapeHtml(predictionUrl)}" style="display:inline-block;background:#000000;border:2px solid #22E55E;color:#22E55E !important;-webkit-text-fill-color:#22E55E !important;text-decoration:none;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;padding:11px 14px;">
                 Open Prediction Terminal
               </a>
             </div>
           </div>
 
           <div style="padding:12px;border-bottom:1px solid #333333;">
-            <div style="background:#C8102E;color:#ffffff;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+            <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
               Your Current Remaining Predictions
             </div>
 
-            <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12px;color:#ffffff;text-transform:uppercase;font-weight:900;">
+            <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;text-transform:uppercase;font-weight:900;">
               <thead>
-                <tr style="border-bottom:1px solid #C8102E;">
-                  <th style="text-align:left;padding:7px 5px;color:#ffffff;">GW</th>
-                  <th style="text-align:left;padding:7px 5px;color:#ffffff;">Fixture</th>
-                  <th style="text-align:left;padding:7px 5px;color:#ffffff;">Pick</th>
-                  <th style="text-align:left;padding:7px 5px;color:#ffffff;">Meaning</th>
-                  <th style="text-align:left;padding:7px 5px;color:#ffffff;">Kick-off</th>
+                <tr style="border-bottom:1px solid #E50914;">
+                  <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">GW</th>
+                  <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Fixture</th>
+                  <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Pick</th>
+                  <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Kick-off</th>
                 </tr>
               </thead>
               <tbody>
@@ -512,11 +661,11 @@ async function sendReminderEmail({
           </div>
 
           <div style="padding:12px;border-bottom:1px solid #333333;">
-            <div style="background:#C8102E;color:#ffffff;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+            <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
               Leaderboard Snapshot
             </div>
 
-            <div style="margin-top:8px;">
+            <div style="margin-top:8px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;background:#000000;">
               ${buildEmailSnapshotLeaderboardsBlock({
                 individualRows,
                 teamRows,
@@ -527,16 +676,14 @@ async function sendReminderEmail({
           </div>
 
           <div style="padding:12px;border-bottom:1px solid #333333;">
-            <div style="background:#C8102E;color:#ffffff;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+            <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
               Latest News Snapshot
             </div>
-            <div style="padding:9px 0 0;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#ffffff;line-height:1.5;">
-              Full Ceefax news panel coming next: in-form player, in-form team, latest average season points and overall accuracy.
-            </div>
+            ${buildLatestNewsSnapshotHtml(newsSnapshot)}
           </div>
 
           <div style="padding:12px;">
-            <a href="${escapeHtml(leaderboardsUrl)}" style="display:inline-block;background:#C8102E;color:#ffffff;text-decoration:none;font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;padding:10px 13px;">
+            <a href="${escapeHtml(leaderboardsUrl)}" style="display:inline-block;background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;text-decoration:none;font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;padding:10px 13px;">
               View Full Leaderboards
             </a>
           </div>
@@ -547,6 +694,8 @@ async function sendReminderEmail({
         </div>
       </div>
     </div>
+      </body>
+    </html>
   `;
 
   const text = [
@@ -557,6 +706,8 @@ async function sendReminderEmail({
     "",
     `Player: ${playerName}`,
     `Team: ${teamName}`,
+    `Total score: ${Math.round(currentGameScore)} pts`,
+    `Predicted points total: ${Math.round(predictedPointsTotal)} pts`,
     `Fixture: ${fixtureText}`,
     `Kick-off: ${formatDateTime(reminder.kickoff_at)}`,
     "",
@@ -577,23 +728,27 @@ async function sendReminderEmail({
       targetTeamName: teamName,
     }),
     "",
-    "Latest news snapshot coming next: in-form player, in-form team, average predicted season points and overall accuracy.",
+    "Latest news snapshot",
+    buildLatestNewsSnapshotText(newsSnapshot),
     "",
     `View full leaderboards: ${leaderboardsUrl}`,
     "",
     buildEmailSignoffText(),
   ].join("\n");
 
+  const testEmailOverride = process.env.TEST_REMINDER_EMAIL?.trim();
+  const recipientEmail = testMode && testEmailOverride ? testEmailOverride : reminder.email;
+
   const info = await transporter.sendMail({
     from: process.env.EMAIL_FROM ?? `NFFC Stats <${process.env.GMAIL_USER}>`,
-    to: reminder.email,
+    to: recipientEmail,
     replyTo: process.env.EMAIL_REPLY_TO ?? process.env.GMAIL_USER,
     subject: `${testMode ? "[TEST] " : ""}${reminder.gameweek_label} Deadline Reminder: ${deadlineText}`,
     html,
     text,
   });
 
-  return info.messageId;
+  return { messageId: info.messageId, recipientEmail };
 }
 
 export async function POST(request: Request) {
@@ -637,6 +792,11 @@ export async function POST(request: Request) {
       reminderResult,
       { data: individualData, error: individualError },
       { data: teamData, error: teamError },
+      { data: inFormPlayerData },
+      { data: inFormTeamData },
+      { data: teamProfileData },
+      { data: latestSummaryData },
+      { data: actualForestPointsData },
     ] = await Promise.all([
       manualGameweek
         ? getManualGameweekReminders({ supabase, manualGameweek })
@@ -657,6 +817,15 @@ export async function POST(request: Request) {
         .order("best_player_accuracy_percentage", { ascending: false })
         .order("team_name", { ascending: true })
         .range(0, 1000),
+      supabase.from("in_form_player_last_5").select("*").limit(1),
+      supabase.from("in_form_team_last_5").select("*").limit(1),
+      supabase.from("team_prediction_profiles").select("average_projected_forest_points").range(0, 1000),
+      supabase.from("latest_confirmed_gw_result_summary").select("*").maybeSingle(),
+      supabase
+        .from("fixtures")
+        .select("actual_forest_points")
+        .eq("result_confirmed", true)
+        .range(0, 100),
     ]);
 
     if (individualError || teamError) {
@@ -701,6 +870,60 @@ export async function POST(request: Request) {
     const individualRows = (individualData ?? []) as IndividualLeaderboardRow[];
     const teamRows = (teamData ?? []) as TeamLeaderboardRow[];
 
+    const actualForestPointsTotal = ((actualForestPointsData ?? []) as Record<string, unknown>[]).reduce(
+      (total, fixture) => total + getSnapshotNumber(fixture.actual_forest_points),
+      0
+    );
+
+
+    const inFormPlayerRow = ((inFormPlayerData ?? []) as Record<string, unknown>[])[0] ?? {};
+    const inFormTeamRow = ((inFormTeamData ?? []) as Record<string, unknown>[])[0] ?? {};
+    const teamProfileRows = (teamProfileData ?? []) as Record<string, unknown>[];
+    const latestSummaryRow = (latestSummaryData ?? {}) as Record<string, unknown>;
+
+    const averagePredictedForestPoints =
+      teamProfileRows.length > 0
+        ? teamProfileRows.reduce(
+            (total, row) =>
+              total + getSnapshotNumber(row.average_projected_forest_points),
+            0
+          ) / teamProfileRows.length
+        : 0;
+
+    const latestTotalPredictions = getSnapshotNumber(latestSummaryRow.total_predictions);
+    const latestCorrectCount = getSnapshotNumber(latestSummaryRow.correct_count);
+
+    const serverNewsSnapshot = {
+      inFormPlayerName: getSnapshotText(
+        inFormPlayerRow.player_name ??
+          inFormPlayerRow.short_name ??
+          inFormPlayerRow.table_display_name,
+        "TBC"
+      ),
+      inFormPlayerPoints: getSnapshotNumber(
+        inFormPlayerRow.points ??
+          inFormPlayerRow.total_points ??
+          inFormPlayerRow.form_points ??
+          inFormPlayerRow.points_last_5
+      ),
+      inFormTeamName: getSnapshotText(
+        inFormTeamRow.display_name ?? inFormTeamRow.team_name,
+        "TBC"
+      ),
+      inFormTeamPoints: getSnapshotNumber(
+        inFormTeamRow.points ??
+          inFormTeamRow.total_team_points ??
+          inFormTeamRow.form_points ??
+          inFormTeamRow.points_last_5
+      ),
+      averagePredictedForestPoints,
+      latestOverallAccuracy:
+        latestTotalPredictions > 0
+          ? (latestCorrectCount / latestTotalPredictions) * 100
+          : 0,
+    };
+
+
     if (dryRun) {
       return Response.json({
         success: true,
@@ -719,6 +942,7 @@ export async function POST(request: Request) {
     const sent: {
       player: string;
       email: string;
+      recipientEmail?: string;
       fixture: string;
       messageId?: string;
     }[] = [];
@@ -749,11 +973,13 @@ export async function POST(request: Request) {
           throw new Error("Player prediction data not found.");
         }
 
-        const messageId = await sendReminderEmail({
+        const sendResult = await sendReminderEmail({
           reminder,
           predictionData,
           individualRows,
           teamRows,
+          newsSnapshot: serverNewsSnapshot,
+          actualForestPointsTotal,
           testMode,
         });
 
@@ -767,7 +993,7 @@ export async function POST(request: Request) {
               reminder_type: "fixture_prediction_reminder",
               reminder_window_start: reminder.reminder_window_start ?? null,
               reminder_window_end: reminder.reminder_window_end ?? null,
-              gmail_message_id: messageId ?? null,
+              gmail_message_id: sendResult.messageId ?? null,
             });
 
           if (logError) {
@@ -780,8 +1006,9 @@ export async function POST(request: Request) {
         sent.push({
           player: reminder.player_name,
           email: reminder.email,
+          recipientEmail: sendResult.recipientEmail,
           fixture: `${reminder.gameweek_label} ${reminder.opponent_short} ${reminder.venue}`,
-          messageId,
+          messageId: sendResult.messageId,
         });
       } catch (error) {
         failed.push({
