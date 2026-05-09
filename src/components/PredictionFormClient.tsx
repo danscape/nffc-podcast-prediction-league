@@ -359,6 +359,11 @@ export default function PredictionFormClient({
   });
   const [savingFixtureId, setSavingFixtureId] = useState<string | null>(null);
   const [savingExtraKey, setSavingExtraKey] = useState<string | null>(null);
+  const [unsavedFixtureChanges, setUnsavedFixtureChanges] = useState<Map<string, ChangedFixture>>(
+    () => new Map()
+  );
+  const [savingAllPredictions, setSavingAllPredictions] = useState(false);
+
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -584,7 +589,7 @@ export default function PredictionFormClient({
     }
 
     setEmailMessage({
-      type: "pending",
+      type: "success",
       text: "Confirmation email scheduled. It will send after 3 minutes with no further changes.",
     });
 
@@ -598,7 +603,7 @@ export default function PredictionFormClient({
 
     try {
       setEmailMessage({
-        type: "pending",
+        type: "success",
         text: "Sending confirmation email…",
       });
 
@@ -644,7 +649,22 @@ export default function PredictionFormClient({
     }
   }
 
-  async function updatePrediction(
+  useEffect(() => {
+    if (unsavedFixtureChanges.size === 0) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [unsavedFixtureChanges.size]);
+
+  function updatePrediction(
     fixtureId: string,
     newPrediction: PredictionValue
   ) {
@@ -655,8 +675,8 @@ export default function PredictionFormClient({
     if (!fixture || fixture.is_locked || isConfirmedPrediction(fixture)) return;
     if (fixture.prediction === newPrediction) return;
 
-    const oldPrediction = fixture.prediction;
-    const oldPredictions = predictions;
+    const oldPrediction =
+      unsavedFixtureChanges.get(fixtureId)?.old_prediction ?? fixture.prediction;
 
     setPredictions((current) =>
       current.map((prediction) =>
@@ -670,50 +690,115 @@ export default function PredictionFormClient({
       )
     );
 
-    setSavingFixtureId(fixtureId);
-    setMessage(null);
+    setUnsavedFixtureChanges((current) => {
+      const next = new Map(current);
 
-    const { data, error } = await supabase.rpc("player_update_prediction", {
-      target_token: token,
-      target_fixture_id: fixtureId,
-      new_prediction: newPrediction,
+      if (oldPrediction === newPrediction) {
+        next.delete(fixtureId);
+      } else {
+        next.set(fixtureId, {
+          gameweek: fixture.gameweek,
+          gameweek_label: fixture.gameweek_label,
+          opponent_short: fixture.opponent_short,
+          venue: fixture.venue,
+          old_prediction: oldPrediction,
+          new_prediction: newPrediction,
+        });
+      }
+
+      return next;
     });
-
-    setSavingFixtureId(null);
-
-    if (error) {
-      setPredictions(oldPredictions);
-      setMessage({
-        type: "error",
-        text: "Could not save prediction. Please try again.",
-      });
-      return;
-    }
-
-    const result = data as { success?: boolean; message?: string } | null;
-
-    if (!result?.success) {
-      setPredictions(oldPredictions);
-      setMessage({
-        type: "error",
-        text: result?.message ?? "Could not save prediction.",
-      });
-      return;
-    }
 
     setMessage({
       type: "success",
-      text: "Prediction saved.",
+      text: "Unsaved prediction changes. Use Save Predictions before leaving this page.",
+    });
+  }
+
+  async function savePredictionChanges() {
+    const changes = Array.from(unsavedFixtureChanges.entries());
+
+    if (!changes.length) {
+      setMessage({
+        type: "success",
+        text: "No unsaved prediction changes.",
+      });
+      return;
+    }
+
+    setSavingAllPredictions(true);
+    setMessage({
+      type: "success",
+      text: "Saving prediction changes…",
     });
 
-    scheduleConfirmationEmail({
-      gameweek: fixture.gameweek,
-      gameweek_label: fixture.gameweek_label,
-      opponent_short: fixture.opponent_short,
-      venue: fixture.venue,
-      old_prediction: oldPrediction,
-      new_prediction: newPrediction,
-    });
+    const oldPredictions = predictions;
+
+    try {
+      for (const [fixtureId, change] of changes) {
+        const response = await supabase.rpc("player_update_prediction", {
+          target_token: token,
+          target_fixture_id: fixtureId,
+          new_prediction: change.new_prediction,
+        });
+
+        const result = response.data as { success?: boolean; message?: string } | null;
+
+        if (response.error || !result?.success) {
+          throw new Error(
+            response.error?.message ?? result?.message ?? "Could not save prediction."
+          );
+        }
+      }
+
+      const changedFixtures = changes.map(([, change]) => change);
+
+      const emailResponse = await fetch("/api/email/prediction-confirmation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token,
+          updatedBy: "player",
+          changedFixtures,
+        }),
+      });
+
+      const emailResult = (await emailResponse.json()) as {
+        success?: boolean;
+        message?: string;
+      };
+
+      if (!emailResponse.ok || !emailResult.success) {
+        setMessage({
+          type: "error",
+          text: emailResult.message
+            ? `Predictions saved, but confirmation email failed: ${emailResult.message}`
+            : "Predictions saved, but confirmation email failed.",
+        });
+      } else {
+        setMessage({
+          type: "success",
+          text: "Predictions saved and confirmation email sent.",
+        });
+      }
+
+      setUnsavedFixtureChanges(new Map());
+      pendingChangedFixturesRef.current.clear();
+
+    } catch (error) {
+      setPredictions(oldPredictions);
+      setMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Could not save prediction changes.",
+      });
+    } finally {
+      setSavingAllPredictions(false);
+    }
   }
 
   async function updateCupPrediction(competition: string, newValue: string) {
@@ -885,6 +970,31 @@ export default function PredictionFormClient({
           </section>
 
           <div className="my-2 h-[2px] w-full bg-[var(--nffc-red,#e50914)]" />
+
+          {unsavedFixtureChanges.size > 0 ? (
+            <section className="sticky top-0 z-30 mb-2 border border-[var(--stat-yellow,#ffe44d)] bg-[var(--nffc-black,#000000)] p-2 shadow-[0_0_0_2px_#000000]">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-[0.72rem] font-black uppercase leading-4 tracking-[0.08em] text-[var(--stat-yellow,#ffe44d)]">
+                  Unsaved changes / {unsavedFixtureChanges.size} fixture{unsavedFixtureChanges.size === 1 ? "" : "s"} changed
+                </div>
+
+                <button
+                  type="button"
+                  disabled={savingAllPredictions}
+                  onClick={savePredictionChanges}
+                  className="w-full bg-[var(--nffc-red,#e50914)] px-3 py-2 text-sm font-black uppercase tracking-[0.08em] text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                >
+                  {savingAllPredictions ? "Saving…" : "Save Predictions"}
+                </button>
+              </div>
+            </section>
+          ) : (
+            <section className="mb-2 border border-[#242424] bg-[var(--nffc-black,#000000)] p-2">
+              <div className="text-[0.68rem] font-black uppercase tracking-[0.08em] text-[var(--stat-green,#22e55e)]">
+                Predictions saved
+              </div>
+            </section>
+          )}
 
           <section className="mb-2 mt-2 min-w-0 px-0">
             <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1 py-1 text-base font-black uppercase tracking-[0.08em] text-white">
