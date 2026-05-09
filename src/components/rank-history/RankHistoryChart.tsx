@@ -7,10 +7,14 @@ type RankHistoryPoint = {
 type RankHistoryChartProps = {
   title: string;
   subtitle?: string;
+  subjectName?: string | null;
+  subjectType?: "player" | "team";
   points: RankHistoryPoint[];
   totalGameweeks?: number;
   rankCount?: number;
 };
+
+const GAME_LOGO_SRC = "/brand/nffc-podcast-prediction-league-banner.png";
 
 function formatPoint(value: number | null | undefined) {
   return value === null || value === undefined ? "—" : String(value);
@@ -18,7 +22,9 @@ function formatPoint(value: number | null | undefined) {
 
 export default function RankHistoryChart({
   title,
-  subtitle = "Ranking after each confirmed gameweek.",
+  subtitle = "Rank after each confirmed gameweek.",
+  subjectName,
+  subjectType = "player",
   points,
   totalGameweeks = 38,
   rankCount,
@@ -33,12 +39,90 @@ export default function RankHistoryChart({
     1
   );
 
+  const latestPoint = cleanedPoints[cleanedPoints.length - 1] ?? null;
+  const bestRank = cleanedPoints.length
+    ? Math.min(...cleanedPoints.map((point) => point.rank))
+    : null;
+  const lowestRank = cleanedPoints.length
+    ? Math.max(...cleanedPoints.map((point) => point.rank))
+    : null;
+
+  return (
+    <section className="my-6 w-full bg-[var(--nffc-black,#000000)]">
+      <div className="mx-auto w-full max-w-[1500px] border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]">
+        <div className="bg-[var(--nffc-red,#e50914)] px-3 py-2 text-sm font-black uppercase tracking-[0.14em] text-white md:px-5 md:py-3 md:text-2xl">
+League Position Over Time
+        </div>
+
+        <div className="aspect-[4/5] w-full bg-[var(--nffc-black,#000000)] p-3 md:aspect-[3/2] md:p-5">
+          <div className="grid h-full grid-rows-[auto_auto_1fr] gap-3 md:gap-4">
+            <header className="grid gap-3 md:grid-cols-[1fr_auto] md:items-start">
+              <div className="min-w-0">
+                <div className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-[var(--nffc-muted,#a7a7a7)] md:text-sm">
+                  {subjectType === "team" ? "Team Rank Tracker" : "Player Rank Tracker"}
+                </div>
+
+                <h2 className="mt-1 text-[clamp(2.25rem,14vw,4.9rem)] font-black uppercase leading-[0.88] tracking-[-0.07em] text-[var(--stat-yellow,#ffe44d)] md:text-[clamp(4rem,7vw,7.5rem)]">
+                  {subjectName ?? title}
+                </h2>
+
+                <div className="mt-2 text-[0.7rem] font-black uppercase leading-4 tracking-[0.08em] text-white md:text-lg">
+                  {subtitle}
+                </div>
+              </div>
+
+              <div className="flex justify-start md:justify-end">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={GAME_LOGO_SRC}
+                  alt="NFFC Podcast Prediction League"
+                  className="h-12 w-auto border border-[#242424] bg-black object-contain md:h-16"
+                />
+              </div>
+            </header>
+
+            <div className="grid grid-cols-2 gap-px bg-[#242424] md:grid-cols-4">
+              <MiniStat label="Current" value={formatPoint(latestPoint?.rank)} tone="yellow" />
+              <MiniStat label="Best" value={formatPoint(bestRank)} tone="green" />
+              <MiniStat label="Lowest" value={formatPoint(lowestRank)} tone="red" />
+              <MiniStat label="Tracked GWs" value={String(cleanedPoints.length)} tone="cyan" />
+            </div>
+
+            <div className="min-h-0 border border-[#242424] bg-[var(--nffc-black,#000000)] p-2 md:p-4">
+              {cleanedPoints.length ? (
+                <ResponsiveRankSvg
+                  points={cleanedPoints}
+                  totalGameweeks={totalGameweeks}
+                  highestRankNumber={highestRankNumber}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center text-center text-sm font-black uppercase tracking-[0.12em] text-[var(--nffc-muted,#a7a7a7)]">
+                  No rank history available yet.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ResponsiveRankSvg({
+  points,
+  totalGameweeks,
+  highestRankNumber,
+}: {
+  points: RankHistoryPoint[];
+  totalGameweeks: number;
+  highestRankNumber: number;
+}) {
   const chartWidth = 1200;
-  const chartHeight = 800;
-  const paddingLeft = 64;
-  const paddingRight = 28;
-  const paddingTop = 70;
-  const paddingBottom = 86;
+  const chartHeight = 620;
+  const paddingLeft = 74;
+  const paddingRight = 32;
+  const paddingTop = 58;
+  const paddingBottom = 78;
   const innerWidth = chartWidth - paddingLeft - paddingRight;
   const innerHeight = chartHeight - paddingTop - paddingBottom;
 
@@ -52,7 +136,7 @@ export default function RankHistoryChart({
     return paddingTop + ((rank - 1) / (highestRankNumber - 1)) * innerHeight;
   };
 
-  const pathData = cleanedPoints
+  const pathData = points
     .map((point, index) => {
       const x = xForGameweek(point.gameweek);
       const y = yForRank(point.rank);
@@ -60,21 +144,14 @@ export default function RankHistoryChart({
     })
     .join(" ");
 
-  const latestPoint = cleanedPoints[cleanedPoints.length - 1] ?? null;
-  const bestRank = cleanedPoints.length
-    ? Math.min(...cleanedPoints.map((point) => point.rank))
-    : null;
-  const worstRank = cleanedPoints.length
-    ? Math.max(...cleanedPoints.map((point) => point.rank))
-    : null;
+  const latestPoint = points[points.length - 1] ?? null;
 
-  const xTicks = Array.from({ length: totalGameweeks }, (_, index) => index + 1);
-  const visibleXTicks = xTicks.filter(
+  const visibleXTicks = Array.from({ length: totalGameweeks }, (_, index) => index + 1).filter(
     (gameweek) =>
       gameweek === 1 ||
       gameweek === totalGameweeks ||
-      gameweek % 2 === 0 ||
-      cleanedPoints.some((point) => point.gameweek === gameweek)
+      gameweek % 4 === 0 ||
+      points.some((point) => point.gameweek === gameweek)
   );
 
   const yTicks = Array.from(
@@ -90,161 +167,114 @@ export default function RankHistoryChart({
     .sort((a, b) => a - b);
 
   return (
-    <section className="my-6 w-full bg-[var(--nffc-black,#000000)]">
-      <div className="border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]">
-        <div className="bg-[var(--nffc-red,#e50914)] px-3 py-2 text-xl font-black uppercase tracking-[0.12em] text-white md:px-5 md:py-3 md:text-4xl">
-          {title}
-        </div>
+    <svg
+      viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+      role="img"
+      aria-label="Rank movement chart"
+      className="h-full w-full"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <rect
+        x={paddingLeft}
+        y={paddingTop}
+        width={innerWidth}
+        height={innerHeight}
+        fill="transparent"
+        stroke="#242424"
+        strokeWidth="2"
+      />
 
-        <div className="grid gap-px bg-[#242424] md:grid-cols-[1fr_160px_160px_160px_160px]">
-          <div className="bg-[var(--nffc-black,#000000)] px-3 py-3 md:px-5">
-            <div className="text-xs font-black uppercase tracking-[0.12em] text-[var(--nffc-muted,#a7a7a7)] md:text-sm">
-              {subtitle}
-            </div>
-          </div>
+      {yTicks.map((rank) => {
+        const y = yForRank(rank);
 
-          <MiniStat label="Current Rank" value={formatPoint(latestPoint?.rank)} tone="green" />
-          <MiniStat label="Best Rank" value={formatPoint(bestRank)} tone="yellow" />
-          <MiniStat label="Lowest Rank" value={formatPoint(worstRank)} tone="red" />
-          <MiniStat label="Tracked GWs" value={String(cleanedPoints.length)} tone="cyan" />
-        </div>
-
-        <div className="overflow-x-auto bg-[var(--nffc-black,#000000)] px-2 py-4 md:px-5 md:py-6">
-          {cleanedPoints.length ? (
-            <svg
-              viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-              role="img"
-              aria-label={title}
-              className="aspect-[3/2] min-w-[760px] w-full"
+        return (
+          <g key={`rank-${rank}`}>
+            <line
+              x1={paddingLeft}
+              x2={chartWidth - paddingRight}
+              y1={y}
+              y2={y}
+              stroke="#242424"
+              strokeWidth="2"
+            />
+            <text
+              x={paddingLeft - 16}
+              y={y + 7}
+              textAnchor="end"
+              className="fill-white text-[20px] font-black uppercase"
             >
-              <rect
-                x={paddingLeft}
-                y={paddingTop}
-                width={innerWidth}
-                height={innerHeight}
-                fill="transparent"
-                stroke="#242424"
-                strokeWidth="1"
-              />
+              {rank}
+            </text>
+          </g>
+        );
+      })}
 
-              {yTicks.map((rank) => {
-                const y = yForRank(rank);
+      {visibleXTicks.map((gameweek) => {
+        const x = xForGameweek(gameweek);
+        const isConfirmed = points.some((point) => point.gameweek === gameweek);
 
-                return (
-                  <g key={`rank-${rank}`}>
-                    <line
-                      x1={paddingLeft}
-                      x2={chartWidth - paddingRight}
-                      y1={y}
-                      y2={y}
-                      stroke="#242424"
-                      strokeWidth="1"
-                    />
-                    <text
-                      x={paddingLeft - 14}
-                      y={y + 5}
-                      textAnchor="end"
-                      className="fill-white text-[15px] font-black uppercase"
-                    >
-                      {rank}
-                    </text>
-                  </g>
-                );
-              })}
+        return (
+          <g key={`gw-${gameweek}`}>
+            <line
+              x1={x}
+              x2={x}
+              y1={paddingTop}
+              y2={chartHeight - paddingBottom}
+              stroke={isConfirmed ? "#444444" : "#202020"}
+              strokeWidth="2"
+            />
+            <text
+              x={x}
+              y={chartHeight - 28}
+              textAnchor="middle"
+              className={`text-[18px] font-black uppercase ${
+                isConfirmed ? "fill-white" : "fill-[#666666]"
+              }`}
+            >
+              {gameweek}
+            </text>
+          </g>
+        );
+      })}
 
-              {visibleXTicks.map((gameweek) => {
-                const x = xForGameweek(gameweek);
-                const isConfirmed = cleanedPoints.some(
-                  (point) => point.gameweek === gameweek
-                );
+      <path
+        d={pathData}
+        fill="none"
+        stroke="#22e55e"
+        strokeWidth="9"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
 
-                return (
-                  <g key={`gw-${gameweek}`}>
-                    <line
-                      x1={x}
-                      x2={x}
-                      y1={paddingTop}
-                      y2={chartHeight - paddingBottom}
-                      stroke={isConfirmed ? "#444444" : "#202020"}
-                      strokeWidth="1"
-                    />
-                    <text
-                      x={x}
-                      y={chartHeight - 20}
-                      textAnchor="middle"
-                      className={`text-[13px] font-black uppercase ${
-                        isConfirmed ? "fill-white" : "fill-[#666666]"
-                      }`}
-                    >
-                      {gameweek}
-                    </text>
-                  </g>
-                );
-              })}
+      {points.map((point) => {
+        const x = xForGameweek(point.gameweek);
+        const y = yForRank(point.rank);
+        const isLatest =
+          latestPoint?.gameweek === point.gameweek &&
+          latestPoint?.rank === point.rank;
 
-              <text
-                x={paddingLeft}
-                y={chartHeight - 5}
-                className="fill-[#8f8f8f] text-[12px] font-black uppercase tracking-[0.08em]"
-              >
-                Gameweek
-              </text>
-
-              <text
-                x={8}
-                y={paddingTop + 12}
-                className="fill-[#8f8f8f] text-[12px] font-black uppercase tracking-[0.08em]"
-              >
-                Rank
-              </text>
-
-              <path
-                d={pathData}
-                fill="none"
-                stroke="#22e55e"
-                strokeWidth="6"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-
-              {cleanedPoints.map((point) => {
-                const x = xForGameweek(point.gameweek);
-                const y = yForRank(point.rank);
-                const isLatest =
-                  latestPoint?.gameweek === point.gameweek &&
-                  latestPoint?.rank === point.rank;
-
-                return (
-                  <g key={`${point.gameweek}-${point.rank}`}>
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r={isLatest ? 10 : 7}
-                      fill="#000000"
-                      stroke={isLatest ? "#ffe44d" : "#22e55e"}
-                      strokeWidth={isLatest ? 4 : 3}
-                    />
-                    <text
-                      x={x}
-                      y={Math.max(18, y - 14)}
-                      textAnchor="middle"
-                      className="fill-white text-[14px] font-black uppercase"
-                    >
-                      {point.rank}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-          ) : (
-            <div className="border border-[#242424] px-4 py-6 text-sm font-black uppercase tracking-[0.12em] text-[var(--nffc-muted,#a7a7a7)]">
-              No rank history available yet.
-            </div>
-          )}
-        </div>
-
-      </div>
-    </section>
+        return (
+          <g key={`${point.gameweek}-${point.rank}`}>
+            <circle
+              cx={x}
+              cy={y}
+              r={isLatest ? 15 : 10}
+              fill="#000000"
+              stroke={isLatest ? "#ffe44d" : "#22e55e"}
+              strokeWidth={isLatest ? 6 : 5}
+            />
+            <text
+              x={x}
+              y={Math.max(24, y - 20)}
+              textAnchor="middle"
+              className="fill-white text-[20px] font-black uppercase"
+            >
+              {point.rank}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
@@ -267,11 +297,11 @@ function MiniStat({
           : "text-[var(--stat-cyan,#59efff)]";
 
   return (
-    <div className="bg-[var(--nffc-black,#000000)] px-3 py-3">
-      <div className="text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--nffc-muted,#a7a7a7)]">
+    <div className="bg-[var(--nffc-black,#000000)] px-2 py-2 md:px-3 md:py-3">
+      <div className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-[var(--nffc-muted,#a7a7a7)] md:text-xs">
         {label}
       </div>
-      <div className={`mt-1 text-2xl font-black uppercase leading-none ${toneClass}`}>
+      <div className={`mt-1 text-xl font-black uppercase leading-none md:text-4xl ${toneClass}`}>
         {value}
       </div>
     </div>
