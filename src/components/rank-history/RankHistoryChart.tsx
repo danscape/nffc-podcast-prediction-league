@@ -54,8 +54,8 @@ export default function RankHistoryChart({
 League Position Over Time
         </div>
 
-        <div className="aspect-[4/5] w-full bg-[var(--nffc-black,#000000)] p-3 md:aspect-[3/2] md:p-5">
-          <div className="grid h-full grid-rows-[auto_auto_1fr] gap-3 md:gap-4">
+        <div className="w-full bg-[var(--nffc-black,#000000)] p-3 md:aspect-[3/2] md:p-5">
+          <div className="grid h-auto gap-3 md:h-full md:grid-rows-[auto_auto_1fr] md:gap-4">
             <header className="grid gap-3 md:grid-cols-[1fr_auto] md:items-start">
               <div className="min-w-0">
                 <div className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-[var(--nffc-muted,#a7a7a7)] md:text-sm">
@@ -171,7 +171,7 @@ function ResponsiveRankSvg({
       viewBox={`0 0 ${chartWidth} ${chartHeight}`}
       role="img"
       aria-label="Rank movement chart"
-      className="h-full w-full"
+      className="h-[330px] w-full md:h-full"
       preserveAspectRatio="xMidYMid meet"
     >
       <rect
