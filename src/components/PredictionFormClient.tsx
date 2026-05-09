@@ -1438,56 +1438,27 @@ export default function PredictionFormClient({
 function MobileSeasonPointsTally({
   projection,
 }: {
-  projection: Record<string, unknown>;
+  projection: {
+    actual_points_so_far: number;
+    remaining_predicted_points: number;
+    total_now_predicted: number;
+  };
 }) {
-  const actualPoints = Number(
-    projection.actual_points_so_far ??
-      projection.actualPointsSoFar ??
-      projection.actual_points ??
-      0
-  );
-
-  const futurePoints = Number(
-    projection.remaining_predicted_points ??
-      projection.remainingPredictedPoints ??
-      projection.remaining_points_predicted ??
-      0
-  );
-
-  const totalPoints = Number(
-    projection.total_now_predicted ??
-      projection.totalNowPredicted ??
-      actualPoints + futurePoints
-  );
-
   return (
-    <section className="mt-4 border-t-2 border-[var(--nffc-red,#e50914)] pt-2">
-      <h2 className="box-border w-full bg-[var(--nffc-red,#e50914)] px-1 py-1 text-base font-black uppercase tracking-[0.08em] text-white">
-        Season Points Prediction
-      </h2>
-
-      <div className="mt-1 grid grid-cols-3 gap-px bg-[#242424]">
-        <MobileTallyCell
-          label="Actual"
-          value={`${formatPoints(actualPoints)} pts`}
-        />
-        <MobileTallyCell
-          label="Predicted"
-          value={`${formatPoints(futurePoints)} pts`}
-        />
-        <MobileTallyCell
-          label="Total"
-          value={`${formatPoints(totalPoints)} pts`}
-          tone="green"
-        />
+    <div className="mt-3 border-y border-[#242424] bg-[var(--nffc-black,#000000)] px-1 py-2">
+      <div className="flex items-center justify-between gap-2 text-[0.72rem] font-black uppercase leading-4 tracking-[0.08em] text-white">
+        <span>
+          Actual {formatPoints(projection.actual_points_so_far)} + predicted{" "}
+          {formatPoints(projection.remaining_predicted_points)}
+        </span>
+        <span className="text-base text-[var(--stat-green,#22e55e)]">
+          {formatPoints(projection.total_now_predicted)} pts
+        </span>
       </div>
-
-      <div className="mt-px bg-[var(--nffc-black,#000000)] px-1 py-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-white">
-        Forest actual points + remaining predictions
-      </div>
-    </section>
+    </div>
   );
 }
+
 
 function MobileTallyCell({
   label,
