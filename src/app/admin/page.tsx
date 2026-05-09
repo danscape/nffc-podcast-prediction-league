@@ -19,6 +19,21 @@ type FixtureRow = {
   forest_result: "W" | "D" | "L" | null;
 };
 
+type AuditRow = {
+  id: string;
+  created_at: string;
+  actor_type: string;
+  actor_label: string;
+  target_player_name: string;
+  target_team_name: string | null;
+  fixture_gameweek: number | null;
+  fixture_label: string | null;
+  fixture_opponent_short: string | null;
+  fixture_venue: string | null;
+  old_prediction: string | null;
+  new_prediction: string | null;
+};
+
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -62,6 +77,7 @@ export default async function AdminPage() {
     { data: nextFixtureData, error: nextFixtureError },
     { data: latestFixtureData, error: latestFixtureError },
     { count: cupCompetitionCount, error: cupCompetitionError },
+    { data: auditData, error: auditError },
   ] = await Promise.all([
     supabase
       .from("teams")
@@ -100,6 +116,13 @@ export default async function AdminPage() {
       .from("cup_competitions")
       .select("*", { count: "exact", head: true })
       .eq("active", true),
+    supabase
+      .from("prediction_change_audit")
+      .select(
+        "id, created_at, actor_type, actor_label, target_player_name, target_team_name, fixture_gameweek, fixture_label, fixture_opponent_short, fixture_venue, old_prediction, new_prediction"
+      )
+      .order("created_at", { ascending: false })
+      .limit(8),
   ]);
 
   const errors = [
@@ -111,11 +134,13 @@ export default async function AdminPage() {
     nextFixtureError?.message,
     latestFixtureError?.message,
     cupCompetitionError?.message,
+    auditError?.message,
   ].filter(Boolean);
 
   const completedFixtureCount = completedFixturesData?.length ?? 0;
   const nextFixture = (nextFixtureData?.[0] ?? null) as FixtureRow | null;
   const latestFixture = (latestFixtureData?.[0] ?? null) as FixtureRow | null;
+  const auditRows = (auditData ?? []) as AuditRow[];
 
   const totalPossiblePredictions = (playerCount ?? 0) * (fixtureCount ?? 0);
   const predictionCoverage =
@@ -312,10 +337,102 @@ export default async function AdminPage() {
             </Link>
           </div>
         </section>
+
+        <AuditPreviewPanel rows={auditRows} />
       </section>
     </main>
   );
 }
+
+
+function auditFixtureLabel(row: AuditRow) {
+  return [
+    row.fixture_label ?? (row.fixture_gameweek ? `GW${row.fixture_gameweek}` : "GW?"),
+    row.fixture_opponent_short,
+    row.fixture_venue,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function auditActorTone(actorType: string) {
+  if (actorType === "admin") return "text-[var(--stat-yellow,#ffe44d)]";
+  if (actorType === "player") return "text-[var(--stat-cyan,#59efff)]";
+  if (actorType === "historic") return "text-[var(--stat-orange,#ff9f1c)]";
+  return "text-white";
+}
+
+function AuditPreviewPanel({ rows }: { rows: AuditRow[] }) {
+  return (
+    <section className="mt-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="text-2xl font-black uppercase text-[var(--stat-yellow,#ffe44d)]">
+            Prediction Audit Log
+          </h2>
+          <p className="mt-1 text-sm font-semibold leading-6 text-[var(--nffc-muted,#a7a7a7)]">
+            Latest recorded prediction changes across player and admin saves.
+          </p>
+        </div>
+
+        <Link
+          href="/admin/audit"
+          className="rounded-none border border-[var(--stat-yellow,#ffe44d)] bg-[var(--nffc-black,#000000)] px-5 py-3 text-center text-xs font-black uppercase tracking-wide text-[var(--stat-yellow,#ffe44d)] transition hover:bg-[var(--stat-yellow,#ffe44d)] hover:text-black"
+        >
+          Open full audit log
+        </Link>
+      </div>
+
+      <div className="mt-4 border border-[#242424] bg-[var(--nffc-black,#000000)]">
+        <div className="hidden grid-cols-[160px_120px_minmax(150px,1fr)_minmax(150px,1fr)_150px_70px_70px] border-b border-[var(--nffc-red,#e50914)] text-xs font-black uppercase tracking-[0.12em] text-white xl:grid">
+          <div className="border-r border-[#242424] px-3 py-2">When</div>
+          <div className="border-r border-[#242424] px-3 py-2">Actor</div>
+          <div className="border-r border-[#242424] px-3 py-2">Player</div>
+          <div className="border-r border-[#242424] px-3 py-2">Team</div>
+          <div className="border-r border-[#242424] px-3 py-2">Fixture</div>
+          <div className="border-r border-[#242424] px-3 py-2 text-center">Old</div>
+          <div className="px-3 py-2 text-center">New</div>
+        </div>
+
+        {rows.length ? (
+          rows.map((row) => (
+            <div
+              key={row.id}
+              className="grid gap-px border-b border-[#242424] bg-[#242424] last:border-b-0 xl:grid-cols-[160px_120px_minmax(150px,1fr)_minmax(150px,1fr)_150px_70px_70px] xl:gap-0"
+            >
+              <div className="bg-[var(--nffc-black,#000000)] px-3 py-2 text-xs font-black uppercase tracking-[0.06em] text-white xl:border-r xl:border-[#242424]">
+                {formatDateTime(row.created_at)}
+              </div>
+              <div className={`bg-[var(--nffc-black,#000000)] px-3 py-2 text-xs font-black uppercase tracking-[0.08em] xl:border-r xl:border-[#242424] ${auditActorTone(row.actor_type)}`}>
+                {row.actor_label}
+              </div>
+              <div className="bg-[var(--nffc-black,#000000)] px-3 py-2 text-sm font-black uppercase text-white xl:border-r xl:border-[#242424]">
+                {row.target_player_name}
+              </div>
+              <div className="bg-[var(--nffc-black,#000000)] px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-[var(--nffc-muted,#a7a7a7)] xl:border-r xl:border-[#242424]">
+                {row.target_team_name ?? "—"}
+              </div>
+              <div className="bg-[var(--nffc-black,#000000)] px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-white xl:border-r xl:border-[#242424]">
+                {auditFixtureLabel(row)}
+              </div>
+              <div className="bg-[var(--nffc-black,#000000)] px-3 py-2 text-center text-lg font-black uppercase text-[var(--stat-wrong,#ff3030)] xl:border-r xl:border-[#242424]">
+                {row.old_prediction ?? "—"}
+              </div>
+              <div className="bg-[var(--nffc-black,#000000)] px-3 py-2 text-center text-lg font-black uppercase text-[var(--stat-green,#22e55e)]">
+                {row.new_prediction ?? "—"}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="px-3 py-5 text-sm font-black uppercase tracking-[0.1em] text-[var(--nffc-muted,#a7a7a7)]">
+            No audit rows recorded yet.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 
 function AdminStat({
   label,
