@@ -675,8 +675,9 @@ export default function PredictionFormClient({
     if (!fixture || fixture.is_locked || isConfirmedPrediction(fixture)) return;
     if (fixture.prediction === newPrediction) return;
 
-    const oldPrediction =
-      unsavedFixtureChanges.get(fixtureId)?.old_prediction ?? fixture.prediction;
+    const existingUnsavedChange = unsavedFixtureChanges.get(fixtureId);
+    const originalPrediction =
+      existingUnsavedChange?.old_prediction ?? fixture.prediction;
 
     setPredictions((current) =>
       current.map((prediction) =>
@@ -690,10 +691,12 @@ export default function PredictionFormClient({
       )
     );
 
+    let nextUnsavedCount = 0;
+
     setUnsavedFixtureChanges((current) => {
       const next = new Map(current);
 
-      if (oldPrediction === newPrediction) {
+      if (originalPrediction === newPrediction) {
         next.delete(fixtureId);
       } else {
         next.set(fixtureId, {
@@ -701,18 +704,26 @@ export default function PredictionFormClient({
           gameweek_label: fixture.gameweek_label,
           opponent_short: fixture.opponent_short,
           venue: fixture.venue,
-          old_prediction: oldPrediction,
+          old_prediction: originalPrediction,
           new_prediction: newPrediction,
         });
       }
 
+      nextUnsavedCount = next.size;
       return next;
     });
 
-    setMessage({
-      type: "success",
-      text: "Unsaved prediction changes. Use Save Predictions before leaving this page.",
-    });
+    if (nextUnsavedCount === 0) {
+      setMessage({
+        type: "success",
+        text: "Predictions saved.",
+      });
+    } else {
+      setMessage({
+        type: "success",
+        text: "Unsaved prediction changes. Use Save Predictions before leaving this page.",
+      });
+    }
   }
 
   async function savePredictionChanges() {
