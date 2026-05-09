@@ -48,25 +48,25 @@ export default function RankHistoryChart({
     : null;
 
   return (
-    <section className="my-6 w-full bg-[var(--nffc-black,#000000)]">
+    <section className="my-2 w-full bg-[var(--nffc-black,#000000)] md:my-6">
       <div className="mx-auto w-full max-w-[1500px] border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]">
-        <div className="bg-[var(--nffc-red,#e50914)] px-3 py-2 text-sm font-black uppercase tracking-[0.14em] text-white md:px-5 md:py-3 md:text-2xl">
+        <div className="bg-[var(--nffc-red,#e50914)] px-2 py-1.5 text-xs font-black uppercase tracking-[0.12em] text-white md:px-5 md:py-3 md:text-2xl">
 League Position Over Time
         </div>
 
-        <div className="w-full bg-[var(--nffc-black,#000000)] p-3 md:aspect-[3/2] md:p-5">
-          <div className="grid h-auto gap-3 md:h-full md:grid-rows-[auto_auto_1fr] md:gap-4">
-            <header className="grid gap-3 md:grid-cols-[1fr_auto] md:items-start">
+        <div className="w-full bg-[var(--nffc-black,#000000)] p-2 md:aspect-[3/2] md:p-5">
+          <div className="grid h-auto gap-2 md:h-full md:grid-rows-[auto_auto_1fr] md:gap-4">
+            <header className="grid gap-2 md:grid-cols-[1fr_auto] md:items-start md:gap-3">
               <div className="min-w-0">
-                <div className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-[var(--nffc-muted,#a7a7a7)] md:text-sm">
+                <div className="text-[0.55rem] font-black uppercase tracking-[0.14em] text-[var(--nffc-muted,#a7a7a7)] md:text-sm">
                   {subjectType === "team" ? "Team Rank Tracker" : "Player Rank Tracker"}
                 </div>
 
-                <h2 className="mt-1 text-[clamp(2.25rem,14vw,4.9rem)] font-black uppercase leading-[0.88] tracking-[-0.07em] text-[var(--stat-yellow,#ffe44d)] md:text-[clamp(4rem,7vw,7.5rem)]">
+                <h2 className="mt-0.5 text-[clamp(1.8rem,10vw,3.2rem)] font-black uppercase leading-[0.88] tracking-[-0.07em] text-[var(--stat-yellow,#ffe44d)] md:mt-1 md:text-[clamp(4rem,7vw,7.5rem)]">
                   {subjectName ?? title}
                 </h2>
 
-                <div className="mt-2 text-[0.7rem] font-black uppercase leading-4 tracking-[0.08em] text-white md:text-lg">
+                <div className="mt-1 text-[0.56rem] font-black uppercase leading-3 tracking-[0.06em] text-white md:mt-2 md:text-lg md:leading-6">
                   {subtitle}
                 </div>
               </div>
@@ -76,7 +76,7 @@ League Position Over Time
                 <img
                   src={GAME_LOGO_SRC}
                   alt="NFFC Podcast Prediction League"
-                  className="h-12 w-auto border border-[#242424] bg-black object-contain md:h-16"
+                  className="h-8 w-auto border border-[#242424] bg-black object-contain md:h-16"
                 />
               </div>
             </header>
@@ -88,7 +88,7 @@ League Position Over Time
               <MiniStat label="Tracked GWs" value={String(cleanedPoints.length)} tone="cyan" />
             </div>
 
-            <div className="min-h-0 border border-[#242424] bg-[var(--nffc-black,#000000)] p-2 md:p-4">
+            <div className="min-h-0 border border-[#242424] bg-[var(--nffc-black,#000000)] p-1.5 md:p-4">
               {cleanedPoints.length ? (
                 <ResponsiveRankSvg
                   points={cleanedPoints}
@@ -171,7 +171,7 @@ function ResponsiveRankSvg({
       viewBox={`0 0 ${chartWidth} ${chartHeight}`}
       role="img"
       aria-label="Rank movement chart"
-      className="h-[330px] w-full md:h-full"
+      className="h-[210px] w-full sm:h-[240px] md:h-full"
       preserveAspectRatio="xMidYMid meet"
     >
       <rect
@@ -297,11 +297,11 @@ function MiniStat({
           : "text-[var(--stat-cyan,#59efff)]";
 
   return (
-    <div className="bg-[var(--nffc-black,#000000)] px-2 py-2 md:px-3 md:py-3">
-      <div className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-[var(--nffc-muted,#a7a7a7)] md:text-xs">
+    <div className="bg-[var(--nffc-black,#000000)] px-2 py-1.5 md:px-3 md:py-3">
+      <div className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-[var(--nffc-muted,#a7a7a7)] md:text-xs">
         {label}
       </div>
-      <div className={`mt-1 text-xl font-black uppercase leading-none md:text-4xl ${toneClass}`}>
+      <div className={`mt-0.5 text-base font-black uppercase leading-none md:mt-1 md:text-4xl ${toneClass}`}>
         {value}
       </div>
     </div>
