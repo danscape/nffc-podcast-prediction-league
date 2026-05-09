@@ -757,10 +757,6 @@ async function sendReminderEmail({
           </div>
 
           <div style="padding:12px;border-bottom:1px solid #333333;">
-            <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
-              Leaderboard Snapshot
-            </div>
-
             <div style="margin-top:8px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;background:#000000;">
               ${buildEmailSnapshotLeaderboardsBlock({
                 individualRows,

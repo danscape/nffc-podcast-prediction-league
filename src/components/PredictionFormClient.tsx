@@ -1250,6 +1250,30 @@ export default function PredictionFormClient({
 
           <CurrentPredictedPointsStrip value={projection.total_now_predicted} />
 
+          {unsavedFixtureChanges.size > 0 ? (
+            <div className="mt-4 border-2 border-[var(--stat-yellow,#ffe44d)] bg-[var(--nffc-black,#000000)] p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="text-xl font-black uppercase tracking-[0.1em] text-[var(--stat-yellow,#ffe44d)]">
+                    Unsaved changes
+                  </div>
+                  <div className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-white">
+                    {unsavedFixtureChanges.size} fixture{unsavedFixtureChanges.size === 1 ? "" : "s"} changed / save before leaving
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={savingAllPredictions}
+                  onClick={savePredictionChanges}
+                  className="border-2 border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] px-6 py-3 text-base font-black uppercase tracking-[0.1em] text-[var(--stat-green,#22e55e)] transition hover:bg-[var(--stat-green,#22e55e)] hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {savingAllPredictions ? "Saving…" : "Save Predictions"}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           {(message || emailMessage) && (
             <div className="mt-5 bg-[var(--nffc-black,#000000)]">
               <div className="bg-[var(--nffc-red,#e50914)] px-4 py-2 text-xl font-black uppercase tracking-[0.12em] text-white">
