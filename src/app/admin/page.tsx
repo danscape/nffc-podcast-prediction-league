@@ -123,7 +123,7 @@ export default async function AdminPage() {
         "id, created_at, actor_type, actor_label, source, target_player_name, target_team_name, fixture_gameweek, fixture_label, fixture_opponent_short, fixture_venue, old_prediction, new_prediction"
       )
       .order("created_at", { ascending: false })
-      .limit(8),
+      .limit(12),
   ]);
 
   const errors = [
