@@ -165,6 +165,9 @@ export default function IndividualLeaderboard({
               <th className="sticky top-0 z-10 border-r border-[#242424] bg-[var(--nffc-black,#000000)] px-2.5 py-2 text-center text-[var(--stat-pink,#ff4fd8)]">
                 ROGUE
               </th>
+              <th className="sticky top-0 z-10 border-r border-[#242424] bg-[var(--nffc-black,#000000)] px-2.5 py-2 text-center text-[var(--stat-orange,#ff9f1c)]">
+                CUP
+              </th>
               <th className="sticky top-0 z-10 border-r border-[#242424] bg-[var(--nffc-black,#000000)] px-2.5 py-2 text-center text-[var(--stat-green,#22e55e)]">
                 ACC.
               </th>
@@ -241,6 +244,10 @@ export default function IndividualLeaderboard({
                       {formatIndividualPoints(row.rogue_bonus)}
                     </td>
 
+                    <td className="border-r border-[#242424] px-2.5 py-1 text-center text-xl font-black text-[var(--stat-orange,#ff9f1c)]">
+                      {formatIndividualPoints(row.cup_bonus)}
+                    </td>
+
                     <td className="border-r border-[#242424] px-2.5 py-1 text-center">
                       <CompactPill
                         value={`${accuracy}%`}
@@ -267,7 +274,7 @@ export default function IndividualLeaderboard({
               })
             ) : (
               <tr>
-                <td className="px-4 py-6 text-sm font-black uppercase tracking-[0.12em] text-white" colSpan={11}>
+                <td className="px-4 py-6 text-sm font-black uppercase tracking-[0.12em] text-white" colSpan={12}>
                   {emptyText}
                 </td>
               </tr>

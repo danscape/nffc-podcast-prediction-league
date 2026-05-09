@@ -287,8 +287,8 @@ export default function CompactIndividualLeaderboard({
                         </span>
                         <span className="px-0.5 text-[#666666]">+</span>
 
-                        <span className="text-[var(--stat-green,#22e55e)]">Cup</span>{" "}
-                        <span className={valueTone(row.cup_bonus, "text-[var(--stat-green,#22e55e)]")}>
+                        <span className="text-[var(--stat-orange,#ff9f1c)]">Cup</span>{" "}
+                        <span className={valueTone(row.cup_bonus, "text-[var(--stat-orange,#ff9f1c)]")}>
                           {formatPoints(row.cup_bonus)}
                         </span>
                         <span className="px-0.5 text-[var(--nffc-red,#e50914)]">=</span>
