@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import PublicPageShell from "@/components/layout/PublicPageShell";
 import PublicMasthead from "@/components/layout/PublicMasthead";
 import MobileCeefaxMasthead from "@/components/layout/MobileCeefaxMasthead";
+import TeamRankHistoryPanel from "@/components/rank-history/TeamRankHistoryPanel";
 
 type ResultValue = "W" | "D" | "L";
 
@@ -510,6 +511,8 @@ export default async function TeamPage({
           </section>
         </header>
 
+
+        <TeamRankHistoryPanel teamSlug={team.slug} />
         <section className="mb-6 grid gap-[2px] bg-[#444444] md:grid-cols-3 xl:grid-cols-6">
           <TerminalStat
             label="Accuracy"
@@ -857,7 +860,7 @@ export default async function TeamPage({
         </TerminalPanel>
         </section>
       </div>
-    </PublicPageShell>
+</PublicPageShell>
   );
 }
 
@@ -1079,7 +1082,7 @@ function MobileTeamProfilePage({
           )}
         </div>
       </section>
-    </main>
+</main>
   );
 }
 

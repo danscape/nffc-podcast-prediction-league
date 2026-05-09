@@ -48,7 +48,7 @@ export default function RankHistoryChart({
     : null;
 
   return (
-    <section className="my-2 w-full bg-[var(--nffc-black,#000000)] md:my-6">
+    <section className="my-0 w-full bg-[var(--nffc-black,#000000)] md:my-6">
       <div className="mx-auto w-full max-w-[1500px] border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]">
         <div className="bg-[var(--nffc-red,#e50914)] px-2 py-1.5 text-xs font-black uppercase tracking-[0.12em] text-white md:px-5 md:py-3 md:text-2xl">
 League Position Over Time
