@@ -24,6 +24,7 @@ type AuditRow = {
   created_at: string;
   actor_type: string;
   actor_label: string;
+  source?: string | null;
   target_player_name: string;
   target_team_name: string | null;
   fixture_gameweek: number | null;
@@ -119,7 +120,7 @@ export default async function AdminPage() {
     supabase
       .from("prediction_change_audit")
       .select(
-        "id, created_at, actor_type, actor_label, target_player_name, target_team_name, fixture_gameweek, fixture_label, fixture_opponent_short, fixture_venue, old_prediction, new_prediction"
+        "id, created_at, actor_type, actor_label, source, target_player_name, target_team_name, fixture_gameweek, fixture_label, fixture_opponent_short, fixture_venue, old_prediction, new_prediction"
       )
       .order("created_at", { ascending: false })
       .limit(8),
@@ -194,7 +195,7 @@ export default async function AdminPage() {
 
         <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <AdminStat label="Teams" value={teamCount ?? 0} />
-          <AdminStat label="Players" value={playerCount ?? 0} />
+          <AdminStat label="Player changes" value={playerCount ?? 0} />
           <AdminStat label="Fixtures" value={fixtureCount ?? 0} />
           <AdminStat label="Completed GWs" value={completedFixtureCount} />
           <AdminStat
@@ -390,8 +391,8 @@ function AuditPreviewPanel({ rows }: { rows: AuditRow[] }) {
           <div className="border-r border-[#242424] px-3 py-2">Player</div>
           <div className="border-r border-[#242424] px-3 py-2">Team</div>
           <div className="border-r border-[#242424] px-3 py-2">Fixture</div>
-          <div className="border-r border-[#242424] px-3 py-2 text-center">Old</div>
-          <div className="px-3 py-2 text-center">New</div>
+          <div className="border-r border-[#242424] px-3 py-2 text-center">From</div>
+          <div className="px-3 py-2 text-center">To</div>
         </div>
 
         {rows.length ? (
@@ -416,7 +417,7 @@ function AuditPreviewPanel({ rows }: { rows: AuditRow[] }) {
                 {auditFixtureLabel(row)}
               </div>
               <div className="bg-[var(--nffc-black,#000000)] px-3 py-2 text-center text-lg font-black uppercase text-[var(--stat-wrong,#ff3030)] xl:border-r xl:border-[#242424]">
-                {row.old_prediction ?? "—"}
+                {row.old_prediction ?? (row.source === "historic_current_state_backfill" ? "BASE" : "—")}
               </div>
               <div className="bg-[var(--nffc-black,#000000)] px-3 py-2 text-center text-lg font-black uppercase text-[var(--stat-green,#22e55e)]">
                 {row.new_prediction ?? "—"}

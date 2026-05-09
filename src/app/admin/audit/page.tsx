@@ -6,6 +6,7 @@ type AuditRow = {
   created_at: string;
   actor_type: string;
   actor_label: string;
+  source?: string | null;
   target_player_name: string;
   target_team_name: string | null;
   fixture_gameweek: number | null;
@@ -101,8 +102,9 @@ export default async function AdminAuditPage() {
 
         <section className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
           <Stat label="Rows" value={String(rows.length)} tone="white" />
-          <Stat label="Admin" value={String(rows.filter((row) => row.actor_type === "admin").length)} tone="yellow" />
-          <Stat label="Players" value={String(rows.filter((row) => row.actor_type === "player").length)} tone="cyan" />
+          <Stat label="Admin changes" value={String(rows.filter((row) => row.actor_type === "admin").length)} tone="yellow" />
+          <Stat label="Player changes" value={String(rows.filter((row) => row.actor_type === "player").length)} tone="cyan" />
+          <Stat label="Historic" value={String(rows.filter((row) => row.actor_type === "historic" || row.source === "historic_current_state_backfill").length)} tone="orange" />
           <Stat label="Latest" value={rows[0] ? formatDateTime(rows[0].created_at) : "None"} tone="green" />
         </section>
 
@@ -118,8 +120,8 @@ export default async function AdminAuditPage() {
               <Cell head>Player</Cell>
               <Cell head>Team</Cell>
               <Cell head>Fixture</Cell>
-              <Cell head>Old</Cell>
-              <Cell head last>New</Cell>
+              <Cell head>From</Cell>
+              <Cell head last>To</Cell>
             </div>
 
             {rows.length ? (
@@ -133,7 +135,7 @@ export default async function AdminAuditPage() {
                   <Cell>{row.target_player_name}</Cell>
                   <Cell muted>{row.target_team_name ?? "—"}</Cell>
                   <Cell>{fixtureLabel(row)}</Cell>
-                  <Cell className="text-[var(--stat-wrong,#ff3030)]">{row.old_prediction ?? "—"}</Cell>
+                  <Cell className="text-[var(--stat-wrong,#ff3030)]">{row.old_prediction ?? (row.source === "historic_current_state_backfill" ? "BASE" : "—")}</Cell>
                   <Cell className="text-[var(--stat-green,#22e55e)]" last>{row.new_prediction ?? "—"}</Cell>
                 </div>
               ))
@@ -159,7 +161,7 @@ export default async function AdminAuditPage() {
                     </div>
 
                     <div className="text-right text-lg font-black uppercase">
-                      <span className="text-[var(--stat-wrong,#ff3030)]">{row.old_prediction ?? "—"}</span>
+                      <span className="text-[var(--stat-wrong,#ff3030)]">{row.old_prediction ?? (row.source === "historic_current_state_backfill" ? "BASE" : "—")}</span>
                       <span className="px-1 text-[var(--nffc-muted,#a7a7a7)]">→</span>
                       <span className="text-[var(--stat-green,#22e55e)]">{row.new_prediction ?? "—"}</span>
                     </div>
@@ -218,7 +220,7 @@ function Stat({
 }: {
   label: string;
   value: string;
-  tone: "green" | "yellow" | "cyan" | "white";
+  tone: "green" | "yellow" | "cyan" | "orange" | "white";
 }) {
   const toneClass =
     tone === "green"
@@ -227,7 +229,9 @@ function Stat({
         ? "text-[var(--stat-yellow,#ffe44d)]"
         : tone === "cyan"
           ? "text-[var(--stat-cyan,#59efff)]"
-          : "text-white";
+          : tone === "orange"
+            ? "text-[var(--stat-orange,#ff9f1c)]"
+            : "text-white";
 
   return (
     <div className="border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]">
