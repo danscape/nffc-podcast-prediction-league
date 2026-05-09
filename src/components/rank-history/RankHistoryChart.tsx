@@ -48,17 +48,17 @@ export default function RankHistoryChart({
     : null;
 
   return (
-    <section className="mb-16 mt-0 w-full bg-[var(--nffc-black,#000000)] md:my-6">
+    <section className="mb-28 mt-0 w-full bg-[var(--nffc-black,#000000)] md:my-6">
       <div className="mx-auto w-full max-w-[1500px] border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]">
-        <div className="bg-[var(--nffc-red,#e50914)] px-2 py-1 text-[0.68rem] font-black uppercase tracking-[0.1em] text-white md:px-5 md:py-3 md:text-2xl">
+        <div className="bg-[var(--nffc-red,#e50914)] px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-white md:px-5 md:py-3 md:text-2xl">
 League Position Over Time
         </div>
 
-        <div className="w-full bg-[var(--nffc-black,#000000)] p-2 md:aspect-[3/2] md:p-5">
-          <div className="grid h-auto gap-1.5 md:h-full md:grid-rows-[auto_auto_1fr] md:gap-4">
-            <header className="grid gap-2 md:grid-cols-[1fr_auto] md:items-start md:gap-3">
+        <div className="w-full bg-[var(--nffc-black,#000000)] p-1.5 md:aspect-[3/2] md:p-5">
+          <div className="grid h-auto gap-1 md:h-full md:grid-rows-[auto_auto_1fr] md:gap-4">
+            <header className="grid gap-1 md:grid-cols-[1fr_auto] md:items-start md:gap-3">
               <div className="min-w-0">
-                <div className="text-[0.48rem] font-black uppercase tracking-[0.1em] text-[var(--nffc-muted,#a7a7a7)] md:text-sm">
+                <div className="text-[0.42rem] font-black uppercase tracking-[0.08em] text-[var(--nffc-muted,#a7a7a7)] md:text-sm">
                   {subjectType === "team" ? "Team Rank Tracker" : "Player Rank Tracker"}
                 </div>
 
@@ -81,14 +81,14 @@ League Position Over Time
               </div>
             </header>
 
-            <div className="grid grid-cols-2 gap-px bg-[#242424] md:grid-cols-4">
+            <div className="grid grid-cols-4 gap-px bg-[#242424] md:grid-cols-4">
               <MiniStat label="Current" value={formatPoint(latestPoint?.rank)} tone="yellow" />
               <MiniStat label="Best" value={formatPoint(bestRank)} tone="green" />
               <MiniStat label="Lowest" value={formatPoint(lowestRank)} tone="red" />
               <MiniStat label="Tracked GWs" value={String(cleanedPoints.length)} tone="cyan" />
             </div>
 
-            <div className="min-h-0 border border-[#242424] bg-[var(--nffc-black,#000000)] p-1.5 md:p-4">
+            <div className="min-h-0 border border-[#242424] bg-[var(--nffc-black,#000000)] p-1 md:p-4">
               {cleanedPoints.length ? (
                 <ResponsiveRankSvg
                   points={cleanedPoints}
@@ -297,11 +297,11 @@ function MiniStat({
           : "text-[var(--stat-cyan,#59efff)]";
 
   return (
-    <div className="bg-[var(--nffc-black,#000000)] px-2 py-1 md:px-3 md:py-3">
-      <div className="text-[0.46rem] font-black uppercase tracking-[0.08em] text-[var(--nffc-muted,#a7a7a7)] md:text-xs">
+    <div className="bg-[var(--nffc-black,#000000)] px-1 py-1 md:px-3 md:py-3">
+      <div className="text-[0.38rem] font-black uppercase tracking-[0.05em] text-[var(--nffc-muted,#a7a7a7)] md:text-xs">
         {label}
       </div>
-      <div className={`mt-0.5 text-sm font-black uppercase leading-none md:mt-1 md:text-4xl ${toneClass}`}>
+      <div className={`mt-0.5 text-[0.8rem] font-black uppercase leading-none md:mt-1 md:text-4xl ${toneClass}`}>
         {value}
       </div>
     </div>
