@@ -24,6 +24,16 @@ type MoodTracker = {
   average_remaining_predicted_points: number;
 } | null;
 
+type NextFixtureSplit = {
+  gameweek_label: string;
+  opponent_short: string;
+  venue: "H" | "A";
+  total_predictions?: number | null;
+  forest_win_percent?: number | null;
+  draw_percent?: number | null;
+  forest_loss_percent?: number | null;
+};
+
 function formatDateTime(value: string | null) {
   if (!value) return "TBC";
 
@@ -32,6 +42,10 @@ function formatDateTime(value: string | null) {
     timeStyle: "short",
     timeZone: "Europe/London",
   }).format(new Date(value));
+}
+
+function formatSplitPercent(value: number | null | undefined) {
+  return `${Math.round(Number(value ?? 0))}%`;
 }
 
 export default function LatestNewsGraphic({
@@ -45,6 +59,7 @@ export default function LatestNewsGraphic({
   moodTracker,
   inFormPlayer,
   inFormTeam,
+  nextFixtureSplit,
 }: {
   nextFixture: FixtureRow | null;
   averageAccuracy: number;
@@ -68,6 +83,7 @@ export default function LatestNewsGraphic({
     fromGameweek?: number | null;
     toGameweek?: number | null;
   } | null;
+  nextFixtureSplit?: NextFixtureSplit | null;
 }) {
   const fixtureTitle = nextFixture
     ? `${nextFixture.gameweek_label}: Forest ${
@@ -96,6 +112,43 @@ export default function LatestNewsGraphic({
                 {formatDateTime(nextFixture?.kickoff_at ?? null)}
               </span>
             </div>
+
+            {nextFixtureSplit ? (
+              <div className="mt-4 border border-[#242424] bg-[var(--nffc-black,#000000)]">
+                <div className="bg-[var(--nffc-red,#e50914)] px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-white">
+                  Next GW Prediction Split
+                </div>
+
+                <div className="grid grid-cols-3 gap-px bg-[#242424] text-center">
+                  <div className="bg-[var(--nffc-black,#000000)] px-3 py-2">
+                    <div className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#8f8f8f]">
+                      W
+                    </div>
+                    <div className="mt-1 text-3xl font-black text-[var(--stat-green,#22e55e)]">
+                      {formatSplitPercent(nextFixtureSplit.forest_win_percent)}
+                    </div>
+                  </div>
+
+                  <div className="bg-[var(--nffc-black,#000000)] px-3 py-2">
+                    <div className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#8f8f8f]">
+                      D
+                    </div>
+                    <div className="mt-1 text-3xl font-black text-[var(--stat-yellow,#ffe44d)]">
+                      {formatSplitPercent(nextFixtureSplit.draw_percent)}
+                    </div>
+                  </div>
+
+                  <div className="bg-[var(--nffc-black,#000000)] px-3 py-2">
+                    <div className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#8f8f8f]">
+                      L
+                    </div>
+                    <div className="mt-1 text-3xl font-black text-[var(--stat-wrong,#ff3030)]">
+                      {formatSplitPercent(nextFixtureSplit.forest_loss_percent)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="px-5 py-4">

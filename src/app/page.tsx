@@ -771,20 +771,18 @@ export default async function HomePage() {
     }));
 
   const allFixtureRows = [...fixtureRows, ...futureFixtureRows].sort(
-    (a, b) => Number(b.gameweek ?? 0) - Number(a.gameweek ?? 0)
+    (a, b) => Number(a.gameweek ?? 0) - Number(b.gameweek ?? 0)
   );
 
-  const nextFixtureIndex = allFixtureRows.findIndex(
+  const remainingSnapshotRows = allFixtureRows.filter(
     (fixture) => fixture.forest_result === null
   );
 
-  const fixtureSnapshotRows =
-    nextFixtureIndex >= 0
-      ? allFixtureRows.slice(
-          Math.max(0, nextFixtureIndex - 2),
-          Math.min(allFixtureRows.length, nextFixtureIndex + 3)
-        )
-      : allFixtureRows.slice(-5);
+  const nextFixtureSplit = remainingSnapshotRows[0] ?? null;
+
+  const fixtureSnapshotRows = remainingSnapshotRows.length
+    ? remainingSnapshotRows.slice(0, 5)
+    : allFixtureRows.slice(-5);
 
   const inFormPlayerRow =
     ((inFormPlayerData ?? []) as InFormPlayerViewRow[])[0] ?? null;
@@ -938,6 +936,9 @@ export default async function HomePage() {
             leadingTeamPoints={leadingTeam?.total_team_points ?? null}
             latestNews={latestNews ?? null}
             moodTracker={moodTracker ?? null}
+            inFormPlayer={inFormPlayer}
+            inFormTeam={inFormTeam}
+            nextFixtureSplit={nextFixtureSplit}
           />
 
           <RunInMoodGraphic
@@ -1363,6 +1364,9 @@ function LatestNewsBlock({
   leadingTeam,
   latestNews,
   moodTracker,
+  inFormPlayer,
+  inFormTeam,
+  nextFixtureSplit,
 }: {
   nextFixture: FixtureRow | null;
   averageAccuracy: number;
@@ -1370,6 +1374,9 @@ function LatestNewsBlock({
   leadingTeam: TeamLeaderboardRow | null;
   latestNews: HomepageInsights["latest_news"] | null;
   moodTracker: HomepageInsights["mood_tracker"];
+  inFormPlayer: InFormPlayer;
+  inFormTeam: InFormTeam;
+  nextFixtureSplit: FixtureTableRow | null;
 }) {
   return (
     <section className="mb-4 overflow-hidden rounded-none border border-[#111111] bg-[#111111] text-white shadow-none">
@@ -1404,6 +1411,34 @@ function LatestNewsBlock({
                     )}. Predictions lock 5 minutes before kick-off.`
                   : "Fixture information will update from the league sync."}
               </p>
+
+              {nextFixtureSplit ? (
+                <div className="mt-3 max-w-xl border border-[#242424] bg-[var(--nffc-black,#000000)]">
+                  <div className="bg-[var(--nffc-red,#e50914)] px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-white">
+                    Next GW Prediction Split
+                  </div>
+                  <div className="grid grid-cols-3 gap-px bg-[#242424] text-center">
+                    <div className="bg-[var(--nffc-black,#000000)] px-3 py-2">
+                      <div className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#8f8f8f]">W</div>
+                      <div className="mt-1 text-2xl font-black text-[var(--stat-green,#22e55e)]">
+                        {formatPercent(nextFixtureSplit.forest_win_percent)}
+                      </div>
+                    </div>
+                    <div className="bg-[var(--nffc-black,#000000)] px-3 py-2">
+                      <div className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#8f8f8f]">D</div>
+                      <div className="mt-1 text-2xl font-black text-[var(--stat-yellow,#ffe44d)]">
+                        {formatPercent(nextFixtureSplit.draw_percent)}
+                      </div>
+                    </div>
+                    <div className="bg-[var(--nffc-black,#000000)] px-3 py-2">
+                      <div className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#8f8f8f]">L</div>
+                      <div className="mt-1 text-2xl font-black text-[var(--stat-wrong,#ff3030)]">
+                        {formatPercent(nextFixtureSplit.forest_loss_percent)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-none border border-white/15 bg-[var(--nffc-panel,#070707)]/10 px-4 py-3 text-left  lg:min-w-[220px] lg:text-right">
@@ -1441,24 +1476,15 @@ function LatestNewsBlock({
             />
 
             <LatestNewsStat
-              label="Team of the Week"
-              value={latestNews?.team_of_the_week_name ?? "TBC"}
-              subValue={
-                latestNews?.team_of_the_week_points !== null &&
-                latestNews?.team_of_the_week_points !== undefined
-                  ? `${formatTeamPoints(latestNews.team_of_the_week_points)} pts`
-                  : undefined
-              }
+              label="In-form team"
+              value={inFormTeam ? inFormTeam.teamName : "TBC"}
+              subValue={inFormTeam ? `${formatPoints(inFormTeam.points)} pts last ${inFormTeam.fixturesCount ?? 5}` : undefined}
             />
 
             <LatestNewsStat
-              label="Streaker of the Week"
-              value={latestNews?.streaker_of_the_week_name ?? "TBC"}
-              subValue={
-                latestNews?.streaker_of_the_week_value
-                  ? `${latestNews.streaker_of_the_week_value} current streak`
-                  : undefined
-              }
+              label="In-form player"
+              value={inFormPlayer ? inFormPlayer.playerName : "TBC"}
+              subValue={inFormPlayer ? `${formatPoints(inFormPlayer.points)} pts last ${inFormPlayer.fixturesCount ?? 5}` : undefined}
             />
 
             <LatestNewsStat
