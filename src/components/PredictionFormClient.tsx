@@ -179,7 +179,7 @@ const genericCupStageOptions = [
   "Winners",
 ];
 
-const confirmationEmailDelayMs = 0;
+const confirmationEmailDelayMs = 60 * 1000;
 
 function predictionToPoints(prediction: PredictionValue) {
   if (prediction === "W") return 3;
