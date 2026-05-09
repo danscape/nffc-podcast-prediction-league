@@ -178,15 +178,15 @@ export default function AdminLeaderboardsPage() {
   }, [teamRows, query]);
 
   return (
-    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 font-mono text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+              <div className="mb-3 inline-flex w-fit border-b-2 border-[var(--nffc-red,#e50914)] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[var(--nffc-red,#e50914)]">
                 🔮 Admin
               </div>
-              <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
+              <h1 className="text-4xl font-black uppercase tracking-tight text-[var(--nffc-red,#e50914)] md:text-5xl">
                 Leaderboards
               </h1>
               <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
@@ -198,13 +198,13 @@ export default function AdminLeaderboardsPage() {
               <button
                 type="button"
                 onClick={loadLeaderboards}
-                className="w-full rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E] sm:w-fit"
+                className="w-full rounded-none bg-[var(--nffc-black,#000000)] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)] sm:w-fit"
               >
                 Refresh
               </button>
               <Link
                 href="/admin"
-                className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+                className="w-full rounded-none border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] sm:w-fit"
               >
                 Back to admin
               </Link>
@@ -230,7 +230,7 @@ export default function AdminLeaderboardsPage() {
 
         {lastConfirmedFixture && (
           <section className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
-            <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+            <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
               Last confirmed result
             </div>
             <div className="mt-2 text-2xl font-black">
@@ -259,7 +259,7 @@ export default function AdminLeaderboardsPage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search players, teams or MVPs"
-                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[var(--nffc-red,#e50914)]"
               />
             </label>
 
@@ -267,10 +267,10 @@ export default function AdminLeaderboardsPage() {
               <button
                 type="button"
                 onClick={() => setTab("individual")}
-                className={`rounded-full px-5 py-3 text-xs font-black uppercase tracking-wide transition ${
+                className={`rounded-none px-5 py-3 text-xs font-black uppercase tracking-wide transition ${
                   tab === "individual"
-                    ? "bg-[#111111] text-white"
-                    : "border border-[#111111] text-[var(--nffc-white,#f5f5f5)] hover:border-[#C8102E] hover:text-[#C8102E]"
+                    ? "bg-[var(--nffc-black,#000000)] text-white"
+                    : "border border-[#111111] text-[var(--nffc-white,#f5f5f5)] hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)]"
                 }`}
               >
                 Individual
@@ -278,10 +278,10 @@ export default function AdminLeaderboardsPage() {
               <button
                 type="button"
                 onClick={() => setTab("teams")}
-                className={`rounded-full px-5 py-3 text-xs font-black uppercase tracking-wide transition ${
+                className={`rounded-none px-5 py-3 text-xs font-black uppercase tracking-wide transition ${
                   tab === "teams"
-                    ? "bg-[#111111] text-white"
-                    : "border border-[#111111] text-[var(--nffc-white,#f5f5f5)] hover:border-[#C8102E] hover:text-[#C8102E]"
+                    ? "bg-[var(--nffc-black,#000000)] text-white"
+                    : "border border-[#111111] text-[var(--nffc-white,#f5f5f5)] hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)]"
                 }`}
               >
                 Teams
@@ -291,7 +291,7 @@ export default function AdminLeaderboardsPage() {
         </section>
 
         {loading ? (
-          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[#C8102E] shadow-none">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[var(--nffc-red,#e50914)] shadow-none">
             Loading leaderboards…
           </div>
         ) : tab === "individual" ? (
@@ -310,7 +310,7 @@ function AdminStat({ label, value }: { label: string; value: number }) {
       <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
+      <div className="mt-1 text-3xl font-black text-[var(--nffc-red,#e50914)]">{value}</div>
     </div>
   );
 }

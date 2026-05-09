@@ -226,15 +226,15 @@ export default function AdminTeamsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 font-mono text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+              <div className="mb-3 inline-flex w-fit border-b-2 border-[var(--nffc-red,#e50914)] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[var(--nffc-red,#e50914)]">
                 🔮 Admin
               </div>
-              <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
+              <h1 className="text-4xl font-black uppercase tracking-tight text-[var(--nffc-red,#e50914)] md:text-5xl">
                 Teams
               </h1>
               <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
@@ -244,7 +244,7 @@ export default function AdminTeamsPage() {
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-none border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -255,8 +255,8 @@ export default function AdminTeamsPage() {
           <div
             className={`mb-6 rounded-none border p-4 text-sm font-semibold ${
               message.type === "success"
-                ? "border-green-200 bg-green-50 text-green-800"
-                : "border-red-200 bg-red-50 text-red-800"
+                ? "border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] text-[var(--stat-green,#22e55e)]"
+                : "border-[var(--stat-wrong,#ff3030)] bg-[var(--nffc-black,#000000)] text-[var(--stat-wrong,#ff3030)]"
             }`}
           >
             {message.text}
@@ -280,13 +280,13 @@ export default function AdminTeamsPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by team, parent podcast, abbreviation, X handle, logo alt or colour"
-              className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+              className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[var(--nffc-red,#e50914)]"
             />
           </label>
         </section>
 
         {loading ? (
-          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[#C8102E] shadow-none">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[var(--nffc-red,#e50914)] shadow-none">
             Loading teams…
           </div>
         ) : (
@@ -301,7 +301,7 @@ export default function AdminTeamsPage() {
                     Main podcast/brand groups used for public labels, abbreviations and fallback assets.
                   </p>
                 </div>
-                <div className="text-sm font-bold uppercase tracking-wide text-[#C8102E]">
+                <div className="text-sm font-bold uppercase tracking-wide text-[var(--nffc-red,#e50914)]">
                   {parentLogos}/{parentPodcasts.length} logos
                 </div>
               </div>
@@ -325,7 +325,7 @@ export default function AdminTeamsPage() {
                               brandColour={parent.brand_colour}
                             />
                             <div>
-                              <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                              <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
                                 {parent.abbreviation ?? "No abbreviation"}
                               </div>
                               <div className="mt-1 text-xl font-black">
@@ -348,7 +348,7 @@ export default function AdminTeamsPage() {
                             <button
                               type="button"
                               onClick={() => startParentEdit(parent)}
-                              className="rounded-full bg-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+                              className="rounded-none bg-[var(--nffc-black,#000000)] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)]"
                             >
                               Edit
                             </button>
@@ -364,7 +364,7 @@ export default function AdminTeamsPage() {
                                 brandColour={draft.brand_colour}
                               />
                               <div>
-                                <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                                <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
                                   Editing parent podcast
                                 </div>
                                 <div className="mt-1 text-xl font-black">
@@ -451,7 +451,7 @@ export default function AdminTeamsPage() {
                                 disabled={
                                   savingKey === `parent-${draft.parent_podcast_id}`
                                 }
-                                className="w-full rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+                                className="w-full rounded-none bg-[var(--nffc-black,#000000)] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {savingKey === `parent-${draft.parent_podcast_id}`
                                   ? "Saving…"
@@ -460,7 +460,7 @@ export default function AdminTeamsPage() {
                               <button
                                 type="button"
                                 onClick={cancelParentEdit}
-                                className="w-full rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+                                className="w-full rounded-none border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)]"
                               >
                                 Cancel
                               </button>
@@ -482,7 +482,7 @@ export default function AdminTeamsPage() {
                     Team-level names and assets used for leaderboards, player groups and social graphics.
                   </p>
                 </div>
-                <div className="text-sm font-bold uppercase tracking-wide text-[#C8102E]">
+                <div className="text-sm font-bold uppercase tracking-wide text-[var(--nffc-red,#e50914)]">
                   {filteredTeams.length} shown / {teams.length} teams
                 </div>
               </div>
@@ -514,7 +514,7 @@ export default function AdminTeamsPage() {
                               brandColour={effectiveColour}
                             />
                             <div>
-                              <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                              <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
                                 {team.abbreviation ?? "No abbreviation"}
                               </div>
                               <div className="mt-1 text-xl font-black">
@@ -545,7 +545,7 @@ export default function AdminTeamsPage() {
                             <button
                               type="button"
                               onClick={() => startTeamEdit(team)}
-                              className="rounded-full bg-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+                              className="rounded-none bg-[var(--nffc-black,#000000)] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)]"
                             >
                               Edit
                             </button>
@@ -568,7 +568,7 @@ export default function AdminTeamsPage() {
                                 }
                               />
                               <div>
-                                <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                                <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
                                   Editing team
                                 </div>
                                 <div className="mt-1 text-xl font-black">
@@ -637,7 +637,7 @@ export default function AdminTeamsPage() {
                                     parent_podcast_id: event.target.value || null,
                                   })
                                 }
-                                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold text-white outline-none focus:border-[var(--nffc-red,#e50914)]"
                               >
                                 <option value="">No parent</option>
                                 {parentPodcasts.map((parent) => (
@@ -681,7 +681,7 @@ export default function AdminTeamsPage() {
                                 type="button"
                                 onClick={() => saveTeam(draft)}
                                 disabled={savingKey === `team-${draft.team_id}`}
-                                className="w-full rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+                                className="w-full rounded-none bg-[var(--nffc-black,#000000)] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {savingKey === `team-${draft.team_id}`
                                   ? "Saving…"
@@ -690,7 +690,7 @@ export default function AdminTeamsPage() {
                               <button
                                 type="button"
                                 onClick={cancelTeamEdit}
-                                className="w-full rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+                                className="w-full rounded-none border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)]"
                               >
                                 Cancel
                               </button>
@@ -722,7 +722,7 @@ function AdminStat({ label, value }: { label: string; value: number }) {
       <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
+      <div className="mt-1 text-3xl font-black text-[var(--nffc-red,#e50914)]">{value}</div>
     </div>
   );
 }
@@ -750,7 +750,7 @@ function TextField({
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold text-white outline-none focus:border-[var(--nffc-red,#e50914)]"
       />
     </label>
   );
@@ -774,7 +774,7 @@ function NumberField({
         type="number"
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold text-white outline-none focus:border-[var(--nffc-red,#e50914)]"
       />
     </label>
   );
@@ -783,14 +783,14 @@ function NumberField({
 function StatusBadge({ active }: { active: boolean }) {
   if (active) {
     return (
-      <span className="w-fit rounded-full bg-green-100 px-3 py-1 text-xs font-black uppercase text-green-800">
+      <span className="w-fit rounded-none border border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-black uppercase text-[var(--stat-green,#22e55e)]">
         Active
       </span>
     );
   }
 
   return (
-    <span className="w-fit rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
+    <span className="w-fit rounded-none border border-[var(--nffc-muted,#a7a7a7)] bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
       Inactive
     </span>
   );
@@ -807,7 +807,7 @@ function StatusToggle({
     <button
       type="button"
       onClick={() => onChange(!active)}
-      className={`w-full rounded-full px-5 py-3 text-xs font-black uppercase tracking-wide transition sm:w-fit ${
+      className={`w-full rounded-none px-5 py-3 text-xs font-black uppercase tracking-wide transition sm:w-fit ${
         active
           ? "bg-green-100 text-green-800 hover:bg-green-200"
           : "bg-neutral-200 text-[var(--nffc-muted,#a7a7a7)] hover:bg-neutral-300"

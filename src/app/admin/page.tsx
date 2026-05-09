@@ -124,16 +124,16 @@ export default async function AdminPage() {
       : 0;
 
   return (
-    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 font-mono text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+              <div className="mb-3 inline-flex w-fit border-b-2 border-[var(--nffc-red,#e50914)] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[var(--nffc-red,#e50914)]">
                 🔮 Admin
               </div>
 
-              <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-6xl">
+              <h1 className="text-4xl font-black uppercase tracking-tight text-[var(--nffc-red,#e50914)] md:text-6xl">
                 Control Centre
               </h1>
 
@@ -147,13 +147,13 @@ export default async function AdminPage() {
             <div className="flex flex-col gap-2 sm:flex-row">
               <Link
                 href="/"
-                className="rounded-full border border-[#111111] px-5 py-3 text-center text-xs font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+                className="rounded-none border border-[#111111] px-5 py-3 text-center text-xs font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)]"
               >
                 Public homepage
               </Link>
               <Link
                 href="/admin/leaderboards"
-                className="rounded-full bg-[#111111] px-5 py-3 text-center text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+                className="rounded-none bg-[var(--nffc-black,#000000)] px-5 py-3 text-center text-xs font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)]"
               >
                 Leaderboards
               </Link>
@@ -299,7 +299,7 @@ export default async function AdminPage() {
 
             <Link
               href="/admin/reminders"
-              className="rounded-full bg-[#111111] px-5 py-3 text-center text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+              className="rounded-none bg-[var(--nffc-black,#000000)] px-5 py-3 text-center text-xs font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)]"
             >
               Open reminders
             </Link>
@@ -323,7 +323,7 @@ function AdminStat({
     <div
       className={`rounded-none border p-4 shadow-none ${
         highlight
-          ? "border-[#C8102E] bg-[#C8102E] text-white"
+          ? "border-[var(--nffc-red,#e50914)] bg-[var(--nffc-red,#e50914)] text-white"
           : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)]"
       }`}
     >
@@ -350,7 +350,7 @@ function FixturePanel({
 }) {
   return (
     <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-6">
-      <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+      <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
         {eyebrow}
       </div>
       <h2 className="mt-2 text-2xl font-black uppercase tracking-tight text-[var(--nffc-white,#f5f5f5)]">
@@ -392,13 +392,13 @@ function AdminCard({
   return (
     <Link
       href={href}
-      className={`rounded-none border p-5 shadow-none transition hover:-translate-y-0.5 hover:shadow-md ${
+      className={`rounded-none border p-5 shadow-none transition hover:-translate-y-0.5 hover:shadow-none ${
         accent
-          ? "border-[#111111] bg-[#111111] text-white"
+          ? "border-[#111111] bg-[var(--nffc-black,#000000)] text-white"
           : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)]"
       }`}
     >
-      <div className="text-xs font-black uppercase tracking-[0.22em] text-[#C8102E]">
+      <div className="text-xs font-black uppercase tracking-[0.22em] text-[var(--nffc-red,#e50914)]">
         Admin area
       </div>
 
@@ -415,7 +415,7 @@ function AdminCard({
       </p>
 
       <div
-        className={`mt-5 inline-flex rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${
+        className={`mt-5 inline-flex rounded-none px-4 py-2 text-xs font-black uppercase tracking-wide ${
           accent
             ? "bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)]"
             : "border border-[#111111] text-[var(--nffc-white,#f5f5f5)]"

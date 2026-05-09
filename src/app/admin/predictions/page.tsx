@@ -327,15 +327,15 @@ export default function AdminPredictionsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 font-mono text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+              <div className="mb-3 inline-flex w-fit border-b-2 border-[var(--nffc-red,#e50914)] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[var(--nffc-red,#e50914)]">
                 🔮 Admin
               </div>
-              <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
+              <h1 className="text-4xl font-black uppercase tracking-tight text-[var(--nffc-red,#e50914)] md:text-5xl">
                 Manual predictions
               </h1>
               <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
@@ -345,7 +345,7 @@ export default function AdminPredictionsPage() {
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-none border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -356,8 +356,8 @@ export default function AdminPredictionsPage() {
           <div
             className={`mb-6 rounded-none border p-4 text-sm font-semibold ${
               message.type === "success"
-                ? "border-green-200 bg-green-50 text-green-800"
-                : "border-red-200 bg-red-50 text-red-800"
+                ? "border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] text-[var(--stat-green,#22e55e)]"
+                : "border-[var(--stat-wrong,#ff3030)] bg-[var(--nffc-black,#000000)] text-[var(--stat-wrong,#ff3030)]"
             }`}
           >
             {message.text}
@@ -386,7 +386,7 @@ export default function AdminPredictionsPage() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search by name, team, email or PPL code"
                 disabled={editing}
-                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-60"
               />
             </label>
 
@@ -405,11 +405,11 @@ export default function AdminPredictionsPage() {
                       onClick={() => setSelectedLegacyCode(player.legacy_code)}
                       className={`rounded-none border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
                         selectedLegacyCode === player.legacy_code
-                          ? "border-[#C8102E] bg-red-50"
-                          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] hover:border-[#C8102E]"
+                          ? "border-[var(--nffc-red,#e50914)] bg-red-50"
+                          : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] hover:border-[var(--nffc-red,#e50914)]"
                       }`}
                     >
-                      <div className="text-xs font-black uppercase tracking-[0.16em] text-[#C8102E]">
+                      <div className="text-xs font-black uppercase tracking-[0.16em] text-[var(--nffc-red,#e50914)]">
                         {player.legacy_code}
                       </div>
                       <div className="mt-1 font-black">
@@ -430,7 +430,7 @@ export default function AdminPredictionsPage() {
 
           <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-4 shadow-none md:p-5">
             <div className="mb-4">
-              <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+              <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
                 Selected player
               </div>
               <h2 className="mt-1 text-3xl font-black uppercase">
@@ -455,7 +455,7 @@ export default function AdminPredictionsPage() {
                 value={sourceNote}
                 onChange={(event) => setSourceNote(event.target.value)}
                 disabled={!editing}
-                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-60"
               />
             </label>
 
@@ -465,7 +465,7 @@ export default function AdminPredictionsPage() {
                   type="button"
                   onClick={startEditing}
                   disabled={!selectedPlayer || loadingPredictions}
-                  className="rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-3"
+                  className="rounded-none bg-[var(--nffc-black,#000000)] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-3"
                 >
                   Edit predictions
                 </button>
@@ -475,7 +475,7 @@ export default function AdminPredictionsPage() {
                     type="button"
                     onClick={saveChanges}
                     disabled={saving || changedPredictions.length === 0}
-                    className="rounded-full bg-[#C8102E] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#111111] disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2"
+                    className="rounded-none bg-[var(--nffc-red,#e50914)] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-black,#000000)] disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2"
                   >
                     {saving
                       ? "Saving…"
@@ -489,7 +489,7 @@ export default function AdminPredictionsPage() {
                     type="button"
                     onClick={cancelEditing}
                     disabled={saving}
-                    className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-none border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -517,20 +517,20 @@ export default function AdminPredictionsPage() {
                   : "Read-only mode: click Edit predictions to make changes."}
               </p>
             </div>
-            <div className="text-sm font-bold uppercase tracking-wide text-[#C8102E]">
+            <div className="text-sm font-bold uppercase tracking-wide text-[var(--nffc-red,#e50914)]">
               {visiblePredictions.length} fixtures
             </div>
           </div>
 
           {loadingPredictions ? (
-            <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-6 text-xl font-black uppercase text-[#C8102E]">
+            <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-6 text-xl font-black uppercase text-[var(--nffc-red,#e50914)]">
               Loading predictions…
             </div>
           ) : (
             <>
               <div className="hidden overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)] xl:block">
                 <table className="w-full border-collapse text-left text-sm">
-                  <thead className="bg-[#111111] text-white">
+                  <thead className="bg-[var(--nffc-black,#000000)] text-white">
                     <tr>
                       <th className="px-4 py-3">GW</th>
                       <th className="px-4 py-3">Fixture</th>
@@ -552,7 +552,7 @@ export default function AdminPredictionsPage() {
                       return (
                         <tr
                           key={`${prediction.legacy_code}-${prediction.gameweek}`}
-                          className={`border-b border-[rgba(245,245,245,0.35)] last:border-b-0 ${
+                          className={`border-b border-[#242424] last:border-b-0 ${
                             locked ? "bg-neutral-50" : changed ? "bg-red-50" : ""
                           }`}
                         >
@@ -577,18 +577,18 @@ export default function AdminPredictionsPage() {
                           </td>
                           <td className="px-4 py-3">
                             {locked ? (
-                              <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
+                              <span className="rounded-none border border-[var(--nffc-muted,#a7a7a7)] bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
                                 Locked
                               </span>
                             ) : (
-                              <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase text-[#C8102E]">
+                              <span className="rounded-none bg-red-50 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-red,#e50914)]">
                                 Open
                               </span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-xs font-black uppercase">
                             {changed ? (
-                              <span className="text-[#C8102E]">
+                              <span className="text-[var(--nffc-red,#e50914)]">
                                 {original?.prediction} → {prediction.prediction}
                               </span>
                             ) : (
@@ -618,13 +618,13 @@ export default function AdminPredictionsPage() {
                         locked
                           ? "border-neutral-300 bg-neutral-100"
                           : changed
-                            ? "border-[#C8102E] bg-red-50"
+                            ? "border-[var(--nffc-red,#e50914)] bg-red-50"
                             : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]"
                       }`}
                     >
                       <div className="mb-4 flex items-start justify-between gap-4">
                         <div>
-                          <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                          <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
                             {prediction.gameweek_label}
                           </div>
                           <div className="mt-1 text-xl font-black">
@@ -636,15 +636,15 @@ export default function AdminPredictionsPage() {
                         </div>
 
                         {locked ? (
-                          <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
+                          <span className="rounded-none border border-[var(--nffc-muted,#a7a7a7)] bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
                             Locked
                           </span>
                         ) : changed ? (
-                          <span className="rounded-full bg-[#C8102E] px-3 py-1 text-xs font-black uppercase text-white">
+                          <span className="rounded-none bg-[var(--nffc-red,#e50914)] px-3 py-1 text-xs font-black uppercase text-white">
                             Changed
                           </span>
                         ) : (
-                          <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase text-[#C8102E]">
+                          <span className="rounded-none bg-red-50 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-red,#e50914)]">
                             Open
                           </span>
                         )}
@@ -659,7 +659,7 @@ export default function AdminPredictionsPage() {
                       />
 
                       {changed && (
-                        <div className="mt-3 border-t border-[var(--nffc-white,#f5f5f5)] pt-3 text-xs font-black uppercase text-[#C8102E]">
+                        <div className="mt-3 border-t border-[var(--nffc-white,#f5f5f5)] pt-3 text-xs font-black uppercase text-[var(--nffc-red,#e50914)]">
                           Changed from {original?.prediction} to{" "}
                           {prediction.prediction}
                         </div>
@@ -682,7 +682,7 @@ function AdminStat({ label, value }: { label: string; value: number }) {
       <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
+      <div className="mt-1 text-3xl font-black text-[var(--nffc-red,#e50914)]">{value}</div>
     </div>
   );
 }
@@ -713,7 +713,7 @@ function PredictionButtons({
             type="button"
             disabled={locked}
             onClick={() => onChange(gameweek, option)}
-            className={`h-11 rounded-full border text-sm font-black transition ${
+            className={`h-11 rounded-none border text-sm font-black transition ${
               fullWidth ? "flex-1" : "w-11"
             } ${predictionButtonClass(option, isSelected)} ${
               locked ? "cursor-not-allowed opacity-50" : "cursor-pointer"
@@ -729,7 +729,7 @@ function PredictionButtons({
 
 function predictionButtonClass(option: PredictionValue, isSelected: boolean) {
   if (!isSelected) {
-    return "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)] hover:border-[#C8102E]";
+    return "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-white,#f5f5f5)] hover:border-[var(--nffc-red,#e50914)]";
   }
 
   if (option === "W") {
@@ -737,8 +737,8 @@ function predictionButtonClass(option: PredictionValue, isSelected: boolean) {
   }
 
   if (option === "L") {
-    return "border-[#C8102E] bg-[#C8102E] text-white";
+    return "border-[var(--nffc-red,#e50914)] bg-[var(--nffc-red,#e50914)] text-white";
   }
 
-  return "border-[#111111] bg-[#111111] text-white";
+  return "border-[#111111] bg-[var(--nffc-black,#000000)] text-white";
 }

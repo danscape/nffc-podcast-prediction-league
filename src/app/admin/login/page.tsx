@@ -35,11 +35,11 @@ export default function AdminLoginPage() {
     <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-8 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8">
       <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl flex-col justify-center">
         <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 shadow-none md:p-8">
-          <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+          <div className="mb-3 inline-flex w-fit border-b-2 border-[var(--nffc-red,#e50914)] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[var(--nffc-red,#e50914)]">
             🔮 Admin
           </div>
 
-          <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E]">
+          <h1 className="text-4xl font-black uppercase tracking-tight text-[var(--nffc-red,#e50914)]">
             Admin login
           </h1>
 
@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[var(--nffc-red,#e50914)]"
                 required
               />
             </label>
@@ -69,7 +69,7 @@ export default function AdminLoginPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[var(--nffc-red,#e50914)]"
                 required
               />
             </label>
@@ -77,7 +77,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={signingIn}
-              className="w-full rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-none bg-[var(--nffc-black,#000000)] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {signingIn ? "Signing in…" : "Sign in"}
             </button>
@@ -91,7 +91,7 @@ export default function AdminLoginPage() {
 
           <Link
             href="/"
-            className="mt-6 inline-flex text-sm font-bold uppercase tracking-wide text-[#C8102E]"
+            className="mt-6 inline-flex text-sm font-bold uppercase tracking-wide text-[var(--nffc-red,#e50914)]"
           >
             Back to home
           </Link>

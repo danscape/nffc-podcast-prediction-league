@@ -178,15 +178,15 @@ export default function AdminRemindersPage() {
   const failed = result?.failed ?? [];
 
   return (
-    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 font-mono text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+              <div className="mb-3 inline-flex w-fit border-b-2 border-[var(--nffc-red,#e50914)] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[var(--nffc-red,#e50914)]">
                 🔮 Admin
               </div>
-              <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
+              <h1 className="text-4xl font-black uppercase tracking-tight text-[var(--nffc-red,#e50914)] md:text-5xl">
                 Reminder emails
               </h1>
               <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
@@ -196,7 +196,7 @@ export default function AdminRemindersPage() {
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-none border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -207,9 +207,9 @@ export default function AdminRemindersPage() {
           <div
             className={`mb-6 rounded-none border p-4 text-sm font-semibold ${
               message.type === "success"
-                ? "border-green-200 bg-green-50 text-green-800"
+                ? "border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] text-[var(--stat-green,#22e55e)]"
                 : message.type === "error"
-                  ? "border-red-200 bg-red-50 text-red-800"
+                  ? "border-[var(--stat-wrong,#ff3030)] bg-[var(--nffc-black,#000000)] text-[var(--stat-wrong,#ff3030)]"
                   : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-muted,#a7a7a7)]"
             }`}
           >
@@ -243,7 +243,7 @@ export default function AdminRemindersPage() {
                 type="button"
                 disabled={loading}
                 onClick={() => runReminderCheck(true)}
-                className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-none border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading && lastAction === "dry-run" ? "Checking…" : "Dry run"}
               </button>
@@ -251,7 +251,7 @@ export default function AdminRemindersPage() {
                 type="button"
                 disabled={loading}
                 onClick={() => runReminderCheck(false)}
-                className="rounded-full bg-[#C8102E] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#111111] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-none bg-[var(--nffc-red,#e50914)] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-black,#000000)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading && lastAction === "send" ? "Sending…" : "Send due reminders"}
               </button>
@@ -276,7 +276,7 @@ export default function AdminRemindersPage() {
 
             <div className="grid gap-2 sm:grid-cols-[120px_1fr_1fr]">
               <label className="block">
-                <span className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-[#C8102E]">
+                <span className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-[var(--nffc-red,#e50914)]">
                   GW
                 </span>
                 <input
@@ -284,7 +284,7 @@ export default function AdminRemindersPage() {
                   min="1"
                   value={manualGameweek}
                   onChange={(event) => setManualGameweek(event.target.value)}
-                  className="w-full rounded-none border border-[#444444] bg-[var(--nffc-black,#000000)] px-3 py-3 text-sm font-black uppercase text-white outline-none focus:border-[#C8102E]"
+                  className="w-full rounded-none border border-[#444444] bg-[var(--nffc-black,#000000)] px-3 py-3 text-sm font-black uppercase text-white outline-none focus:border-[var(--nffc-red,#e50914)]"
                 />
               </label>
 
@@ -292,7 +292,7 @@ export default function AdminRemindersPage() {
                 type="button"
                 disabled={loading}
                 onClick={() => runManualGameweekCheck(true)}
-                className="self-end rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+                className="self-end rounded-none border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading && lastAction === "dry-run" ? "Checking…" : "Dry run GW"}
               </button>
@@ -301,14 +301,14 @@ export default function AdminRemindersPage() {
                 type="button"
                 disabled={loading}
                 onClick={() => runManualGameweekCheck(false)}
-                className="self-end rounded-full bg-[#C8102E] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#111111] disabled:cursor-not-allowed disabled:opacity-50"
+                className="self-end rounded-none bg-[var(--nffc-red,#e50914)] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-black,#000000)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading && lastAction === "send" ? "Sending…" : "Send GW reminders"}
               </button>
             </div>
           </div>
 
-          <div className="mt-5 rounded-none border border-[#C8102E] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-white">
+          <div className="mt-5 rounded-none border border-[var(--nffc-red,#e50914)] bg-[var(--nffc-black,#000000)] p-4 text-sm font-semibold text-white">
             Manual send bypasses the Wednesday scheduled check, but it does not bypass duplicate protection. Players already recorded in email_reminder_log for that fixture will be skipped.
           </div>
         </section>
@@ -324,7 +324,7 @@ export default function AdminRemindersPage() {
                   These emails would be sent if you run Send due reminders.
                 </p>
               </div>
-              <div className="text-sm font-bold uppercase tracking-wide text-[#C8102E]">
+              <div className="text-sm font-bold uppercase tracking-wide text-[var(--nffc-red,#e50914)]">
                 {dueReminders.length} due
               </div>
             </div>
@@ -349,7 +349,7 @@ export default function AdminRemindersPage() {
                     Successfully sent reminder emails.
                   </p>
                 </div>
-                <div className="text-sm font-bold uppercase tracking-wide text-[#C8102E]">
+                <div className="text-sm font-bold uppercase tracking-wide text-[var(--nffc-red,#e50914)]">
                   {sent.length} sent
                 </div>
               </div>
@@ -371,7 +371,7 @@ export default function AdminRemindersPage() {
                     Any reminder emails that could not be sent or logged.
                   </p>
                 </div>
-                <div className="text-sm font-bold uppercase tracking-wide text-[#C8102E]">
+                <div className="text-sm font-bold uppercase tracking-wide text-[var(--nffc-red,#e50914)]">
                   {failed.length} failed
                 </div>
               </div>
@@ -401,7 +401,7 @@ function AdminStat({
       <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
+      <div className="mt-1 text-3xl font-black text-[var(--nffc-red,#e50914)]">{value}</div>
     </div>
   );
 }
@@ -419,7 +419,7 @@ function ReminderTable({ reminders }: { reminders: ReminderRow[] }) {
     <>
       <div className="hidden overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)] lg:block">
         <table className="w-full border-collapse text-left text-sm">
-          <thead className="bg-[#111111] text-white">
+          <thead className="bg-[var(--nffc-black,#000000)] text-white">
             <tr>
               <th className="px-4 py-3">Player</th>
               <th className="px-4 py-3">Team</th>
@@ -432,7 +432,7 @@ function ReminderTable({ reminders }: { reminders: ReminderRow[] }) {
             {reminders.map((reminder) => (
               <tr
                 key={`${reminder.fixture_id}-${reminder.player_id}`}
-                className="border-b border-[rgba(245,245,245,0.35)] last:border-b-0"
+                className="border-b border-[#242424] last:border-b-0"
               >
                 <td className="px-4 py-3">
                   <div className="font-black">
@@ -465,7 +465,7 @@ function ReminderTable({ reminders }: { reminders: ReminderRow[] }) {
             key={`${reminder.fixture_id}-${reminder.player_id}`}
             className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4"
           >
-            <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+            <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
               {reminder.gameweek_label} · {reminder.opponent_short}{" "}
               {reminder.venue}
             </div>
@@ -501,7 +501,7 @@ function ResultTable({
   return (
     <div className="overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)]">
       <table className="w-full border-collapse text-left text-sm">
-        <thead className="bg-[#111111] text-white">
+        <thead className="bg-[var(--nffc-black,#000000)] text-white">
           <tr>
             <th className="px-4 py-3">Player</th>
             <th className="px-4 py-3">Fixture</th>
@@ -513,7 +513,7 @@ function ResultTable({
           {rows.map((row, index) => (
             <tr
               key={`${row.email}-${row.fixture}-${index}`}
-              className="border-b border-[rgba(245,245,245,0.35)] last:border-b-0"
+              className="border-b border-[#242424] last:border-b-0"
             >
               <td className="px-4 py-3 font-black">{row.player}</td>
               <td className="px-4 py-3 font-bold">{row.fixture}</td>

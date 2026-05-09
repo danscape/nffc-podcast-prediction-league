@@ -205,15 +205,15 @@ export default function AdminSeasonPage() {
   const results = apiResult?.results ?? [];
 
   return (
-    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 font-mono text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+              <div className="mb-3 inline-flex w-fit border-b-2 border-[var(--nffc-red,#e50914)] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[var(--nffc-red,#e50914)]">
                 🔮 Admin
               </div>
-              <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
+              <h1 className="text-4xl font-black uppercase tracking-tight text-[var(--nffc-red,#e50914)] md:text-5xl">
                 Season / API Sync
               </h1>
               <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
@@ -223,7 +223,7 @@ export default function AdminSeasonPage() {
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-none border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -234,9 +234,9 @@ export default function AdminSeasonPage() {
           <div
             className={`mb-6 rounded-none border p-4 text-sm font-semibold ${
               message.type === "success"
-                ? "border-green-200 bg-green-50 text-green-800"
+                ? "border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] text-[var(--stat-green,#22e55e)]"
                 : message.type === "error"
-                  ? "border-red-200 bg-red-50 text-red-800"
+                  ? "border-[var(--stat-wrong,#ff3030)] bg-[var(--nffc-black,#000000)] text-[var(--stat-wrong,#ff3030)]"
                   : "border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] text-[var(--nffc-muted,#a7a7a7)]"
             }`}
           >
@@ -288,7 +288,7 @@ export default function AdminSeasonPage() {
                   type="button"
                   disabled={savingSettings}
                   onClick={saveSettings}
-                  className="w-full rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50 md:w-fit"
+                  className="w-full rounded-none bg-[var(--nffc-black,#000000)] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-50 md:w-fit"
                 >
                   {savingSettings ? "Saving…" : "Save season settings"}
                 </button>
@@ -344,7 +344,7 @@ export default function AdminSeasonPage() {
                   {apiResult.dryRun ? "Dry run" : "Live run"}
                 </p>
               </div>
-              <div className="text-sm font-bold uppercase tracking-wide text-[#C8102E]">
+              <div className="text-sm font-bold uppercase tracking-wide text-[var(--nffc-red,#e50914)]">
                 {apiResult.matchCount ?? 0} API matches
               </div>
             </div>
@@ -390,7 +390,7 @@ function AdminStat({
       <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
+      <div className="mt-1 text-3xl font-black text-[var(--nffc-red,#e50914)]">{value}</div>
     </div>
   );
 }
@@ -407,7 +407,7 @@ function MiniStat({
       <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className="mt-1 text-2xl font-black text-[#C8102E]">{value}</div>
+      <div className="mt-1 text-2xl font-black text-[var(--nffc-red,#e50914)]">{value}</div>
     </div>
   );
 }
@@ -433,7 +433,7 @@ function TextField({
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[var(--nffc-red,#e50914)]"
       />
     </label>
   );
@@ -470,7 +470,7 @@ function ApiActionCard({
           type="button"
           disabled={disabled}
           onClick={onDryRun}
-          className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-none border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {dryRunLoading ? "Running…" : dryRunLabel}
         </button>
@@ -478,7 +478,7 @@ function ApiActionCard({
           type="button"
           disabled={disabled}
           onClick={onLive}
-          className="rounded-full bg-[#C8102E] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#111111] disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-none bg-[var(--nffc-red,#e50914)] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-black,#000000)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {liveLoading ? "Running…" : liveLabel}
         </button>
@@ -492,7 +492,7 @@ function ResultTable({ rows }: { rows: SyncResultRow[] }) {
     <>
       <div className="hidden overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)] lg:block">
         <table className="w-full border-collapse text-left text-sm">
-          <thead className="bg-[#111111] text-white">
+          <thead className="bg-[var(--nffc-black,#000000)] text-white">
             <tr>
               <th className="px-4 py-3">GW</th>
               <th className="px-4 py-3">Fixture</th>
@@ -505,7 +505,7 @@ function ResultTable({ rows }: { rows: SyncResultRow[] }) {
             {rows.map((row, index) => (
               <tr
                 key={`${row.apiId}-${row.gameweek}-${index}`}
-                className="border-b border-[rgba(245,245,245,0.35)] last:border-b-0"
+                className="border-b border-[#242424] last:border-b-0"
               >
                 <td className="px-4 py-3 font-black">
                   {row.gameweek ? `GW${row.gameweek}` : "—"}
@@ -528,7 +528,7 @@ function ResultTable({ rows }: { rows: SyncResultRow[] }) {
             key={`${row.apiId}-${row.gameweek}-${index}`}
             className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] p-4"
           >
-            <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+            <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
               {row.gameweek ? `GW${row.gameweek}` : "No GW"} · {row.apiId}
             </div>
             <div className="mt-1 text-lg font-black">{row.fixture}</div>
@@ -548,7 +548,7 @@ function ResultTable({ rows }: { rows: SyncResultRow[] }) {
 function ActionBadge({ action }: { action: "created" | "updated" | "skipped" }) {
   if (action === "created") {
     return (
-      <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-black uppercase text-green-800">
+      <span className="rounded-none border border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-black uppercase text-[var(--stat-green,#22e55e)]">
         Created
       </span>
     );
@@ -556,14 +556,14 @@ function ActionBadge({ action }: { action: "created" | "updated" | "skipped" }) 
 
   if (action === "updated") {
     return (
-      <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black uppercase text-blue-800">
+      <span className="rounded-none border border-[var(--stat-cyan,#59efff)] bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-black uppercase text-[var(--stat-cyan,#59efff)]">
         Updated
       </span>
     );
   }
 
   return (
-    <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black uppercase text-red-800">
+    <span className="rounded-none border border-[var(--stat-wrong,#ff3030)] bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-black uppercase text-[var(--stat-wrong,#ff3030)]">
       Skipped
     </span>
   );

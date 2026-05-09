@@ -86,15 +86,15 @@ export default function AdminPlayersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 font-mono text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+              <div className="mb-3 inline-flex w-fit border-b-2 border-[var(--nffc-red,#e50914)] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[var(--nffc-red,#e50914)]">
                 🔮 Admin
               </div>
-              <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
+              <h1 className="text-4xl font-black uppercase tracking-tight text-[var(--nffc-red,#e50914)] md:text-5xl">
                 Players
               </h1>
               <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
@@ -104,7 +104,7 @@ export default function AdminPlayersPage() {
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-none border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -140,20 +140,20 @@ export default function AdminPlayersPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by name, team, email or PPL code"
-              className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+              className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[var(--nffc-red,#e50914)]"
             />
           </label>
         </section>
 
         {loading ? (
-          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[#C8102E] shadow-none">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[var(--nffc-red,#e50914)] shadow-none">
             Loading players…
           </div>
         ) : (
           <>
             <div className="hidden overflow-hidden rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] shadow-none xl:block">
               <table className="w-full border-collapse text-left text-sm">
-                <thead className="bg-[#111111] text-white">
+                <thead className="bg-[var(--nffc-black,#000000)] text-white">
                   <tr>
                     <th className="px-4 py-3">Code</th>
                     <th className="px-4 py-3">Player</th>
@@ -168,7 +168,7 @@ export default function AdminPlayersPage() {
                   {filteredPlayers.map((player) => (
                     <tr
                       key={player.player_id}
-                      className="border-b border-[rgba(245,245,245,0.35)] last:border-b-0"
+                      className="border-b border-[#242424] last:border-b-0"
                     >
                       <td className="px-4 py-3 font-black">
                         {player.legacy_code}
@@ -202,7 +202,7 @@ export default function AdminPlayersPage() {
                         <button
                           type="button"
                           onClick={() => copyPredictionLink(player.access_token)}
-                          className="rounded-full bg-[#111111] px-3 py-2 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+                          className="rounded-none bg-[var(--nffc-black,#000000)] px-3 py-2 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)]"
                         >
                           {copiedToken === player.access_token
                             ? "Copied"
@@ -223,7 +223,7 @@ export default function AdminPlayersPage() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                      <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
                         {player.legacy_code}
                       </div>
                       <div className="mt-1 text-xl font-black">
@@ -234,7 +234,7 @@ export default function AdminPlayersPage() {
                       </div>
                     </div>
 
-                    <div className="rounded-full bg-[#111111] px-3 py-1 text-xs font-black uppercase text-white">
+                    <div className="rounded-none bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-black uppercase text-white">
                       GW{player.joined_gameweek}
                     </div>
                   </div>
@@ -255,7 +255,7 @@ export default function AdminPlayersPage() {
                     <button
                       type="button"
                       onClick={() => copyPredictionLink(player.access_token)}
-                      className="rounded-full bg-[#111111] px-4 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+                      className="rounded-none bg-[var(--nffc-black,#000000)] px-4 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)]"
                     >
                       {copiedToken === player.access_token
                         ? "Copied"
@@ -278,7 +278,7 @@ function AdminStat({ label, value }: { label: string; value: number }) {
       <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
+      <div className="mt-1 text-3xl font-black text-[var(--nffc-red,#e50914)]">{value}</div>
     </div>
   );
 }

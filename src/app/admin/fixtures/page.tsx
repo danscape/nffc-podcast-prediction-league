@@ -342,15 +342,15 @@ export default function AdminFixturesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
+    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-4 py-6 font-mono text-[var(--nffc-white,#f5f5f5)] sm:px-6 lg:px-8 lg:py-10">
       <section className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-5 shadow-none md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex w-fit border-b-2 border-[#C8102E] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[#C8102E]">
+              <div className="mb-3 inline-flex w-fit border-b-2 border-[var(--nffc-red,#e50914)] pb-2 text-xs font-black uppercase tracking-[0.25em] text-[var(--nffc-red,#e50914)]">
                 🔮 Admin
               </div>
-              <h1 className="text-4xl font-black uppercase tracking-tight text-[#C8102E] md:text-5xl">
+              <h1 className="text-4xl font-black uppercase tracking-tight text-[var(--nffc-red,#e50914)] md:text-5xl">
                 Fixtures
               </h1>
               <p className="mt-3 text-sm font-semibold text-[var(--nffc-muted,#a7a7a7)]">
@@ -360,7 +360,7 @@ export default function AdminFixturesPage() {
 
             <Link
               href="/admin"
-              className="w-full rounded-full border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] sm:w-fit"
+              className="w-full rounded-none border border-[#111111] px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] sm:w-fit"
             >
               Back to admin
             </Link>
@@ -371,8 +371,8 @@ export default function AdminFixturesPage() {
           <div
             className={`mb-6 rounded-none border p-4 text-sm font-semibold ${
               message.type === "success"
-                ? "border-green-200 bg-green-50 text-green-800"
-                : "border-red-200 bg-red-50 text-red-800"
+                ? "border-[var(--stat-green,#22e55e)] bg-[var(--nffc-black,#000000)] text-[var(--stat-green,#22e55e)]"
+                : "border-[var(--stat-wrong,#ff3030)] bg-[var(--nffc-black,#000000)] text-[var(--stat-wrong,#ff3030)]"
             }`}
           >
             {message.text}
@@ -400,13 +400,13 @@ export default function AdminFixturesPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by GW, opponent, status or result"
-              className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+              className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold outline-none focus:border-[var(--nffc-red,#e50914)]"
             />
           </label>
         </section>
 
         {loading ? (
-          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[#C8102E] shadow-none">
+          <div className="rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] p-6 text-xl font-black uppercase text-[var(--nffc-red,#e50914)] shadow-none">
             Loading fixtures…
           </div>
         ) : (
@@ -435,7 +435,7 @@ export default function AdminFixturesPage() {
                   {!isEditing ? (
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div>
-                        <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                        <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
                           {fixture.gameweek_label}
                         </div>
                         <div className="mt-1 text-2xl font-black">
@@ -447,17 +447,17 @@ export default function AdminFixturesPage() {
                         <div className="mt-2 flex flex-wrap gap-2 text-xs font-black uppercase">
                           <StatusBadge status={fixture.status} />
                           {fixture.result_confirmed && (
-                            <span className="rounded-full bg-[#111111] px-3 py-1 text-white">
+                            <span className="rounded-none bg-[var(--nffc-black,#000000)] px-3 py-1 text-white">
                               Result {fixture.forest_result}
                             </span>
                           )}
                           {isLocked && !fixture.result_confirmed && (
-                            <span className="rounded-full bg-neutral-200 px-3 py-1 text-[var(--nffc-muted,#a7a7a7)]">
+                            <span className="rounded-none border border-[var(--nffc-muted,#a7a7a7)] bg-[var(--nffc-black,#000000)] px-3 py-1 text-[var(--nffc-muted,#a7a7a7)]">
                               Locked
                             </span>
                           )}
                           {fixture.api_last_synced_at && (
-                            <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-800">
+                            <span className="rounded-none border border-[var(--stat-cyan,#59efff)] bg-[var(--nffc-black,#000000)] px-3 py-1 text-[var(--stat-cyan,#59efff)]">
                               API synced
                             </span>
                           )}
@@ -488,7 +488,7 @@ export default function AdminFixturesPage() {
                       <button
                         type="button"
                         onClick={() => startEdit(fixture)}
-                        className="rounded-full bg-[#111111] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E]"
+                        className="rounded-none bg-[var(--nffc-black,#000000)] px-5 py-3 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)]"
                       >
                         Edit
                       </button>
@@ -497,7 +497,7 @@ export default function AdminFixturesPage() {
                     <div>
                       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                          <div className="text-xs font-black uppercase tracking-[0.2em] text-[#C8102E]">
+                          <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--nffc-red,#e50914)]">
                             Editing fixture
                           </div>
                           <div className="mt-1 text-2xl font-black">
@@ -508,12 +508,12 @@ export default function AdminFixturesPage() {
                         <div className="flex flex-wrap gap-2">
                           <StatusBadge status={draft.status} />
                           {isLocked && (
-                            <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
+                            <span className="rounded-none border border-[var(--nffc-muted,#a7a7a7)] bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
                               Locked
                             </span>
                           )}
                           {draft.api_last_synced_at && (
-                            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black uppercase text-blue-800">
+                            <span className="rounded-none bg-blue-50 px-3 py-1 text-xs font-black uppercase text-blue-800">
                               API synced
                             </span>
                           )}
@@ -536,7 +536,7 @@ export default function AdminFixturesPage() {
                             type="button"
                             onClick={useApiScore}
                             disabled={!hasApiScore(draft)}
-                            className="rounded-full border border-[#111111] px-4 py-2 text-xs font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E] disabled:cursor-not-allowed disabled:opacity-40"
+                            className="rounded-none border border-[#111111] px-4 py-2 text-xs font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             Use API score
                           </button>
@@ -574,7 +574,7 @@ export default function AdminFixturesPage() {
                             onChange={(event) =>
                               updateDraft({ venue: event.target.value as "H" | "A" })
                             }
-                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold text-white outline-none focus:border-[var(--nffc-red,#e50914)]"
                           >
                             <option value="H">H</option>
                             <option value="A">A</option>
@@ -590,7 +590,7 @@ export default function AdminFixturesPage() {
                             onChange={(event) =>
                               updateDraft({ status: event.target.value })
                             }
-                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold text-white outline-none focus:border-[var(--nffc-red,#e50914)]"
                           >
                             <option value="scheduled">scheduled</option>
                             <option value="postponed">postponed</option>
@@ -608,7 +608,7 @@ export default function AdminFixturesPage() {
                             type="datetime-local"
                             value={toDatetimeLocal(draft.kickoff_at)}
                             onChange={(event) => setKickoff(event.target.value)}
-                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold text-white outline-none focus:border-[var(--nffc-red,#e50914)]"
                           />
                         </label>
 
@@ -626,7 +626,7 @@ export default function AdminFixturesPage() {
                                 ),
                               })
                             }
-                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+                            className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold text-white outline-none focus:border-[var(--nffc-red,#e50914)]"
                           />
                         </label>
 
@@ -660,7 +660,7 @@ export default function AdminFixturesPage() {
                               type="button"
                               onClick={() => saveFixture(draft)}
                               disabled={savingKey === `fixture-${draft.id}`}
-                              className="rounded-full bg-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#C8102E] disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-none bg-[var(--nffc-black,#000000)] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-red,#e50914)] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {savingKey === `fixture-${draft.id}`
                                 ? "Saving…"
@@ -671,7 +671,7 @@ export default function AdminFixturesPage() {
                               type="button"
                               onClick={() => createSnapshot(draft)}
                               disabled={savingKey === `snapshot-${draft.id}`}
-                              className="rounded-full border border-[#C8102E] px-5 py-3 text-sm font-black uppercase tracking-wide text-[#C8102E] transition hover:bg-[#C8102E] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-none border border-[var(--nffc-red,#e50914)] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-red,#e50914)] transition hover:bg-[var(--nffc-red,#e50914)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {savingKey === `snapshot-${draft.id}`
                                 ? "Snapshotting…"
@@ -682,7 +682,7 @@ export default function AdminFixturesPage() {
                               type="button"
                               onClick={() => confirmResult(draft)}
                               disabled={savingKey === `confirm-${draft.id}`}
-                              className="rounded-full bg-[#C8102E] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#111111] disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-none bg-[var(--nffc-red,#e50914)] px-5 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[var(--nffc-black,#000000)] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {savingKey === `confirm-${draft.id}`
                                 ? "Confirming…"
@@ -693,7 +693,7 @@ export default function AdminFixturesPage() {
                               type="button"
                               onClick={() => resetResult(draft)}
                               disabled={savingKey === `reset-${draft.id}`}
-                              className="rounded-full bg-neutral-200 px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)] transition hover:bg-neutral-300 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-none bg-neutral-200 px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)] transition hover:bg-neutral-300 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {savingKey === `reset-${draft.id}`
                                 ? "Resetting…"
@@ -703,7 +703,7 @@ export default function AdminFixturesPage() {
                             <button
                               type="button"
                               onClick={cancelEdit}
-                              className="rounded-full border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[#C8102E] hover:text-[#C8102E]"
+                              className="rounded-none border border-[#111111] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--nffc-white,#f5f5f5)] transition hover:border-[var(--nffc-red,#e50914)] hover:text-[var(--nffc-red,#e50914)]"
                             >
                               Cancel
                             </button>
@@ -733,7 +733,7 @@ function AdminStat({ label, value }: { label: string; value: number }) {
       <div className="text-xs font-bold uppercase tracking-wide text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className="mt-1 text-3xl font-black text-[#C8102E]">{value}</div>
+      <div className="mt-1 text-3xl font-black text-[var(--nffc-red,#e50914)]">{value}</div>
     </div>
   );
 }
@@ -758,7 +758,7 @@ function TextField({
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold text-white outline-none focus:border-[var(--nffc-red,#e50914)]"
       />
     </label>
   );
@@ -785,7 +785,7 @@ function NumberField({
         onChange={(event) =>
           onChange(event.target.value === "" ? null : Number(event.target.value))
         }
-        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-panel,#070707)] px-4 py-3 text-base font-bold outline-none focus:border-[#C8102E]"
+        className="mt-2 w-full rounded-none border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)] px-4 py-3 text-base font-bold text-white outline-none focus:border-[var(--nffc-red,#e50914)]"
       />
     </label>
   );
@@ -794,7 +794,7 @@ function NumberField({
 function StatusBadge({ status }: { status: string }) {
   if (status === "finished") {
     return (
-      <span className="rounded-full bg-[#111111] px-3 py-1 text-xs font-black uppercase text-white">
+      <span className="rounded-none bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-black uppercase text-white">
         Finished
       </span>
     );
@@ -802,7 +802,7 @@ function StatusBadge({ status }: { status: string }) {
 
   if (status === "postponed") {
     return (
-      <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
+      <span className="rounded-none border border-[var(--nffc-muted,#a7a7a7)] bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-black uppercase text-[var(--nffc-muted,#a7a7a7)]">
         Postponed
       </span>
     );
@@ -810,14 +810,14 @@ function StatusBadge({ status }: { status: string }) {
 
   if (status === "in_progress" || status === "live") {
     return (
-      <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-black uppercase text-yellow-800">
+      <span className="rounded-none border border-[var(--stat-yellow,#ffe44d)] bg-[var(--nffc-black,#000000)] px-3 py-1 text-xs font-black uppercase text-[var(--stat-yellow,#ffe44d)]">
         Live
       </span>
     );
   }
 
   return (
-    <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black uppercase text-[#C8102E]">
+    <span className="rounded-none bg-red-50 px-3 py-1 text-xs font-black uppercase text-[var(--nffc-red,#e50914)]">
       Scheduled
     </span>
   );
