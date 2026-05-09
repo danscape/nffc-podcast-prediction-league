@@ -44,3 +44,7 @@ next-env.d.ts
 backups/
 *.backup.tsx
 *.before-*.tsx
+.env*.local
+
+# Local recovery backups
+_recovery-backups/
