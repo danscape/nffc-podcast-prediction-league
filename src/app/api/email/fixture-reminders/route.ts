@@ -389,6 +389,18 @@ function getRecordNumber(row: Record<string, unknown>, key: string) {
   return Number.isFinite(value) ? value : 0;
 }
 
+function recordText(row: Record<string, unknown>, key: string, fallback = "") {
+  const value = row[key];
+  return value === null || value === undefined || String(value).trim() === ""
+    ? fallback
+    : String(value);
+}
+
+function recordNumber(row: Record<string, unknown>, key: string) {
+  const value = Number(row[key] ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
 function getRecordText(row: Record<string, unknown>, keys: string[], fallback = "TBC") {
   for (const key of keys) {
     const value = row[key];
@@ -458,6 +470,79 @@ function getSnapshotText(value: unknown, fallback = "TBC") {
   return textValue ? textValue : fallback;
 }
 
+
+function buildPreviousPlayerScoreCalculationHtml(row: Record<string, unknown> | null) {
+  if (!row) {
+    return `
+      <div style="padding:9px 0 0;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">
+        No confirmed player score available yet.
+      </div>
+    `;
+  }
+
+  const base = getSnapshotNumber(row.base_points);
+  const streak = getSnapshotNumber(row.streak_bonus);
+  const maverick = getSnapshotNumber(row.maverick_bonus);
+  const rogue = getSnapshotNumber(row.rogue_bonus);
+  const cup = getSnapshotNumber(row.cup_bonus_this_week);
+  const total = getSnapshotNumber(row.total_points_this_week);
+  const runningTotal = getSnapshotNumber(row.running_total);
+
+  return `
+    <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:8px;background:#000000;color:#FFFFFF;font-size:12px;font-weight:900;text-transform:uppercase;">
+      <tr style="border-bottom:1px solid #242424;">
+        <td style="padding:7px 5px;color:#E50914 !important;-webkit-text-fill-color:#E50914 !important;">Fixture</td>
+        <td style="padding:7px 5px;text-align:right;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">
+          ${escapeHtml(recordText(row, "gameweek_label"))} ${escapeHtml(recordText(row, "opponent_short"))} ${escapeHtml(recordText(row, "venue"))}
+        </td>
+      </tr>
+      <tr style="border-bottom:1px solid #242424;">
+        <td style="padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Pick / Result</td>
+        <td style="padding:7px 5px;text-align:right;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">
+          ${escapeHtml(recordText(row, "prediction", "-"))} / ${escapeHtml(recordText(row, "actual_result", recordText(row, "forest_result", "TBC")))}
+        </td>
+      </tr>
+      <tr style="border-bottom:1px solid #242424;">
+        <td style="padding:7px 5px;color:#FFE44D !important;-webkit-text-fill-color:#FFE44D !important;">Calculation</td>
+        <td style="padding:7px 5px;text-align:right;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">
+          Base ${escapeHtml(base)} + Streak ${escapeHtml(streak)} + Maverick ${escapeHtml(maverick)} + Rogue ${escapeHtml(rogue)} + Cup ${escapeHtml(cup)}
+        </td>
+      </tr>
+      <tr style="border-bottom:1px solid #242424;">
+        <td style="padding:7px 5px;color:#22E55E !important;-webkit-text-fill-color:#22E55E !important;">GW Total</td>
+        <td style="padding:7px 5px;text-align:right;color:#22E55E !important;-webkit-text-fill-color:#22E55E !important;">
+          ${escapeHtml(total)} pts
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:7px 5px;color:#59EFFF !important;-webkit-text-fill-color:#59EFFF !important;">Running Total</td>
+        <td style="padding:7px 5px;text-align:right;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">
+          ${escapeHtml(runningTotal)} pts
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+function buildPreviousPlayerScoreCalculationText(row: Record<string, unknown> | null) {
+  if (!row) return "No confirmed player score available yet.";
+
+  const base = getSnapshotNumber(row.base_points);
+  const streak = getSnapshotNumber(row.streak_bonus);
+  const maverick = getSnapshotNumber(row.maverick_bonus);
+  const rogue = getSnapshotNumber(row.rogue_bonus);
+  const cup = getSnapshotNumber(row.cup_bonus_this_week);
+  const total = getSnapshotNumber(row.total_points_this_week);
+  const runningTotal = getSnapshotNumber(row.running_total);
+
+  return [
+    `${recordText(row, "gameweek_label")} ${recordText(row, "opponent_short")} ${recordText(row, "venue")}`,
+    `Pick / Result: ${recordText(row, "prediction", "-")} / ${recordText(row, "actual_result", recordText(row, "forest_result", "TBC"))}`,
+    `Calculation: Base ${base} + Streak ${streak} + Maverick ${maverick} + Rogue ${rogue} + Cup ${cup} = ${total} pts`,
+    `Running total: ${runningTotal} pts`,
+  ].join("\\n");
+}
+
 async function sendReminderEmail({
   reminder,
   predictionData,
@@ -465,6 +550,7 @@ async function sendReminderEmail({
   teamRows,
   newsSnapshot,
   actualForestPointsTotal,
+  previousPlayerScoreRow,
   testMode = false,
 }: {
   reminder: DueReminder;
@@ -480,6 +566,7 @@ async function sendReminderEmail({
     latestOverallAccuracy: number;
   };
   actualForestPointsTotal: number;
+  previousPlayerScoreRow: Record<string, unknown> | null;
   testMode?: boolean;
 }) {
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
@@ -526,6 +613,8 @@ async function sendReminderEmail({
 
   const predictedPointsTotal =
     actualForestPointsTotal + remainingPredictedForestPoints;
+
+
 
 
 
@@ -631,6 +720,13 @@ async function sendReminderEmail({
 
           <div style="padding:12px;border-bottom:1px solid #333333;">
             <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+              Previous GW Score Calculation
+            </div>
+            ${buildPreviousPlayerScoreCalculationHtml(previousPlayerScoreRow ?? null)}
+          </div>
+
+          <div style="padding:12px;border-bottom:1px solid #333333;">
+            <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
               Update Your Predictions
             </div>
             <div style="padding:12px 0 0;">
@@ -710,6 +806,9 @@ async function sendReminderEmail({
     `Predicted points total: ${Math.round(predictedPointsTotal)} pts`,
     `Fixture: ${fixtureText}`,
     `Kick-off: ${formatDateTime(reminder.kickoff_at)}`,
+    "",
+    "Previous GW score calculation",
+    buildPreviousPlayerScoreCalculationText(previousPlayerScoreRow ?? null),
     "",
     `Update your predictions: ${predictionUrl}`,
     "",
@@ -890,8 +989,14 @@ export async function POST(request: Request) {
           ) / teamProfileRows.length
         : 0;
 
-    const latestTotalPredictions = getSnapshotNumber(latestSummaryRow.total_predictions);
-    const latestCorrectCount = getSnapshotNumber(latestSummaryRow.correct_count);
+    const overallCorrectPredictions = individualRows.reduce(
+      (total, row) => total + getSnapshotNumber(row.correct_predictions),
+      0
+    );
+    const overallFixturesScored = individualRows.reduce(
+      (total, row) => total + getSnapshotNumber(row.fixtures_scored),
+      0
+    );
 
     const serverNewsSnapshot = {
       inFormPlayerName: getSnapshotText(
@@ -918,8 +1023,8 @@ export async function POST(request: Request) {
       ),
       averagePredictedForestPoints,
       latestOverallAccuracy:
-        latestTotalPredictions > 0
-          ? (latestCorrectCount / latestTotalPredictions) * 100
+        overallFixturesScored > 0
+          ? (overallCorrectPredictions / overallFixturesScored) * 100
           : 0,
     };
 
@@ -973,6 +1078,23 @@ export async function POST(request: Request) {
           throw new Error("Player prediction data not found.");
         }
 
+        const { data: previousPlayerScoreData, error: previousPlayerScoreError } =
+          await supabase
+            .from("public_player_weekly_scores")
+            .select("*")
+            .eq("player_id", reminder.player_id)
+            .eq("result_confirmed", true)
+            .order("gameweek", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (previousPlayerScoreError) {
+          throw new Error(previousPlayerScoreError.message);
+        }
+
+        const previousPlayerScoreRow =
+          (previousPlayerScoreData as Record<string, unknown> | null) ?? null;
+
         const sendResult = await sendReminderEmail({
           reminder,
           predictionData,
@@ -980,6 +1102,7 @@ export async function POST(request: Request) {
           teamRows,
           newsSnapshot: serverNewsSnapshot,
           actualForestPointsTotal,
+          previousPlayerScoreRow,
           testMode,
         });
 
