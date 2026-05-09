@@ -130,10 +130,20 @@ export default async function CupDetailPage({ params }: PageProps) {
   const totalPlayers = summary.total_players ?? players.length;
   const maxRoundCount = Math.max(...rounds.map((round) => round.prediction_count), 1);
   const pageTitle = summary.competition;
+  const correctPlayerNames = correctPlayers.map(displayPlayer).join(", ");
+  const correctPicksText = `${summary.competition} Cup Specialist update: ${formatRound(
+    summary.actual_round_reached
+  )} was the correct call. ${correctPlayers.length} player${
+    correctPlayers.length === 1 ? "" : "s"
+  } nailed it, while ${summary.most_common_prediction_count ?? 0} backed ${formatRound(
+    summary.most_common_predicted_round
+  )} as the most common pick. Correct calls: ${
+    correctPlayerNames || "None"
+  }.`;
 
   return (
-    <main className="min-h-screen bg-[var(--nffc-black,#000000)] px-2 py-3 font-mono text-[var(--nffc-white,#f5f5f5)] sm:px-4 lg:px-6">
-      <section className="mx-auto max-w-[1540px]">
+    <main className="min-h-screen w-full max-w-none bg-[var(--nffc-black,#000000)] px-2 py-3 font-mono text-[var(--nffc-white,#f5f5f5)] sm:px-3 lg:px-3">
+      <section className="w-full max-w-none">
         <SiteMenu title={`${pageTitle} Board`} />
 
         <section className="mt-3 border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]">
@@ -141,7 +151,7 @@ export default async function CupDetailPage({ params }: PageProps) {
             NFFC Stats / Cup Specialist Board
           </div>
 
-          <div className="grid gap-4 p-3 md:grid-cols-[1fr_430px] md:p-5">
+          <div className="grid gap-4 p-3 md:grid-cols-[minmax(0,1fr)_520px] md:p-5">
             <div>
               <Link
                 href="/cups"
@@ -150,7 +160,7 @@ export default async function CupDetailPage({ params }: PageProps) {
                 ← Cups
               </Link>
 
-              <h1 className="max-w-4xl text-5xl font-black uppercase leading-[0.9] tracking-[-0.06em] text-[var(--stat-yellow,#ffe44d)] md:text-9xl">
+              <h1 className="max-w-none text-5xl font-black uppercase leading-[0.9] tracking-[-0.06em] text-[var(--stat-yellow,#ffe44d)] md:text-[9.5rem]">
                 {pageTitle}
               </h1>
 
@@ -159,7 +169,7 @@ export default async function CupDetailPage({ params }: PageProps) {
               </p>
             </div>
 
-            <div className="grid content-start gap-px bg-[#242424]">
+            <div className="self-start border border-[#242424] bg-[var(--nffc-black,#000000)]">
               <HeroStat label="Actual round" value={formatRound(summary.actual_round_reached)} tone="yellow" />
               <HeroStat
                 label="Most common"
@@ -172,7 +182,7 @@ export default async function CupDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        <section className="mt-3 grid gap-3 xl:grid-cols-[1fr_360px]">
+        <section className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_420px]">
           <section className="border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]">
             <SectionTitle title="Predicted Round Distribution" />
 
@@ -190,7 +200,7 @@ export default async function CupDetailPage({ params }: PageProps) {
 
           <section className="border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]">
             <SectionTitle title="Social Stats" />
-            <div className="grid gap-px bg-[#242424]">
+            <div className="border border-[#242424] bg-[var(--nffc-black,#000000)]">
               <HeroStat label="Players" value={String(totalPlayers)} tone="white" />
               <HeroStat label="Correct" value={String(summary.correct_players ?? 0)} tone="green" />
               <HeroStat label="Wrong" value={String(summary.wrong_players ?? 0)} tone="red" />
@@ -206,6 +216,9 @@ export default async function CupDetailPage({ params }: PageProps) {
             subtitle={`${correctPlayers.length} player${correctPlayers.length === 1 ? "" : "s"} called ${formatRound(summary.actual_round_reached)}`}
             players={correctPlayers}
             tone="green"
+            introText={correctPicksText}
+            cupHeading={summary.competition}
+            roundHeading={formatRound(summary.actual_round_reached)}
           />
 
           <PlayerResultPanel
@@ -286,7 +299,7 @@ function HeroStat({
             : "text-white";
 
   return (
-    <div className="grid grid-cols-[130px_1fr] bg-[var(--nffc-black,#000000)] text-xs font-black uppercase tracking-[0.08em] md:grid-cols-[190px_1fr] md:text-base">
+    <div className="grid grid-cols-[130px_1fr] border-b border-[#242424] bg-[var(--nffc-black,#000000)] text-xs font-black uppercase tracking-[0.08em] last:border-b-0 md:grid-cols-[210px_1fr] md:text-lg">
       <div className="border-r border-[#242424] px-3 py-3 text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
@@ -335,11 +348,17 @@ function PlayerResultPanel({
   subtitle,
   players,
   tone,
+  introText,
+  cupHeading,
+  roundHeading,
 }: {
   title: string;
   subtitle: string;
   players: PlayerCupResult[];
   tone: "green" | "red" | "yellow";
+  introText?: string;
+  cupHeading?: string;
+  roundHeading?: string;
 }) {
   const toneClass =
     tone === "green"
@@ -359,44 +378,67 @@ function PlayerResultPanel({
     <section className="w-full border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]">
       <SectionTitle title={title} />
 
-      <div className="border-b border-[#242424] px-3 py-3 text-xs font-black uppercase tracking-[0.1em] md:text-base text-[var(--nffc-muted,#a7a7a7)]">
-        {subtitle}
-      </div>
+      {introText ? (
+        <div className="border-b border-[#242424] bg-[var(--nffc-black,#000000)] p-4 text-sm font-black uppercase leading-6 tracking-[0.08em] text-white md:p-5 md:text-xl md:leading-8">
+          {introText}
+        </div>
+      ) : null}
+
+      {cupHeading ? (
+        <div className="border-b border-[var(--nffc-red,#e50914)] bg-[var(--nffc-black,#000000)] p-4 md:p-6">
+          <div className="text-4xl font-black uppercase leading-none tracking-[-0.05em] text-[var(--stat-yellow,#ffe44d)] md:text-8xl">
+            {cupHeading}
+          </div>
+          <div className="mt-3 text-base font-black uppercase tracking-[0.12em] text-[var(--stat-green,#22e55e)] md:text-3xl">
+            Correct picks / {roundHeading ?? "TBC"}
+          </div>
+        </div>
+      ) : (
+        <div className="border-b border-[#242424] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[var(--nffc-muted,#a7a7a7)] md:text-lg">
+          {subtitle}
+        </div>
+      )}
+
+      {cupHeading ? (
+        <div className="border-b border-[#242424] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-[var(--nffc-muted,#a7a7a7)] md:px-5 md:py-3 md:text-xl">
+          {subtitle}
+        </div>
+      ) : null}
 
       <div className="hidden lg:block">
-        <div className="grid grid-cols-[70px_minmax(230px,1fr)_minmax(230px,1fr)_minmax(190px,260px)_95px] border-b border-[var(--nffc-red,#e50914)] text-xs font-black uppercase tracking-[0.14em] text-white md:text-base">
-          <div className="border-r border-[#242424] px-2 py-3 text-center">#</div>
-          <div className="border-r border-[#242424] px-3 py-3">Player</div>
-          <div className="border-r border-[#242424] px-3 py-3">Team</div>
-          <div className="border-r border-[#242424] px-3 py-3">Pick</div>
-          <div className="px-2 py-3 text-center">Pts</div>
+        <div className="grid grid-cols-[78px_minmax(260px,1fr)_minmax(260px,1fr)_minmax(220px,320px)_110px] border-b border-[var(--nffc-red,#e50914)] text-lg font-black uppercase tracking-[0.14em] text-white">
+          <div className="border-r border-[#242424] px-3 py-4 text-center">#</div>
+          <div className="border-r border-[#242424] px-5 py-4">Player</div>
+          <div className="border-r border-[#242424] px-5 py-4">Team</div>
+          <div className="border-r border-[#242424] px-5 py-4">Pick</div>
+          <div className="px-3 py-4 text-center">Pts</div>
         </div>
 
         {players.length ? (
           players.map((player, index) => (
             <div
               key={player.id}
-              className="grid grid-cols-[70px_minmax(230px,1fr)_minmax(230px,1fr)_minmax(190px,260px)_95px] border-b border-[#242424] text-sm font-black uppercase tracking-[0.06em] text-white md:text-lg last:border-b-0"
+              className="grid grid-cols-[78px_minmax(260px,1fr)_minmax(260px,1fr)_minmax(220px,320px)_110px] border-b border-[#242424] text-2xl font-black uppercase tracking-[0.04em] text-white last:border-b-0"
             >
-              <div className="border-r border-[#242424] px-2 py-3 text-center text-[var(--nffc-red,#e50914)]">
+              <div className="border-r border-[#242424] px-3 py-4 text-center text-[var(--nffc-red,#e50914)]">
                 {index + 1}
               </div>
-              <div className="border-r border-[#242424] px-3 py-3">
+              <div className="border-r border-[#242424] px-5 py-4">
                 {displayPlayer(player)}
               </div>
-              <div className="border-r border-[#242424] px-3 py-3 text-[var(--nffc-muted,#a7a7a7)]">
+              <div className="border-r border-[#242424] px-5 py-4 text-[var(--nffc-muted,#a7a7a7)]">
                 {displayTeam(player)}
               </div>
-              <div className="border-r border-[#242424] px-3 py-3">
+              <div className="border-r border-[#242424] px-5 py-4">
                 {player.predicted_round_reached ?? "—"}
               </div>
-              <div className={`px-2 py-3 text-center tabular-nums ${toneClass}`}>
+              <div className={`px-3 py-4 text-center tabular-nums ${toneClass}`}>
                 {player.bonus_awarded ?? 0}
               </div>
             </div>
           ))
         ) : (
-          <div className="px-3 py-4 text-sm font-black uppercase tracking-[0.08em] md:text-xl text-[var(--nffc-muted,#a7a7a7)]">
+          <div className="px-5 py-6 text-xl font-black uppercase tracking-[0.08em] text-[var(--nffc-muted,#a7a7a7)]">
             No players in this group.
           </div>
         )}
@@ -430,7 +472,7 @@ function PlayerResultPanel({
             </div>
           ))
         ) : (
-          <div className="bg-[var(--nffc-black,#000000)] px-3 py-4 text-sm font-black uppercase tracking-[0.08em] md:text-xl text-[var(--nffc-muted,#a7a7a7)]">
+          <div className="bg-[var(--nffc-black,#000000)] px-3 py-4 text-sm font-black uppercase tracking-[0.08em] text-[var(--nffc-muted,#a7a7a7)]">
             No players in this group.
           </div>
         )}
