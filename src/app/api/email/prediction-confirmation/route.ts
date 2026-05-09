@@ -116,6 +116,19 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseAnonKey);
 }
 
+function getSupabaseAuditClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseKey = supabaseServiceRoleKey ?? supabaseAnonKey;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Missing Supabase audit environment variables.");
+  }
+
+  return createClient(supabaseUrl, supabaseKey);
+}
+
 function escapeHtml(value: string | number | null | undefined) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -595,6 +608,41 @@ export async function POST(request: Request) {
     const teamName = player.team_display_name ?? player.team_name;
     const updatedAt = formatDateTime(new Date().toISOString());
     const updatedByText = updatedBy === "admin" ? "the league admin" : "you";
+
+    if (changedFixtures.length > 0) {
+      const auditSupabase = getSupabaseAuditClient();
+
+      const auditRows = changedFixtures
+        .filter((change) => change.old_prediction !== change.new_prediction)
+        .map((change) => ({
+          actor_type: updatedBy,
+          actor_label: updatedBy === "admin" ? "League admin" : playerDisplayName,
+          source: "prediction_confirmation",
+          target_player_id: player.id,
+          target_player_name: player.player_name,
+          target_team_name: teamName,
+          fixture_gameweek: change.gameweek,
+          fixture_label: change.gameweek_label ?? `GW${change.gameweek}`,
+          fixture_opponent_short: change.opponent_short ?? null,
+          fixture_venue: change.venue ?? null,
+          old_prediction: change.old_prediction ?? null,
+          new_prediction: change.new_prediction ?? null,
+          change_context: {
+            updatedBy,
+            updatedAt,
+          },
+        }));
+
+      if (auditRows.length > 0) {
+        const { error: auditError } = await auditSupabase
+          .from("prediction_change_audit")
+          .insert(auditRows);
+
+        if (auditError) {
+          console.error("Prediction audit log insert failed", auditError.message);
+        }
+      }
+    }
 
     const transporter = nodemailer.createTransport({
       service: "gmail",

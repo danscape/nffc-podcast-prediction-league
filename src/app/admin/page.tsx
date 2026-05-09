@@ -235,6 +235,13 @@ export default async function AdminPage() {
           />
 
           <AdminCard
+            title="Audit Log"
+            description="See who changed what predictions and when."
+            href="/admin/audit"
+            cta="Open audit log"
+          />
+
+          <AdminCard
             title="Players"
             description="Review player records, tokens, team links and active status."
             href="/admin/players"
