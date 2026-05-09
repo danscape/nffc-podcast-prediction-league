@@ -926,6 +926,8 @@ function MobileTeamProfilePage({
     <main className="min-h-dvh w-full overflow-x-hidden overflow-y-auto bg-[var(--nffc-black,#000000)] pb-24 text-white md:hidden">
       <MobileCeefaxMasthead active="none" />
 
+      <TeamRankHistoryPanel teamSlug={team.slug} />
+
       <section className="px-0 py-1">
         <div className="flex items-center gap-2">
           {team.logo_url ? (
