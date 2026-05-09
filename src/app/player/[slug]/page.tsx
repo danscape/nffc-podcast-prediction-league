@@ -8,6 +8,7 @@ import PublicPageShell from "@/components/layout/PublicPageShell";
 import PublicMasthead from "@/components/layout/PublicMasthead";
 import MobileCeefaxMasthead from "@/components/layout/MobileCeefaxMasthead";
 import { getPredictionProfile } from "@/lib/predictionProfiles";
+import PlayerRankHistoryPanel from "@/components/rank-history/PlayerRankHistoryPanel";
 
 type PredictionValue = "W" | "D" | "L";
 
@@ -523,7 +524,7 @@ export default function PublicPlayerProfilePage() {
             Back to leaderboards
           </Link>
         </section>
-      </PublicPageShell>
+</PublicPageShell>
     );
   }
 
@@ -744,7 +745,9 @@ export default function PublicPlayerProfilePage() {
         </section>
         </section>
       </div>
-    </PublicPageShell>
+
+        <PlayerRankHistoryPanel playerSlug={routeSlug} />
+</PublicPageShell>
   );
 }
 
@@ -1088,7 +1091,7 @@ function MobilePlayerProfilePage({
           )}
         </div>
       </section>
-    </main>
+</main>
   );
 }
 
