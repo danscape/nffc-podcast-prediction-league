@@ -190,7 +190,7 @@ function buildChangedRows(changedFixtures: ChangedFixture[]) {
   if (!changedFixtures.length) {
     return `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;" colspan="4">
+        <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;" colspan="4">
           No specific changed fixtures were supplied.
         </td>
       </tr>
@@ -200,17 +200,17 @@ function buildChangedRows(changedFixtures: ChangedFixture[]) {
   return changedFixtures
     .map((change) => {
       return `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; font-weight: 700;">
+        <tr style="background:#000000;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#E50914 !important;-webkit-text-fill-color:#E50914 !important;font-weight:900;">
             ${escapeHtml(change.gameweek_label ?? `GW${change.gameweek}`)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:900;">
             ${escapeHtml(change.opponent_short ?? "")} ${escapeHtml(change.venue ?? "")}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FF3030 !important;-webkit-text-fill-color:#FF3030 !important;font-weight:900;">
             ${escapeHtml(change.old_prediction ?? "—")}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; font-weight: 700; color: #C8102E;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#22E55E !important;-webkit-text-fill-color:#22E55E !important;font-weight:900;">
             ${escapeHtml(change.new_prediction ?? "—")}
           </td>
         </tr>
@@ -237,36 +237,36 @@ function buildScoreSummaryHtml(scoreData: ScoreBreakdownData | null) {
   const summary = scoreData?.summary;
 
   return `
-    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 16px 0;">
-      <div style="background: #111111; color: #ffffff; border-radius: 14px; padding: 14px;">
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.75;">Total score</div>
-        <div style="font-size: 28px; font-weight: 900;">${escapeHtml(formatPoints(summary?.total_points))}</div>
-      </div>
-      <div style="background: #F7F6F2; border: 1px solid #D9D6D1; border-radius: 14px; padding: 14px;">
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #666666;">Accuracy</div>
-        <div style="font-size: 28px; font-weight: 900;">${escapeHtml(calculateAccuracy(scoreData))}</div>
-      </div>
-      <div style="background: #F7F6F2; border: 1px solid #D9D6D1; border-radius: 14px; padding: 14px;">
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #666666;">Base points</div>
-        <div style="font-size: 24px; font-weight: 900;">${escapeHtml(formatPoints(summary?.base_points))}</div>
-      </div>
-      <div style="background: #F7F6F2; border: 1px solid #D9D6D1; border-radius: 14px; padding: 14px;">
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #666666;">Cup bonus</div>
-        <div style="font-size: 24px; font-weight: 900;">${escapeHtml(formatPoints(summary?.cup_bonus))}</div>
-      </div>
-      <div style="background: #F7F6F2; border: 1px solid #D9D6D1; border-radius: 14px; padding: 14px;">
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #666666;">Bonuses</div>
-        <div style="font-size: 16px; font-weight: 800;">
-          Streaker ${escapeHtml(formatPoints(summary?.streak_bonus))} · Maverick ${escapeHtml(formatPoints(summary?.maverick_bonus))} · Rogue ${escapeHtml(formatPoints(summary?.rogue_bonus))}
-        </div>
-      </div>
-      <div style="background: #F7F6F2; border: 1px solid #D9D6D1; border-radius: 14px; padding: 14px;">
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #666666;">Completed / streak</div>
-        <div style="font-size: 16px; font-weight: 800;">
-          ${escapeHtml(summary?.completed_fixtures ?? 0)} fixtures · ${escapeHtml(currentStreak(scoreData))} current streak
-        </div>
-      </div>
-    </div>
+    <table role="presentation" style="width:100%;border-collapse:collapse;background:#000000;color:#FFFFFF;font-size:12px;font-weight:900;text-transform:uppercase;">
+      <tr style="border-bottom:1px solid #242424;">
+        <td style="padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Total score</td>
+        <td style="padding:7px 5px;text-align:right;color:#22E55E !important;-webkit-text-fill-color:#22E55E !important;">${escapeHtml(formatPoints(summary?.total_points))}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #242424;">
+        <td style="padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Accuracy</td>
+        <td style="padding:7px 5px;text-align:right;color:#22E55E !important;-webkit-text-fill-color:#22E55E !important;">${escapeHtml(calculateAccuracy(scoreData))}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #242424;">
+        <td style="padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Base points</td>
+        <td style="padding:7px 5px;text-align:right;color:#22E55E !important;-webkit-text-fill-color:#22E55E !important;">${escapeHtml(formatPoints(summary?.base_points))}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #242424;">
+        <td style="padding:7px 5px;color:#FFE44D !important;-webkit-text-fill-color:#FFE44D !important;">Bonuses</td>
+        <td style="padding:7px 5px;text-align:right;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">
+          Streak ${escapeHtml(formatPoints(summary?.streak_bonus))} / Maverick ${escapeHtml(formatPoints(summary?.maverick_bonus))} / Rogue ${escapeHtml(formatPoints(summary?.rogue_bonus))}
+        </td>
+      </tr>
+      <tr style="border-bottom:1px solid #242424;">
+        <td style="padding:7px 5px;color:#59EFFF !important;-webkit-text-fill-color:#59EFFF !important;">Cup bonus</td>
+        <td style="padding:7px 5px;text-align:right;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">${escapeHtml(formatPoints(summary?.cup_bonus))}</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Completed / streak</td>
+        <td style="padding:7px 5px;text-align:right;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">
+          ${escapeHtml(summary?.completed_fixtures ?? 0)} fixtures / ${escapeHtml(currentStreak(scoreData))} current streak
+        </td>
+      </tr>
+    </table>
   `;
 }
 
@@ -292,7 +292,7 @@ function buildCompletedScoreRows(scoreData: ScoreBreakdownData | null) {
   if (!fixtureScores.length) {
     return `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;" colspan="6">
+        <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;" colspan="6">
           No completed fixture scores yet.
         </td>
       </tr>
@@ -305,23 +305,23 @@ function buildCompletedScoreRows(scoreData: ScoreBreakdownData | null) {
       const correct = score.prediction === score.actual_result;
 
       return `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; font-weight: 700;">
+        <tr style="background:#000000;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#E50914 !important;-webkit-text-fill-color:#E50914 !important;font-weight:900;">
             ${escapeHtml(score.gameweek_label)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:900;">
             ${escapeHtml(score.opponent_short)} ${escapeHtml(score.venue)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; font-weight: 700;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:900;">
             ${escapeHtml(score.prediction)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; font-weight: 700;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:${correct ? "#22E55E" : "#FF3030"} !important;-webkit-text-fill-color:${correct ? "#22E55E" : "#FF3030"} !important;font-weight:900;">
             ${escapeHtml(score.actual_result)} ${correct ? "✓" : "×"}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFE44D !important;-webkit-text-fill-color:#FFE44D !important;font-weight:900;">
             ${escapeHtml(buildScoreParts(score))}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; font-weight: 900; color: #C8102E;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;text-align:right;color:#22E55E !important;-webkit-text-fill-color:#22E55E !important;font-weight:900;">
             ${escapeHtml(formatPoints(score.total_points))}
           </td>
         </tr>
@@ -353,7 +353,7 @@ function buildRemainingPredictionRows(predictions: PlayerPageData["predictions"]
   if (!remaining.length) {
     return `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;" colspan="6">
+        <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;" colspan="5">
           No remaining league predictions.
         </td>
       </tr>
@@ -363,23 +363,20 @@ function buildRemainingPredictionRows(predictions: PlayerPageData["predictions"]
   return remaining
     .map((prediction) => {
       return `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; font-weight: 700;">
+        <tr style="background:#000000;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#E50914 !important;-webkit-text-fill-color:#E50914 !important;font-weight:900;">
             ${escapeHtml(prediction.gameweek_label)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:900;">
             ${escapeHtml(prediction.opponent_short)} ${escapeHtml(prediction.venue)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; font-weight: 700;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:900;">
             ${escapeHtml(prediction.prediction)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
-            ${escapeHtml(predictionLabel(prediction.prediction))}
-          </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#22E55E !important;-webkit-text-fill-color:#22E55E !important;font-weight:900;">
             ${predictionPoints(prediction.prediction)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:900;">
             ${escapeHtml(formatDateTime(prediction.kickoff_at))}
           </td>
         </tr>
@@ -397,9 +394,7 @@ function buildRemainingPredictionText(predictions: PlayerPageData["predictions"]
 
   return remaining
     .map((prediction) => {
-      return `${prediction.gameweek_label} | ${prediction.opponent_short} ${prediction.venue} | ${prediction.prediction} (${predictionLabel(
-        prediction.prediction
-      )}) | ${predictionPoints(prediction.prediction)} pts | ${formatDateTime(
+      return `${prediction.gameweek_label} | ${prediction.opponent_short} ${prediction.venue} | ${prediction.prediction} | ${predictionPoints(prediction.prediction)} pts | ${formatDateTime(
         prediction.kickoff_at
       )}`;
     })
@@ -412,7 +407,7 @@ function buildCupRows(extraData: ExtraPredictionsData | null) {
   if (!cupPredictions.length) {
     return `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;" colspan="2">
+        <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;" colspan="2">
           No cup predictions available.
         </td>
       </tr>
@@ -422,11 +417,11 @@ function buildCupRows(extraData: ExtraPredictionsData | null) {
   return cupPredictions
     .map((cup) => {
       return `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; font-weight: 700;">
+        <tr style="background:#000000;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#59EFFF !important;-webkit-text-fill-color:#59EFFF !important;font-weight:900;">
             ${escapeHtml(cup.display_name ?? cup.competition)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:900;text-align:right;">
             ${escapeHtml(cup.predicted_round_reached ?? "Not set")}
           </td>
         </tr>
@@ -455,7 +450,7 @@ function buildCustomRows(extraData: ExtraPredictionsData | null) {
   if (!customAnswers.length) {
     return `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;" colspan="2">
+        <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;" colspan="2">
           No other answers available.
         </td>
       </tr>
@@ -465,11 +460,11 @@ function buildCustomRows(extraData: ExtraPredictionsData | null) {
   return customAnswers
     .map((answer) => {
       return `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; font-weight: 700;">
+        <tr style="background:#000000;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFE44D !important;-webkit-text-fill-color:#FFE44D !important;font-weight:900;">
             ${escapeHtml(answer.question_text)}
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">
+          <td style="padding:7px 5px;border-bottom:1px solid #242424;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:900;text-align:right;">
             ${escapeHtml(answer.answer ?? "Not set")}
           </td>
         </tr>
@@ -609,104 +604,161 @@ export async function POST(request: Request) {
       },
     });
 
-    const html = `
-      <div style="margin: 0; padding: 0; background: #F7F6F2;">
-        <div style="max-width: 820px; margin: 0 auto; padding: 24px; font-family: Arial, sans-serif; color: #111111;">
-          <div style="background: #ffffff; border: 1px solid #D9D6D1; border-radius: 18px; padding: 24px;">
-            <div style="font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 800; color: #C8102E; border-bottom: 2px solid #C8102E; display: inline-block; padding-bottom: 6px;">
-              NFFC Podcast Prediction League
+    const html = `<!doctype html>
+      <html>
+        <head>
+          <meta name="color-scheme" content="light only">
+          <meta name="supported-color-schemes" content="light only">
+          <style>
+            :root {
+              color-scheme: light only;
+              supported-color-schemes: light only;
+            }
+            body, table, td, div, p, span, a, h1, h2 {
+              color-scheme: light only !important;
+            }
+          </style>
+        </head>
+        <body style="margin:0;padding:0;background:#000000 !important;color:#FFFFFF !important;">
+          <div style="margin:0;padding:0;background:#000000 !important;color:#FFFFFF !important;">
+            <div style="max-width:760px;margin:0 auto;padding:0;font-family:Arial,Helvetica,sans-serif;color:#FFFFFF;background:#000000;">
+              <div style="border:1px solid #333333;background:#000000;">
+                <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:10px 12px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:0.18em;">
+                  NFFC Podcast Prediction League
+                </div>
+
+                <div style="padding:12px;border-bottom:1px solid #333333;">
+                  <div style="font-size:28px;line-height:1;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;color:#FFE44D !important;-webkit-text-fill-color:#FFE44D !important;">
+                    Predictions Updated
+                  </div>
+                  <div style="margin-top:8px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">
+                    ${escapeHtml(playerDisplayName)}, this confirms your prediction record has been updated.
+                  </div>
+                </div>
+
+                <div style="padding:12px;border-bottom:1px solid #333333;">
+                  <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+                    Confirmation Of Changes
+                  </div>
+
+                  <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:8px;background:#000000;color:#FFFFFF;font-size:12px;font-weight:900;text-transform:uppercase;">
+                    <tr style="border-bottom:1px solid #242424;">
+                      <td style="padding:7px 5px;color:#FF4F5E !important;-webkit-text-fill-color:#FF4F5E !important;width:135px;">Updated</td>
+                      <td style="padding:7px 5px;text-align:right;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">${escapeHtml(updatedAt)}</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #242424;">
+                      <td style="padding:7px 5px;color:#FF4F5E !important;-webkit-text-fill-color:#FF4F5E !important;">Updated by</td>
+                      <td style="padding:7px 5px;text-align:right;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">${escapeHtml(updatedByText)}</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #242424;">
+                      <td style="padding:7px 5px;color:#FF4F5E !important;-webkit-text-fill-color:#FF4F5E !important;">Player</td>
+                      <td style="padding:7px 5px;text-align:right;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">${escapeHtml(player.player_name)}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:7px 5px;color:#FF4F5E !important;-webkit-text-fill-color:#FF4F5E !important;">Team</td>
+                      <td style="padding:7px 5px;text-align:right;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">${escapeHtml(teamName)}</td>
+                    </tr>
+                  </table>
+
+                  <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:10px;background:#000000;color:#FFFFFF;font-size:12px;font-weight:900;text-transform:uppercase;">
+                    <thead>
+                      <tr style="background:#000000;border-bottom:1px solid #E50914;">
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">GW</th>
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Fixture</th>
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Old</th>
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">New</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${buildChangedRows(changedFixtures)}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style="padding:12px;border-bottom:1px solid #333333;">
+                  <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+                    Prediction League Score
+                  </div>
+                  ${buildScoreSummaryHtml(typedScoreData)}
+                </div>
+
+                <div style="padding:12px;border-bottom:1px solid #333333;">
+                  <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+                    Remaining League Predictions
+                  </div>
+                  <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:8px;background:#000000;color:#FFFFFF;font-size:12px;font-weight:900;text-transform:uppercase;">
+                    <thead>
+                      <tr style="background:#000000;border-bottom:1px solid #E50914;">
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">GW</th>
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Fixture</th>
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Pick</th>
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Forest pts</th>
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Kick-off</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${buildRemainingPredictionRows(predictionData.predictions)}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style="padding:12px;border-bottom:1px solid #333333;">
+                  <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+                    Completed Fixture Points
+                  </div>
+                  <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:8px;background:#000000;color:#FFFFFF;font-size:12px;font-weight:900;text-transform:uppercase;">
+                    <thead>
+                      <tr style="background:#000000;border-bottom:1px solid #E50914;">
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">GW</th>
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Fixture</th>
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Pick</th>
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Result</th>
+                        <th style="text-align:left;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Breakdown</th>
+                        <th style="text-align:right;padding:7px 5px;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;">Pts</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${buildCompletedScoreRows(typedScoreData)}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style="padding:12px;border-bottom:1px solid #333333;">
+                  <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+                    Cup Predictions
+                  </div>
+                  <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:8px;background:#000000;color:#FFFFFF;font-size:12px;font-weight:900;text-transform:uppercase;">
+                    <tbody>
+                      ${buildCupRows(typedExtraData)}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style="padding:12px;border-bottom:1px solid #333333;">
+                  <div style="background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;padding:7px 9px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">
+                    Other Answers
+                  </div>
+                  <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:8px;background:#000000;color:#FFFFFF;font-size:12px;font-weight:900;text-transform:uppercase;">
+                    <tbody>
+                      ${buildCustomRows(typedExtraData)}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style="padding:12px;">
+                  <a href="${escapeHtml(predictionUrl)}" style="display:inline-block;background:#E50914;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;text-decoration:none;font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;padding:10px 13px;">
+                    Open Prediction Page
+                  </a>
+                </div>
+
+                <div style="padding:0 12px 12px;">
+                  ${buildEmailSignoffHtml()}
+                </div>
+              </div>
             </div>
-
-            <h1 style="margin: 16px 0 8px; color: #C8102E; font-size: 28px; line-height: 1.1;">
-              Your predictions have been updated
-            </h1>
-
-            <p style="margin: 0 0 16px; line-height: 1.5;">
-              ${escapeHtml(playerDisplayName)}, this confirms that your prediction record has been updated by ${escapeHtml(updatedByText)}.
-            </p>
-
-            <div style="background: #F7F6F2; border: 1px solid #D9D6D1; border-radius: 14px; padding: 14px; margin: 16px 0;">
-              <p style="margin: 0;"><strong>Player:</strong> ${escapeHtml(player.player_name)}</p>
-              <p style="margin: 6px 0 0;"><strong>Team:</strong> ${escapeHtml(teamName)}</p>
-              <p style="margin: 6px 0 0;"><strong>Updated:</strong> ${escapeHtml(updatedAt)}</p>
-            </div>
-
-            <h2 style="margin-top: 24px; font-size: 20px;">Prediction League score so far</h2>
-            ${buildScoreSummaryHtml(typedScoreData)}
-
-            <h2 style="margin-top: 24px; font-size: 20px;">Changed fixtures</h2>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-              <thead>
-                <tr style="background: #111111; color: #ffffff;">
-                  <th style="text-align: left; padding: 8px;">GW</th>
-                  <th style="text-align: left; padding: 8px;">Fixture</th>
-                  <th style="text-align: left; padding: 8px;">Old</th>
-                  <th style="text-align: left; padding: 8px;">New</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${buildChangedRows(changedFixtures)}
-              </tbody>
-            </table>
-
-            <h2 style="margin-top: 24px; font-size: 20px;">Completed fixture points</h2>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-              <thead>
-                <tr style="background: #111111; color: #ffffff;">
-                  <th style="text-align: left; padding: 8px;">GW</th>
-                  <th style="text-align: left; padding: 8px;">Fixture</th>
-                  <th style="text-align: left; padding: 8px;">Pick</th>
-                  <th style="text-align: left; padding: 8px;">Result</th>
-                  <th style="text-align: left; padding: 8px;">Breakdown</th>
-                  <th style="text-align: left; padding: 8px;">Pts</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${buildCompletedScoreRows(typedScoreData)}
-              </tbody>
-            </table>
-
-            <h2 style="margin-top: 24px; font-size: 20px;">Remaining league predictions</h2>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-              <thead>
-                <tr style="background: #111111; color: #ffffff;">
-                  <th style="text-align: left; padding: 8px;">GW</th>
-                  <th style="text-align: left; padding: 8px;">Fixture</th>
-                  <th style="text-align: left; padding: 8px;">Pick</th>
-                  <th style="text-align: left; padding: 8px;">Meaning</th>
-                  <th style="text-align: left; padding: 8px;">Forest pts</th>
-                  <th style="text-align: left; padding: 8px;">Kick-off</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${buildRemainingPredictionRows(predictionData.predictions)}
-              </tbody>
-            </table>
-
-            <h2 style="margin-top: 24px; font-size: 20px;">Cup predictions</h2>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-              <tbody>
-                ${buildCupRows(typedExtraData)}
-              </tbody>
-            </table>
-
-            <h2 style="margin-top: 24px; font-size: 20px;">Other answers</h2>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-              <tbody>
-                ${buildCustomRows(typedExtraData)}
-              </tbody>
-            </table>
-
-            <p style="margin-top: 24px;">
-              <a href="${escapeHtml(predictionUrl)}" style="display: inline-block; background: #111111; color: #ffffff; text-decoration: none; font-weight: 800; padding: 12px 18px; border-radius: 999px;">
-                Open your prediction page
-              </a>
-            </p>
-
-            ${buildEmailSignoffHtml()}
           </div>
-        </div>
-      </div>
+        </body>
+      </html>
     `;
 
     const text = [
@@ -716,21 +768,21 @@ export async function POST(request: Request) {
       "",
       `${playerDisplayName}, this confirms that your prediction record has been updated by ${updatedByText}.`,
       "",
+      `Updated: ${updatedAt}`,
       `Player: ${player.player_name}`,
       `Team: ${teamName}`,
-      `Updated: ${updatedAt}`,
-      "",
-      "Prediction League score so far",
-      buildScoreSummaryText(typedScoreData),
       "",
       "Changed fixtures",
       buildChangedText(changedFixtures),
       "",
-      "Completed fixture points",
-      buildCompletedScoreText(typedScoreData),
+      "Prediction League score so far",
+      buildScoreSummaryText(typedScoreData),
       "",
       "Remaining league predictions",
       buildRemainingPredictionText(predictionData.predictions),
+      "",
+      "Completed fixture points",
+      buildCompletedScoreText(typedScoreData),
       "",
       "Cup predictions",
       buildCupText(typedExtraData),
