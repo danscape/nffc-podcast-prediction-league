@@ -510,10 +510,7 @@ export default async function TeamPage({
             </section>
           </section>
         </header>
-
-
-        <TeamRankHistoryPanel teamSlug={team.slug} />
-        <section className="mb-6 grid gap-[2px] bg-[#444444] md:grid-cols-3 xl:grid-cols-6">
+<section className="mb-6 grid gap-[2px] bg-[#444444] md:grid-cols-3 xl:grid-cols-6">
           <TerminalStat
             label="Accuracy"
             value={formatPercent(summary?.correct_prediction_rate)}
@@ -860,6 +857,8 @@ export default async function TeamPage({
         </TerminalPanel>
         </section>
       </div>
+
+        <div className="hidden md:block">          <TeamRankHistoryPanel teamSlug={team.slug} />        </div>
 </PublicPageShell>
   );
 }
@@ -923,12 +922,9 @@ function MobileTeamProfilePage({
     });
 
   return (
-    <main className="min-h-dvh w-full overflow-x-hidden overflow-y-auto bg-[var(--nffc-black,#000000)] pb-24 text-white md:hidden">
+    <main className="min-h-dvh w-full overflow-x-hidden bg-[var(--nffc-black,#000000)] pb-56 text-white md:hidden">
       <MobileCeefaxMasthead active="none" />
-
-      <TeamRankHistoryPanel teamSlug={team.slug} />
-
-      <section className="px-0 py-1">
+<section className="px-0 py-1">
         <div className="flex items-center gap-2">
           {team.logo_url ? (
             <img
@@ -1084,6 +1080,8 @@ function MobileTeamProfilePage({
           )}
         </div>
       </section>
+
+      <div className="md:hidden">        <TeamRankHistoryPanel teamSlug={team.slug} />      </div>
 </main>
   );
 }

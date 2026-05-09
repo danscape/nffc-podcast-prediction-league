@@ -48,17 +48,17 @@ export default function RankHistoryChart({
     : null;
 
   return (
-    <section className="my-0 w-full bg-[var(--nffc-black,#000000)] md:my-6">
+    <section className="mb-16 mt-0 w-full bg-[var(--nffc-black,#000000)] md:my-6">
       <div className="mx-auto w-full max-w-[1500px] border border-[var(--nffc-white,#f5f5f5)] bg-[var(--nffc-black,#000000)]">
-        <div className="bg-[var(--nffc-red,#e50914)] px-2 py-1.5 text-xs font-black uppercase tracking-[0.12em] text-white md:px-5 md:py-3 md:text-2xl">
+        <div className="bg-[var(--nffc-red,#e50914)] px-2 py-1 text-[0.68rem] font-black uppercase tracking-[0.1em] text-white md:px-5 md:py-3 md:text-2xl">
 League Position Over Time
         </div>
 
         <div className="w-full bg-[var(--nffc-black,#000000)] p-2 md:aspect-[3/2] md:p-5">
-          <div className="grid h-auto gap-2 md:h-full md:grid-rows-[auto_auto_1fr] md:gap-4">
+          <div className="grid h-auto gap-1.5 md:h-full md:grid-rows-[auto_auto_1fr] md:gap-4">
             <header className="grid gap-2 md:grid-cols-[1fr_auto] md:items-start md:gap-3">
               <div className="min-w-0">
-                <div className="text-[0.55rem] font-black uppercase tracking-[0.14em] text-[var(--nffc-muted,#a7a7a7)] md:text-sm">
+                <div className="text-[0.48rem] font-black uppercase tracking-[0.1em] text-[var(--nffc-muted,#a7a7a7)] md:text-sm">
                   {subjectType === "team" ? "Team Rank Tracker" : "Player Rank Tracker"}
                 </div>
 
@@ -297,11 +297,11 @@ function MiniStat({
           : "text-[var(--stat-cyan,#59efff)]";
 
   return (
-    <div className="bg-[var(--nffc-black,#000000)] px-2 py-1.5 md:px-3 md:py-3">
-      <div className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-[var(--nffc-muted,#a7a7a7)] md:text-xs">
+    <div className="bg-[var(--nffc-black,#000000)] px-2 py-1 md:px-3 md:py-3">
+      <div className="text-[0.46rem] font-black uppercase tracking-[0.08em] text-[var(--nffc-muted,#a7a7a7)] md:text-xs">
         {label}
       </div>
-      <div className={`mt-0.5 text-base font-black uppercase leading-none md:mt-1 md:text-4xl ${toneClass}`}>
+      <div className={`mt-0.5 text-sm font-black uppercase leading-none md:mt-1 md:text-4xl ${toneClass}`}>
         {value}
       </div>
     </div>
