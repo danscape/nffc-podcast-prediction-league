@@ -747,6 +747,7 @@ export default function PublicPlayerProfilePage() {
       </div>
 
         <PlayerRankHistoryPanel playerSlug={routeSlug} />
+        <div className="h-96 md:hidden" />
 </PublicPageShell>
   );
 }
