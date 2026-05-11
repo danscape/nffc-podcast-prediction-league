@@ -529,7 +529,7 @@ export default function AdminSocialResultsPage() {
       )}
 
       {loading ? (
-        <div className="border border-[#2a2a2a] bg-[var(--nffc-black,#000000)] px-4 py-8 text-center text-xl font-black uppercase tracking-[0.14em] text-white">
+        <div className="border border-[#2a2a2a] bg-[var(--nffc-black,#000000)] px-4 py-8 text-center truncate text-xl font-black uppercase tracking-[0.14em] text-white">
           Loading weekly results...
         </div>
       ) : (
@@ -899,12 +899,12 @@ function CompactResultsHeader({
 
   return (
     <section className="bg-[var(--nffc-black,#000000)] px-2 pb-4 pt-1">
-      <h2 className="whitespace-nowrap text-[clamp(3rem,4.35vw,5.4rem)] font-black uppercase leading-none tracking-[-0.055em] text-white">
+      <h2 className="truncate whitespace-nowrap text-[clamp(2.35rem,3.45vw,4.55rem)] font-black uppercase leading-none tracking-[-0.055em] text-white">
         {getScoreText(summary)}
       </h2>
 
-      <div className="mt-3 grid min-h-[62px] grid-cols-[370px_330px_minmax(360px,1fr)_420px] items-end gap-7 bg-[var(--nffc-black,#000000)]">
-        <div className="grid min-w-[350px] grid-cols-3 items-end gap-4">
+      <div className="mt-3 grid min-h-[56px] grid-cols-[210px_240px_minmax(220px,1fr)_260px] items-end gap-4 bg-[var(--nffc-black,#000000)]">
+        <div className="grid min-w-0 grid-cols-3 items-end gap-2">
           {(["W", "D", "L"] as PredictionValue[]).map((value) => (
             <InlinePredictionStat
               key={value}
@@ -1010,10 +1010,10 @@ function InlinePredictionStat({
           : ""
       }`}
     >
-      <span className={`text-4xl font-black uppercase leading-none ${colour}`}>
+      <span className={`text-3xl font-black uppercase leading-none ${colour}`}>
         {value}
       </span>
-      <span className={`text-3xl font-black leading-none ${colour}`}>
+      <span className={`text-2xl font-black leading-none ${colour}`}>
         {formatPercent(percent)}
       </span>
     </div>
@@ -1036,7 +1036,7 @@ function InlineInfoStat({
       <div className="text-[0.86rem] font-black uppercase tracking-[0.2em] text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className={`mt-1 truncate text-2xl font-black uppercase leading-none ${textTone(tone)}`}>
+      <div className={`mt-1 truncate truncate text-2xl font-black uppercase leading-none ${textTone(tone)}`}>
         {value}
       </div>
     </div>
@@ -1089,14 +1089,14 @@ function CompactPredictionPill({
       }`}
     >
       <div
-        className={`text-center text-3xl font-black leading-none ${
+        className={`text-center text-2xl font-black leading-none ${
           active ? "text-[var(--stat-green,#22e55e)]" : textTone(tone)
         }`}
       >
         {value}
       </div>
       <div
-        className={`mt-1 text-center text-3xl font-black leading-none ${
+        className={`mt-1 text-center text-2xl font-black leading-none ${
           active ? "text-[var(--stat-green,#22e55e)]" : textTone(tone)
         }`}
       >
@@ -1125,7 +1125,7 @@ function CompactSummaryBox({
       <div className="text-[0.7rem] font-black uppercase tracking-[0.2em] text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className={`mt-1 text-xl font-black uppercase leading-tight ${textTone(tone)}`}>
+      <div className={`mt-1 truncate text-xl font-black uppercase leading-tight ${textTone(tone)}`}>
         {value}
       </div>
     </div>
@@ -1162,7 +1162,7 @@ function BonusName({
 }) {
   return (
     <div
-      className={`flex items-center justify-center bg-[var(--nffc-black,#000000)] px-4 py-3 text-center text-xl font-black uppercase tracking-[0.18em] md:text-2xl ${
+      className={`flex items-center justify-center bg-[var(--nffc-black,#000000)] px-4 py-3 text-center truncate text-xl font-black uppercase tracking-[0.18em] md:text-2xl ${
         active ? textTone(tone) : "text-[#555555]"
       }`}
     >
@@ -1198,7 +1198,7 @@ function TeamResultRow({
   const teamPoints = getTeamWeeklyPoints(group.teamResult);
 
   return (
-    <div className="grid gap-[4px] bg-[var(--nffc-black,#000000)] xl:grid-cols-[460px_1fr]">
+    <div className="grid gap-[3px] bg-[var(--nffc-black,#000000)] xl:grid-cols-[300px_minmax(0,1fr)]">
       <div
         className={`${
           isLast ? "" : "border-b-[4px] border-[#555555]"
@@ -1210,7 +1210,7 @@ function TeamResultRow({
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="truncate whitespace-nowrap text-2xl font-black uppercase leading-tight tracking-[0.04em] text-white md:text-3xl">
+            <div className="truncate whitespace-nowrap truncate text-2xl font-black uppercase leading-tight tracking-[0.04em] text-white md:text-3xl">
               {group.teamName}
             </div>
 
@@ -1295,19 +1295,19 @@ function PlayerScoreCard({
   ].filter((part) => part.value > 0);
 
   return (
-    <article className={`grid min-h-[92px] grid-rows-[auto_1fr] outline outline-[4px] outline-[#555555] p-2.5 ${boxClass}`}>
+    <article className={`grid min-h-[78px] min-w-0 grid-rows-[auto_1fr] outline outline-[3px] outline-[#555555] p-2 ${boxClass}`}>
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-        <div className="truncate text-left text-2xl font-black uppercase leading-none tracking-[0.03em] text-current md:text-3xl">
+        <div className="truncate text-left text-xl font-black uppercase leading-none tracking-[0.02em] text-current md:text-2xl">
           {getPlayerName(player)}
         </div>
 
-        <div className="text-right text-2xl font-black uppercase leading-none tracking-[0.08em] text-current md:text-3xl">
+        <div className="text-right truncate text-2xl font-black uppercase leading-none tracking-[0.08em] text-current md:text-3xl">
           {player.prediction ?? "-"}
         </div>
       </div>
 
       <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 text-current">
-        <div className="flex min-w-0 flex-nowrap items-center justify-start gap-1.5 overflow-hidden whitespace-nowrap text-left text-base font-black uppercase leading-none md:text-lg">
+        <div className="flex min-w-0 flex-nowrap items-center justify-start gap-1 overflow-hidden whitespace-nowrap text-left text-sm font-black uppercase leading-none md:text-base">
           {scoreParts.length ? (
             <>
               {scoreParts.map((part, index) => (
@@ -1371,7 +1371,7 @@ function getPlayerScoreBoxClass({
 function VoidedPlayerCard() {
   return (
     <div
-      className="min-h-[92px] bg-[var(--nffc-black,#000000)]"
+      className="min-h-[78px] min-w-0 bg-[var(--nffc-black,#000000)]"
       aria-hidden="true"
     />
   );
