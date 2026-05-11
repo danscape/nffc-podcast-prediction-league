@@ -122,18 +122,26 @@ function getWeeklyPlayerBoxTone(player: WeeklyPlayerBoxToneSource) {
   const rogueBonus = toNumber(player.rogue_bonus);
   const cupBonus = toNumber(player.cup_bonus);
 
-  const hasScoringPredictionPoints = basePoints > 0;
-  const hasNonCupBonus = streakBonus > 0 || maverickBonus > 0 || rogueBonus > 0;
-  const hasCupOnlyPoints =
-    cupBonus > 0 && !hasScoringPredictionPoints && !hasNonCupBonus;
-
   if (rogueBonus > 0) return "pink";
   if (maverickBonus > 0) return "cyan";
   if (streakBonus > 0) return "yellow";
-  if (hasScoringPredictionPoints) return "green";
-  if (hasCupOnlyPoints) return "orange";
+  if (basePoints > 0) return "green";
+  if (cupBonus > 0) return "orange";
 
   return "red";
+}
+
+function getWeeklyPlayerNonCupPoints(player: WeeklyPlayerBoxToneSource) {
+  return (
+    toNumber(player.base_points) +
+    toNumber(player.streak_bonus) +
+    toNumber(player.maverick_bonus) +
+    toNumber(player.rogue_bonus)
+  );
+}
+
+function getWeeklyPlayerCupOnlyPoints(player: WeeklyPlayerBoxToneSource) {
+  return getWeeklyPlayerNonCupPoints(player) <= 0 && toNumber(player.cup_bonus) > 0;
 }
 
 
@@ -767,7 +775,7 @@ function MobileWeeklyPlayerResultRow({
         <span className="text-[#666666]">+</span>
         <span className={rogueBonus > 0 ? "text-[var(--stat-pink,#ff4fd8)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(rogueBonus)}</span>
         <span className="text-[#666666]">+</span>
-        <span className={cupBonus > 0 ? "text-[var(--stat-green,#22e55e)]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(cupBonus)}</span>
+        <span className={cupBonus > 0 ? "text-[#ff9f1c]" : "text-[var(--stat-wrong,#ff3030)]"}>{formatPoints(cupBonus)}</span>
         <span className="px-0.5 text-[var(--nffc-red,#e50914)]">=</span>
         <span className={tone}>{formatPoints(total)}</span>
       </div>
@@ -1353,8 +1361,8 @@ function getPlayerScoreBoxClass({
   if (rogueBonus > 0) return "bg-[var(--stat-pink,#ff4fd8)] text-black";
   if (maverickBonus > 0) return "bg-[var(--stat-cyan,#59efff)] text-black";
   if (streakBonus > 0) return "bg-[var(--stat-yellow,#ffe44d)] text-black";
-  if (cupBonus > 0) return "bg-[var(--stat-green,#22e55e)] text-black";
   if (correct) return "bg-[var(--stat-green,#22e55e)] text-black";
+  if (cupBonus > 0) return "bg-[#ff9f1c] text-black";
   if (total <= 0) return "bg-[var(--stat-wrong,#ff3030)] text-black";
 
   return "bg-[var(--nffc-black,#000000)] text-white";
@@ -1382,6 +1390,7 @@ function textTone(tone: Tone) {
   if (tone === "yellow") return "text-[var(--stat-yellow,#ffe44d)]";
   if (tone === "cyan") return "text-[var(--stat-cyan,#59efff)]";
   if (tone === "pink") return "text-[var(--stat-pink,#ff4fd8)]";
+  if (tone === "orange") return "text-[#ff9f1c]";
   if (tone === "red") return "text-[var(--stat-wrong,#ff3030)]";
   if (tone === "white") return "text-[var(--nffc-white,#f5f5f5)]";
   return "text-[var(--nffc-muted,#a7a7a7)]";
@@ -1392,6 +1401,7 @@ function borderTextTone(tone: Tone) {
   if (tone === "yellow") return "border-[var(--stat-yellow,#ffe44d)] text-[var(--stat-yellow,#ffe44d)]";
   if (tone === "cyan") return "border-[var(--stat-cyan,#59efff)] text-[var(--stat-cyan,#59efff)]";
   if (tone === "pink") return "border-[var(--stat-pink,#ff4fd8)] text-[var(--stat-pink,#ff4fd8)]";
+  if (tone === "orange") return "border-[#ff9f1c] text-[#ff9f1c]";
   if (tone === "red") return "border-[var(--stat-wrong,#ff3030)] text-[var(--stat-wrong,#ff3030)]";
   if (tone === "white") return "border-[var(--nffc-white,#f5f5f5)] text-[var(--nffc-white,#f5f5f5)]";
   return "border-[var(--nffc-muted,#a7a7a7)] text-[var(--nffc-muted,#a7a7a7)]";
