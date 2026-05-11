@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 type PredictionValue = "W" | "D" | "L";
-type Tone = "green" | "yellow" | "cyan" | "pink" | "red" | "white" | "muted";
+type Tone = "green" | "yellow" | "cyan" | "pink" | "orange" | "red" | "white" | "muted";
 
 type LatestResultSummaryRow = {
   fixture_id?: string | null;
@@ -103,6 +103,36 @@ function toNumber(value: number | string | null | undefined) {
   const numericValue = Number(value ?? 0);
   return Number.isFinite(numericValue) ? numericValue : 0;
 }
+
+type WeeklyPlayerBoxToneSource = {
+  base_points?: number | string | null;
+  streak_bonus?: number | string | null;
+  maverick_bonus?: number | string | null;
+  rogue_bonus?: number | string | null;
+  cup_bonus?: number | string | null;
+};
+
+function getWeeklyPlayerBoxTone(player: WeeklyPlayerBoxToneSource) {
+  const basePoints = toNumber(player.base_points);
+  const streakBonus = toNumber(player.streak_bonus);
+  const maverickBonus = toNumber(player.maverick_bonus);
+  const rogueBonus = toNumber(player.rogue_bonus);
+  const cupBonus = toNumber(player.cup_bonus);
+
+  const hasScoringPredictionPoints = basePoints > 0;
+  const hasNonCupBonus = streakBonus > 0 || maverickBonus > 0 || rogueBonus > 0;
+  const hasCupOnlyPoints =
+    cupBonus > 0 && !hasScoringPredictionPoints && !hasNonCupBonus;
+
+  if (rogueBonus > 0) return "pink";
+  if (maverickBonus > 0) return "cyan";
+  if (streakBonus > 0) return "yellow";
+  if (hasScoringPredictionPoints) return "green";
+  if (hasCupOnlyPoints) return "orange";
+
+  return "red";
+}
+
 
 function formatPoints(value: number | string | null | undefined) {
   return toNumber(value).toFixed(0);
@@ -403,8 +433,7 @@ function buildWeeklyResultPost({
 }
 
 function getPlayerNameTone(player: LatestBonusResultRow, summary: LatestResultSummaryRow | null): Tone {
-  if (toNumber(player.rogue_bonus) > 0) return "pink";
-  if (toNumber(player.maverick_bonus) > 0) return "cyan";
+  return getWeeklyPlayerBoxTone(player);
   if (isCorrectPick(player, summary)) return "green";
   return "white";
 }
