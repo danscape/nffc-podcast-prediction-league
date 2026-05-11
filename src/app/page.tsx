@@ -7,6 +7,10 @@ import PublicMasthead from "@/components/layout/PublicMasthead";
 import MobileCeefaxMasthead from "@/components/layout/MobileCeefaxMasthead";
 import PublicPageShell from "@/components/layout/PublicPageShell";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+
 type AppSetting = {
   key: string;
   value: string;
