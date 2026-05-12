@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://awards.nffcstats.co.uk"),
-  title: "Forest Fan Awards | NFFC Stats",
+  title: { absolute: "Unofficial NFFC End of Season Awards" },
   description:
     "Vote in the unofficial Nottingham Forest end-of-season fan awards.",
   openGraph: {
-    title: "Forest Fan Awards | NFFC Stats",
+    title: { absolute: "Unofficial NFFC End of Season Awards" },
     description:
       "Vote in the unofficial Nottingham Forest end-of-season fan awards.",
     url: "https://awards.nffcstats.co.uk/awards",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Forest Fan Awards | NFFC Stats",
+    title: { absolute: "Unofficial NFFC End of Season Awards" },
     description:
       "Vote in the unofficial Nottingham Forest end-of-season fan awards.",
     images: ["https://awards.nffcstats.co.uk/awards/forest-fan-awards-social.png"],
