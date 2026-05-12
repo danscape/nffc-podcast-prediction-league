@@ -903,18 +903,11 @@ function CompactResultsHeader({
         {getScoreText(summary)}
       </h2>
 
-      <div className="mt-3 grid min-h-[52px] grid-cols-[170px_minmax(260px,1fr)_320px] items-end gap-5 bg-[var(--nffc-black,#000000)]">
-        <div className="grid min-w-0 grid-cols-3 items-end gap-1">
-          {(["W", "D", "L"] as PredictionValue[]).map((value) => (
-            <InlinePredictionStat
-              key={value}
-              value={value}
-              percent={predictionSplit[value].percent}
-              active={actual === value}
-              tone={predictionSplit[value].tone}
-            />
-          ))}
-        </div>
+      <div className="mt-3 grid min-h-[52px] grid-cols-[190px_minmax(420px,1fr)_310px] items-end gap-5 bg-[var(--nffc-black,#000000)]">
+        <InlinePredictionSplit
+          split={predictionSplit}
+          actual={getActualResult(summary)}
+        />
 
         <div className="pl-4">
         <InlineInfoStat
@@ -987,6 +980,49 @@ function getAppliedBonusLabels(
       Boolean(source.rogue_bonus_applied) ||
       players.some((player) => toNumber(player.rogue_bonus) > 0),
   };
+}
+
+
+function InlinePredictionSplit({
+  split,
+  actual,
+}: {
+  split: ReturnType<typeof getPredictionSplit>;
+  actual: PredictionValue | null;
+}) {
+  const items: { value: PredictionValue; percent: number; tone: Tone }[] = [
+    { value: "W", percent: split.W.percent, tone: "green" },
+    { value: "D", percent: split.D.percent, tone: "yellow" },
+    { value: "L", percent: split.L.percent, tone: "red" },
+  ];
+
+  return (
+    <div className="min-w-0">
+      <div className="mb-1 text-[0.52rem] font-black uppercase tracking-[0.18em] text-[#8f8f8f]">
+        Prediction Split
+      </div>
+      <div className="flex min-w-0 items-center gap-2 whitespace-nowrap text-xl font-black uppercase leading-none">
+        {items.map((item, index) => {
+          const active = actual === item.value;
+
+          return (
+            <div
+              key={item.value}
+              className={`flex items-baseline gap-1 ${
+                active ? "border-2 border-current px-1.5 py-0.5" : ""
+              } ${textTone(item.tone)}`}
+            >
+              <span>{item.value}</span>
+              <span className="text-base">{formatPercent(item.percent)}</span>
+              {index < items.length - 1 && !active ? (
+                <span className="ml-1 text-[#666666]">/</span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function InlinePredictionStat({
