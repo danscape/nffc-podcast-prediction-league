@@ -903,7 +903,7 @@ function CompactResultsHeader({
         {getScoreText(summary)}
       </h2>
 
-      <div className="mt-3 grid min-h-[56px] grid-cols-[210px_240px_minmax(220px,1fr)_260px] items-end gap-4 bg-[var(--nffc-black,#000000)]">
+      <div className="mt-3 grid min-h-[56px] grid-cols-[190px_220px_minmax(200px,1fr)_230px] items-end gap-3 bg-[var(--nffc-black,#000000)]">
         <div className="grid min-w-0 grid-cols-3 items-end gap-2">
           {(["W", "D", "L"] as PredictionValue[]).map((value) => (
             <InlinePredictionStat
@@ -1036,7 +1036,7 @@ function InlineInfoStat({
       <div className="text-[0.86rem] font-black uppercase tracking-[0.2em] text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className={`mt-1 truncate truncate text-2xl font-black uppercase leading-none ${textTone(tone)}`}>
+      <div className={`mt-1 truncate text-2xl font-black uppercase leading-none ${textTone(tone)}`}>
         {value}
       </div>
     </div>
@@ -1198,7 +1198,7 @@ function TeamResultRow({
   const teamPoints = getTeamWeeklyPoints(group.teamResult);
 
   return (
-    <div className="grid gap-[3px] bg-[var(--nffc-black,#000000)] xl:grid-cols-[300px_minmax(0,1fr)]">
+    <div className="grid gap-[3px] bg-[var(--nffc-black,#000000)] xl:grid-cols-[380px_minmax(0,1fr)]">
       <div
         className={`${
           isLast ? "" : "border-b-[4px] border-[#555555]"

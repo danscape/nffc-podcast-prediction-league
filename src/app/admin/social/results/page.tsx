@@ -880,7 +880,7 @@ function TeamResultRow({
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="truncate text-2xl font-black uppercase leading-tight tracking-[0.04em] text-white md:text-3xl">
+            <div className="line-clamp-2 text-2xl font-black uppercase leading-tight tracking-[0.04em] text-white md:text-3xl">
               {group.teamName}
             </div>
 
