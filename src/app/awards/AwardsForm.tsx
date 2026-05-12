@@ -84,6 +84,7 @@ function ChoiceField({
   onChange,
   options,
   wide = false,
+  required = true,
 }: {
   label: string;
   help?: string;
@@ -91,6 +92,7 @@ function ChoiceField({
   onChange: (value: string) => void;
   options: Option[];
   wide?: boolean;
+  required?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -178,7 +180,7 @@ function ChoiceField({
         </div>
       ) : null}
 
-      <input value={value} required readOnly className="sr-only" />
+      <input value={value} required={required} readOnly className="sr-only" />
     </div>
   );
 }
@@ -342,10 +344,12 @@ export default function AwardsForm({
 
         <ChoiceField
           label="Worst Goal Conceded"
+          help="Optional."
           value={form.goal_conceded_id}
           onChange={(value) => update("goal_conceded_id", value)}
           options={goalsConceded}
           wide
+          required={false}
         />
       </Section>
 

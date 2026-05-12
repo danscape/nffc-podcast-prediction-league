@@ -52,7 +52,6 @@ const requiredFields: Array<keyof AwardVotePayload> = [
   "favourite_fixture_id",
   "least_favourite_fixture_id",
   "goal_id",
-  "goal_conceded_id",
 ];
 
 function getClientIpFromHeaders(headerStore: Headers) {
@@ -154,7 +153,7 @@ export async function POST(request: Request) {
         favourite_fixture_id: body.favourite_fixture_id,
         least_favourite_fixture_id: body.least_favourite_fixture_id,
         goal_id: body.goal_id,
-        goal_conceded_id: body.goal_conceded_id,
+        goal_conceded_id: body.goal_conceded_id || null,
         three_words: cleanText(body.three_words, 80),
         comment: cleanText(body.comment, 500),
         ip_hash: ipHash,
