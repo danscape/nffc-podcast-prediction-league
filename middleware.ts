@@ -23,21 +23,21 @@ export function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/awards";
     url.search = search;
-    return NextResponse.rewrite(url);
+    return NextResponse.redirect(url);
   }
 
   if (pathname === "/results") {
     const url = request.nextUrl.clone();
     url.pathname = "/awards/results";
     url.search = search;
-    return NextResponse.rewrite(url);
+    return NextResponse.redirect(url);
   }
 
   if (pathname === "/thanks") {
     const url = request.nextUrl.clone();
     url.pathname = "/awards/thanks";
     url.search = search;
-    return NextResponse.rewrite(url);
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();
