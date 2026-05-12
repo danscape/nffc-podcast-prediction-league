@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
+import CommentsCarousel from "./CommentsCarousel";
 
 export const dynamic = "force-dynamic";
 
@@ -24,22 +25,29 @@ type VoteRow = {
   votes: number;
 };
 
+type CommentRow = {
+  id: string;
+  created_at: string;
+  three_words: string | null;
+  comment: string | null;
+};
+
 function StatCard({
   label,
   value,
-  tone = "green",
   sub,
+  tone = "green",
 }: {
   label: string;
   value: string | number;
-  tone?: "green" | "cyan" | "yellow" | "pink";
   sub?: string;
+  tone?: "green" | "cyan" | "yellow" | "pink";
 }) {
   const toneClass = {
-    green: "text-green-300 border-green-400",
-    cyan: "text-cyan-300 border-cyan-300",
-    yellow: "text-yellow-300 border-yellow-300",
-    pink: "text-pink-300 border-pink-300",
+    green: "border-green-400 text-green-300",
+    cyan: "border-cyan-300 text-cyan-300",
+    yellow: "border-yellow-300 text-yellow-300",
+    pink: "border-pink-300 text-pink-300",
   }[tone];
 
   return (
@@ -47,53 +55,14 @@ function StatCard({
       <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/50">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-black leading-none md:text-4xl">
+      <p className="mt-2 text-2xl font-black uppercase leading-none md:text-4xl">
         {value}
       </p>
       {sub ? (
-        <p className="mt-2 text-[11px] font-bold uppercase leading-relaxed tracking-[0.12em] text-white/55">
+        <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-[0.12em] text-white/55 md:text-xs">
           {sub}
         </p>
       ) : null}
-    </div>
-  );
-}
-
-function PodiumCard({
-  row,
-  rank,
-}: {
-  row: PlayerRow | undefined;
-  rank: 1 | 2 | 3;
-}) {
-  const tone =
-    rank === 1
-      ? "border-green-400 text-green-300"
-      : rank === 2
-        ? "border-yellow-300 text-yellow-300"
-        : "border-cyan-300 text-cyan-300";
-
-  return (
-    <div className={`border bg-black p-3 ${tone}`}>
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
-        Rank {rank}
-      </p>
-      {row ? (
-        <>
-          <p className="mt-2 text-lg font-black uppercase leading-tight text-white md:text-2xl">
-            {row.label}
-          </p>
-          <p className="mt-3 text-3xl font-black leading-none md:text-4xl">
-            {row.points}
-            <span className="ml-1 text-xs text-white/50">PTS</span>
-          </p>
-          <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/55">
-            {row.first_place_votes} first-place votes
-          </p>
-        </>
-      ) : (
-        <p className="mt-2 text-sm text-white/55">No votes yet.</p>
-      )}
     </div>
   );
 }
@@ -167,48 +136,30 @@ function PlayerRaceBlock({ rows }: { rows: PlayerRow[] }) {
   );
 }
 
-function AwardLeaderCard({
+function AwardResultBlock({
   title,
   rows,
-  tone = "cyan",
+  tone = "green",
 }: {
   title: string;
   rows: VoteRow[];
-  tone?: "cyan" | "yellow" | "pink" | "green";
+  tone?: "green" | "cyan" | "yellow" | "pink";
 }) {
-  const top = rows[0];
-  const toneClass = {
-    cyan: "border-cyan-300 text-cyan-300",
-    yellow: "border-yellow-300 text-yellow-300",
-    pink: "border-pink-300 text-pink-300",
-    green: "border-green-400 text-green-300",
+  const maxVotes = Math.max(...rows.map((row) => row.votes), 1);
+
+  const barClass = {
+    green: "bg-green-400",
+    cyan: "bg-cyan-300",
+    yellow: "bg-yellow-300",
+    pink: "bg-pink-300",
   }[tone];
 
-  return (
-    <section className={`border bg-black p-3 md:p-4 ${toneClass}`}>
-      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/50">
-        {title}
-      </p>
-
-      {top ? (
-        <>
-          <p className="mt-2 text-base font-black uppercase leading-tight text-white md:text-xl">
-            {top.label}
-          </p>
-          <p className="mt-3 text-3xl font-black leading-none">
-            {top.votes}
-            <span className="ml-1 text-xs text-white/50">VOTES</span>
-          </p>
-        </>
-      ) : (
-        <p className="mt-3 text-sm text-white/55">No votes yet.</p>
-      )}
-    </section>
-  );
-}
-
-function VoteTable({ title, rows }: { title: string; rows: VoteRow[] }) {
-  const maxVotes = Math.max(...rows.map((row) => row.votes), 1);
+  const titleClass = {
+    green: "text-green-300",
+    cyan: "text-cyan-300",
+    yellow: "text-yellow-300",
+    pink: "text-pink-300",
+  }[tone];
 
   return (
     <section className="border border-white/20 bg-black">
@@ -219,15 +170,21 @@ function VoteTable({ title, rows }: { title: string; rows: VoteRow[] }) {
       <div className="grid gap-3 p-3">
         {rows.slice(0, 8).map((row, index) => {
           const width = Math.max(4, Math.round((row.votes / maxVotes) * 100));
+          const isLeader = index === 0;
 
           return (
-            <div key={row.option_id} className="grid gap-1">
+            <div
+              key={row.option_id}
+              className={`grid gap-1 ${isLeader ? "border border-white/15 p-2" : ""}`}
+            >
               <div className="flex items-start justify-between gap-3 text-sm">
                 <div className="min-w-0">
                   <span className="mr-2 font-black text-cyan-300">
                     {String(index + 1).padStart(2, "0")}
                   </span>
-                  <span className="font-bold text-white">{row.label}</span>
+                  <span className={`font-bold ${isLeader ? titleClass : "text-white"}`}>
+                    {row.label}
+                  </span>
                 </div>
 
                 <div className="shrink-0 font-black text-green-300">
@@ -238,7 +195,7 @@ function VoteTable({ title, rows }: { title: string; rows: VoteRow[] }) {
 
               <div className="h-2 border border-white/20 bg-black">
                 <div
-                  className="h-full bg-green-400"
+                  className={`h-full ${barClass}`}
                   style={{ width: `${width}%` }}
                 />
               </div>
@@ -264,6 +221,7 @@ async function getResults() {
     leastFavouriteGameResult,
     goalResult,
     worstGoalResult,
+    commentsResult,
   ] = await Promise.all([
     supabase.from("award_results_player_of_season").select("*"),
     supabase.from("award_results_signing").select("*"),
@@ -273,6 +231,7 @@ async function getResults() {
     supabase.from("award_results_least_favourite_game").select("*"),
     supabase.from("award_results_goal_of_season").select("*"),
     supabase.from("award_results_worst_goal_conceded").select("*"),
+    supabase.from("award_results_fan_comments").select("*").limit(30),
   ]);
 
   return {
@@ -284,6 +243,7 @@ async function getResults() {
     leastFavouriteGameRows: (leastFavouriteGameResult.data || []) as VoteRow[],
     goalRows: (goalResult.data || []) as VoteRow[],
     worstGoalRows: (worstGoalResult.data || []) as VoteRow[],
+    commentRows: (commentsResult.data || []) as CommentRow[],
     hasError:
       playerResult.error ||
       signingResult.error ||
@@ -292,7 +252,8 @@ async function getResults() {
       favouriteGameResult.error ||
       leastFavouriteGameResult.error ||
       goalResult.error ||
-      worstGoalResult.error,
+      worstGoalResult.error ||
+      commentsResult.error,
   };
 }
 
@@ -306,16 +267,18 @@ export default async function AwardsResultsPage() {
     leastFavouriteGameRows,
     goalRows,
     worstGoalRows,
+    commentRows,
     hasError,
   } = await getResults();
 
   const leader = playerRows[0];
   const second = playerRows[1];
-  const third = playerRows[2];
-  const totalBallots = playerRows.reduce(
-    (total, row) => total + row.first_place_votes,
+
+  const validBallots = playerRows.reduce(
+    (max, row) => Math.max(max, row.first_place_votes),
     0,
   );
+
   const leaderMargin = leader && second ? leader.points - second.points : leader?.points || 0;
 
   return (
@@ -323,7 +286,7 @@ export default async function AwardsResultsPage() {
       <section className="mx-auto min-h-screen w-full max-w-6xl border-x border-white/20 bg-black md:min-h-0 md:border">
         <header className="border-b border-white/30 bg-red-700 px-4 py-5 md:px-8 md:py-7">
           <p className="text-[10px] font-black uppercase tracking-[0.22em] md:text-sm">
-            NFFC STATS // LIVE RESULTS DASHBOARD
+            NFFC STATS // LIVE RESULTS
           </p>
 
           <h1 className="mt-2 text-3xl font-black uppercase leading-none md:text-6xl">
@@ -345,7 +308,7 @@ export default async function AwardsResultsPage() {
           <div className="grid gap-3 md:grid-cols-4">
             <StatCard
               label="Valid Ballots"
-              value={totalBallots}
+              value={validBallots}
               tone="cyan"
               sub="Counted in live results"
             />
@@ -369,45 +332,52 @@ export default async function AwardsResultsPage() {
             />
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
-            <PodiumCard row={leader} rank={1} />
-            <PodiumCard row={second} rank={2} />
-            <PodiumCard row={third} rank={3} />
-          </div>
-
           <PlayerRaceBlock rows={playerRows} />
 
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <AwardLeaderCard
-              title="Signing Leader"
+          <CommentsCarousel rows={commentRows} />
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <AwardResultBlock
+              title="Signing of the Season"
               rows={signingRows}
               tone="green"
             />
-            <AwardLeaderCard
-              title="Breakthrough Leader"
+
+            <AwardResultBlock
+              title="Breakthrough / Surprise of the Season"
               rows={breakthroughRows}
               tone="cyan"
             />
-            <AwardLeaderCard
-              title="One To Watch Leader"
+
+            <AwardResultBlock
+              title="One to Watch Next Season"
               rows={oneToWatchRows}
               tone="yellow"
             />
-            <AwardLeaderCard
-              title="Goal Leader"
-              rows={goalRows}
+
+            <AwardResultBlock
+              title="Favourite Game / Game of the Season"
+              rows={favouriteGameRows}
+              tone="green"
+            />
+
+            <AwardResultBlock
+              title="Least Favourite Game"
+              rows={leastFavouriteGameRows}
               tone="pink"
             />
-          </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <VoteTable title="Signing of the Season" rows={signingRows} />
-            <VoteTable title="Breakthrough / Surprise of the Season" rows={breakthroughRows} />
-            <VoteTable title="One to Watch Next Season" rows={oneToWatchRows} />
-            <VoteTable title="Favourite Game" rows={favouriteGameRows} />
-            <VoteTable title="Least Favourite Game" rows={leastFavouriteGameRows} />
-            <VoteTable title="Goal of the Season" rows={goalRows} />
-            <VoteTable title="Worst Goal Conceded" rows={worstGoalRows} />
+            <AwardResultBlock
+              title="Goal of the Season"
+              rows={goalRows}
+              tone="cyan"
+            />
+
+            <AwardResultBlock
+              title="Worst Goal Conceded"
+              rows={worstGoalRows}
+              tone="pink"
+            />
           </div>
 
           <div className="pb-6">
