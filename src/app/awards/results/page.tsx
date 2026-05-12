@@ -1,4 +1,36 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  metadataBase: new URL("https://awards.nffcstats.co.uk"),
+  title: "Forest Fan Awards Results | NFFC Stats",
+  description:
+    "Live results from the unofficial Nottingham Forest end-of-season fan awards.",
+  openGraph: {
+    title: "Forest Fan Awards Results | NFFC Stats",
+    description:
+      "Live results from the unofficial Nottingham Forest end-of-season fan awards.",
+    url: "https://awards.nffcstats.co.uk/awards/results",
+    siteName: "NFFC Stats",
+    images: [
+      {
+        url: "https://awards.nffcstats.co.uk/awards/forest-fan-awards-social.png",
+        width: 1200,
+        height: 630,
+        alt: "Forest Fan Awards 2025/26",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Forest Fan Awards Results | NFFC Stats",
+    description:
+      "Live results from the unofficial Nottingham Forest end-of-season fan awards.",
+    images: ["https://awards.nffcstats.co.uk/awards/forest-fan-awards-social.png"],
+  },
+};
+
 import { createClient } from "@supabase/supabase-js";
 import CommentsCarousel from "./CommentsCarousel";
 import WordCloud from "./WordCloud";
