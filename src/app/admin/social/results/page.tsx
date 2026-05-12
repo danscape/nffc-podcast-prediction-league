@@ -648,7 +648,7 @@ function SocialResultsGraphic({
       id="weekly-results-social-graphic"
       className="mt-12 bg-[var(--nffc-black,#000000)] mb-12"
     >
-      <div className="flex items-center gap-5 bg-[var(--nffc-red,#e50914)] px-4 py-3 truncate text-2xl font-black uppercase tracking-[0.16em] text-white md:text-4xl">
+      <div className="flex items-center gap-5 bg-[var(--nffc-red,#e50914)] px-4 py-3 whitespace-normal break-words text-xl font-black uppercase tracking-[0.16em] text-white md:text-4xl">
         <Image
           src="/brand/nffc-podcast-prediction-league-banner.png"
           alt="NFFC Podcast Prediction League"
@@ -789,7 +789,7 @@ function CompactSummaryBox({
       <div className="text-[0.7rem] font-black uppercase tracking-[0.2em] text-[var(--nffc-muted,#a7a7a7)]">
         {label}
       </div>
-      <div className={`mt-1 truncate text-xl font-black uppercase leading-tight ${textTone(tone)}`}>
+      <div className={`mt-1 whitespace-normal break-words text-xl font-black uppercase leading-tight ${textTone(tone)}`}>
         {value}
       </div>
     </div>
@@ -814,7 +814,7 @@ function BonusStrip({
 
   return (
     <section className="grid gap-0 bg-[var(--nffc-black,#000000)] md:grid-cols-4">
-      <div className="flex items-center justify-center bg-[var(--nffc-black,#000000)] px-4 py-3 text-center truncate text-xl font-black uppercase tracking-[0.2em] text-[var(--nffc-white,#f5f5f5)] md:text-2xl">
+      <div className="flex items-center justify-center bg-[var(--nffc-black,#000000)] px-4 py-3 text-center whitespace-normal break-words text-xl font-black uppercase tracking-[0.2em] text-[var(--nffc-white,#f5f5f5)] md:text-2xl">
         Bonuses applied this week
       </div>
       <BonusName label="Streaker" active={streakApplied} tone="yellow" />
@@ -835,7 +835,7 @@ function BonusName({
 }) {
   return (
     <div
-      className={`flex items-center justify-center bg-[var(--nffc-black,#000000)] px-4 py-3 text-center truncate text-xl font-black uppercase tracking-[0.18em] md:text-2xl ${
+      className={`flex items-center justify-center bg-[var(--nffc-black,#000000)] px-4 py-3 text-center whitespace-normal break-words text-xl font-black uppercase tracking-[0.18em] md:text-2xl ${
         active ? textTone(tone) : "text-[#555555]"
       }`}
     >
@@ -880,7 +880,7 @@ function TeamResultRow({
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="line-clamp-2 text-2xl font-black uppercase leading-tight tracking-[0.04em] text-white md:text-3xl">
+            <div className="whitespace-normal break-words text-xl font-black uppercase leading-tight tracking-[0.04em] text-white md:text-2xl">
               {group.teamName}
             </div>
 
@@ -964,7 +964,7 @@ function PlayerScoreCard({
   return (
     <article className="grid min-h-[92px] grid-rows-[auto_1fr] bg-[var(--nffc-black,#000000)] p-2">
       <div className="flex min-w-0 items-center justify-center gap-6">
-        <div className={`truncate text-center truncate text-2xl font-black uppercase leading-tight tracking-[0.03em] md:text-3xl ${textTone(nameTone)}`}>
+        <div className={`truncate text-center whitespace-normal break-words text-xl font-black uppercase leading-tight tracking-[0.03em] md:text-2xl ${textTone(nameTone)}`}>
           {getPlayerName(player)}
         </div>
 
@@ -973,7 +973,7 @@ function PlayerScoreCard({
         </div>
       </div>
 
-      <div className="mt-2 flex items-center justify-center gap-2 truncate text-xl font-black uppercase leading-none md:text-2xl">
+      <div className="mt-2 flex items-center justify-center gap-2 whitespace-normal break-words text-xl font-black uppercase leading-none md:text-2xl">
         {scoreParts.length ? (
           <>
             {scoreParts.map((part, index) => (
