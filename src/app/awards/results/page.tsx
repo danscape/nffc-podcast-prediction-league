@@ -25,6 +25,14 @@ type VoteRow = {
   votes: number;
 };
 
+type SummaryRow = {
+  valid_ballots: number;
+  total_submissions: number;
+  excluded_submissions: number;
+  duplicate_cookie_submissions: number;
+  duplicate_ip_submissions: number;
+};
+
 type CommentRow = {
   id: string;
   created_at: string;
@@ -222,6 +230,7 @@ async function getResults() {
     goalResult,
     worstGoalResult,
     commentsResult,
+    summaryResult,
   ] = await Promise.all([
     supabase.from("award_results_player_of_season").select("*"),
     supabase.from("award_results_signing").select("*"),
@@ -232,6 +241,7 @@ async function getResults() {
     supabase.from("award_results_goal_of_season").select("*"),
     supabase.from("award_results_worst_goal_conceded").select("*"),
     supabase.from("award_results_fan_comments").select("*").limit(30),
+    supabase.from("award_results_summary").select("*").single(),
   ]);
 
   return {
@@ -244,6 +254,7 @@ async function getResults() {
     goalRows: (goalResult.data || []) as VoteRow[],
     worstGoalRows: (worstGoalResult.data || []) as VoteRow[],
     commentRows: (commentsResult.data || []) as CommentRow[],
+    summaryRow: summaryResult.data as SummaryRow | null,
     hasError:
       playerResult.error ||
       signingResult.error ||
@@ -253,7 +264,8 @@ async function getResults() {
       leastFavouriteGameResult.error ||
       goalResult.error ||
       worstGoalResult.error ||
-      commentsResult.error,
+      commentsResult.error ||
+      summaryResult.error,
   };
 }
 
@@ -268,16 +280,16 @@ export default async function AwardsResultsPage() {
     goalRows,
     worstGoalRows,
     commentRows,
+    summaryRow,
     hasError,
   } = await getResults();
 
   const leader = playerRows[0];
   const second = playerRows[1];
 
-  const validBallots = playerRows.reduce(
-    (max, row) => Math.max(max, row.first_place_votes),
-    0,
-  );
+  const validBallots = summaryRow?.valid_ballots || 0;
+  const totalSubmissions = summaryRow?.total_submissions || 0;
+  const excludedSubmissions = summaryRow?.excluded_submissions || 0;
 
   const leaderMargin = leader && second ? leader.points - second.points : leader?.points || 0;
 
@@ -310,7 +322,7 @@ export default async function AwardsResultsPage() {
               label="Valid Ballots"
               value={validBallots}
               tone="cyan"
-              sub="Counted in live results"
+              sub={`${totalSubmissions} submitted // ${excludedSubmissions} excluded`}
             />
             <StatCard
               label="Current Leader"
