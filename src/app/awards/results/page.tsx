@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import CommentsCarousel from "./CommentsCarousel";
+import WordCloud from "./WordCloud";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,11 @@ type CommentRow = {
   created_at: string;
   three_words: string | null;
   comment: string | null;
+};
+
+type WordCloudRow = {
+  word: string;
+  count: number;
 };
 
 function StatCard({
@@ -231,6 +237,7 @@ async function getResults() {
     worstGoalResult,
     commentsResult,
     summaryResult,
+    wordCloudResult,
   ] = await Promise.all([
     supabase.from("award_results_player_of_season").select("*"),
     supabase.from("award_results_signing").select("*"),
@@ -242,6 +249,7 @@ async function getResults() {
     supabase.from("award_results_worst_goal_conceded").select("*"),
     supabase.from("award_results_fan_comments").select("*").limit(30),
     supabase.from("award_results_summary").select("*").single(),
+    supabase.from("award_results_three_words_cloud").select("*").limit(40),
   ]);
 
   return {
@@ -255,6 +263,7 @@ async function getResults() {
     worstGoalRows: (worstGoalResult.data || []) as VoteRow[],
     commentRows: (commentsResult.data || []) as CommentRow[],
     summaryRow: summaryResult.data as SummaryRow | null,
+    wordCloudRows: (wordCloudResult.data || []) as WordCloudRow[],
     hasError:
       playerResult.error ||
       signingResult.error ||
@@ -265,7 +274,8 @@ async function getResults() {
       goalResult.error ||
       worstGoalResult.error ||
       commentsResult.error ||
-      summaryResult.error,
+      summaryResult.error ||
+      wordCloudResult.error,
   };
 }
 
@@ -281,6 +291,7 @@ export default async function AwardsResultsPage() {
     worstGoalRows,
     commentRows,
     summaryRow,
+    wordCloudRows,
     hasError,
   } = await getResults();
 
@@ -345,6 +356,8 @@ export default async function AwardsResultsPage() {
           </div>
 
           <PlayerRaceBlock rows={playerRows} />
+
+          <WordCloud rows={wordCloudRows} />
 
           <CommentsCarousel rows={commentRows} />
 
