@@ -595,7 +595,7 @@ function Masthead({ onRefresh }: { onRefresh: () => void }) {
         <div className="text-xs font-black uppercase tracking-[0.24em] text-[var(--stat-yellow,#ffe44d)]">
           Admin social // latest confirmed weekly result
         </div>
-        <h1 className="mt-2 inline-block bg-[var(--nffc-red,#e50914)] px-4 py-3 text-3xl font-black uppercase leading-none tracking-[0.08em] text-white md:text-5xl xl:text-6xl">
+        <h1 className="mt-2 inline-block bg-[var(--nffc-red,#e50914)] px-4 py-3 text-2xl font-black uppercase leading-none tracking-[0.08em] text-white md:text-5xl xl:text-6xl">
           GW Results Matrix
         </h1>
       </div>

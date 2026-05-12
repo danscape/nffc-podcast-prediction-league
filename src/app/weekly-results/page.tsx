@@ -903,8 +903,8 @@ function CompactResultsHeader({
         {getScoreText(summary)}
       </h2>
 
-      <div className="mt-3 grid min-h-[56px] grid-cols-[170px_200px_minmax(180px,1fr)_210px] items-end gap-3 bg-[var(--nffc-black,#000000)]">
-        <div className="grid min-w-0 grid-cols-3 items-end gap-2">
+      <div className="mt-3 grid min-h-[52px] grid-cols-[170px_minmax(260px,1fr)_320px] items-end gap-5 bg-[var(--nffc-black,#000000)]">
+        <div className="grid min-w-0 grid-cols-3 items-end gap-1">
           {(["W", "D", "L"] as PredictionValue[]).map((value) => (
             <InlinePredictionStat
               key={value}
@@ -1010,7 +1010,7 @@ function InlinePredictionStat({
           : ""
       }`}
     >
-      <span className={`text-3xl font-black uppercase leading-none ${colour}`}>
+      <span className={`text-2xl font-black uppercase leading-none ${colour}`}>
         {value}
       </span>
       <span className={`text-2xl font-black leading-none ${colour}`}>
