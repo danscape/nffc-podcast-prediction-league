@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type CommentRow = {
   id: string;
@@ -9,9 +9,20 @@ type CommentRow = {
   comment: string | null;
 };
 
-export default function CommentsCarousel({ rows }: { rows: CommentRow[] }) {
-  const [index, setIndex] = useState(0);
+function shuffleRows(rows: CommentRow[]) {
+  const copy = [...rows];
 
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    const current = copy[index];
+    copy[index] = copy[randomIndex];
+    copy[randomIndex] = current;
+  }
+
+  return copy;
+}
+
+export default function CommentsCarousel({ rows }: { rows: CommentRow[] }) {
   const usableRows = useMemo(
     () =>
       rows.filter((row) => {
@@ -19,6 +30,14 @@ export default function CommentsCarousel({ rows }: { rows: CommentRow[] }) {
       }),
     [rows],
   );
+
+  const [shuffledRows, setShuffledRows] = useState<CommentRow[]>([]);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setShuffledRows(shuffleRows(usableRows));
+    setIndex(0);
+  }, [usableRows]);
 
   if (!usableRows.length) {
     return (
@@ -33,19 +52,25 @@ export default function CommentsCarousel({ rows }: { rows: CommentRow[] }) {
     );
   }
 
-  const current = usableRows[index];
-  const total = usableRows.length;
+  const activeRows = shuffledRows.length ? shuffledRows : usableRows;
+  const current = activeRows[index] || activeRows[0];
+  const total = activeRows.length;
 
   function previous() {
     setIndex((currentIndex) =>
-      currentIndex === 0 ? usableRows.length - 1 : currentIndex - 1,
+      currentIndex === 0 ? activeRows.length - 1 : currentIndex - 1,
     );
   }
 
   function next() {
     setIndex((currentIndex) =>
-      currentIndex === usableRows.length - 1 ? 0 : currentIndex + 1,
+      currentIndex === activeRows.length - 1 ? 0 : currentIndex + 1,
     );
+  }
+
+  function reshuffle() {
+    setShuffledRows(shuffleRows(usableRows));
+    setIndex(0);
   }
 
   return (
@@ -82,19 +107,27 @@ export default function CommentsCarousel({ rows }: { rows: CommentRow[] }) {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <button
             type="button"
             onClick={previous}
-            className="border border-white/30 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-white hover:border-cyan-300 hover:text-cyan-300"
+            className="border border-white/30 px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-white hover:border-cyan-300 hover:text-cyan-300 md:text-sm"
           >
-            Previous
+            Prev
+          </button>
+
+          <button
+            type="button"
+            onClick={reshuffle}
+            className="border border-yellow-300 px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-yellow-300 hover:border-green-400 hover:text-green-300 md:text-sm"
+          >
+            Shuffle
           </button>
 
           <button
             type="button"
             onClick={next}
-            className="border border-cyan-300 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-cyan-300 hover:border-green-400 hover:text-green-300"
+            className="border border-cyan-300 px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-cyan-300 hover:border-green-400 hover:text-green-300 md:text-sm"
           >
             Next
           </button>
