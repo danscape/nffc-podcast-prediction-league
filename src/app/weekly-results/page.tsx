@@ -458,10 +458,6 @@ export default function AdminSocialResultsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    void loadResultsData();
-  }, []);
-
   async function loadResultsData() {
     setLoading(true);
     setMessage(null);
@@ -501,6 +497,11 @@ export default function AdminSocialResultsPage() {
     setOverallTeamRows((overallTeamResult.data ?? []) as LatestTeamResultRow[]);
     setLoading(false);
   }
+
+  useEffect(() => {
+    void loadResultsData();
+  }, []);
+
 
   const teamGroups = useMemo(() => buildTeamGroups(playerRows, teamRows, overallTeamRows), [overallTeamRows, playerRows, teamRows]);
   const topScorers = useMemo(() => getTopScorers(playerRows), [playerRows]);
