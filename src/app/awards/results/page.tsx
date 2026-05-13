@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     siteName: "NFFC Stats",
     images: [
       {
-        url: "https://awards.nffcstats.co.uk/forest-fan-awards-social.png",
+        url: "https://awards.nffcstats.co.uk/forest-fan-awards-social.jpg",
         width: 1200,
         height: 630,
         alt: "Forest Fan Awards 2025/26",
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     title: { absolute: "Unofficial NFFC End of Season Awards" },
     description:
       "Live results from the unofficial Nottingham Forest end-of-season fan awards.",
-    images: ["https://awards.nffcstats.co.uk/forest-fan-awards-social.png"],
+    images: ["https://awards.nffcstats.co.uk/forest-fan-awards-social.jpg"],
   },
 };
 
