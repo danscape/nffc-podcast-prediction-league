@@ -79,6 +79,25 @@ type WordCloudRow = {
   count: number;
 };
 
+type MaskableRow = Record<string, string | number | null>;
+
+function maskStringFields<T extends MaskableRow>(rows: T[]) {
+  return rows.map((row) => {
+    const maskedRow = { ...row };
+
+    for (const key of Object.keys(maskedRow) as Array<keyof T>) {
+      const value = maskedRow[key];
+
+      if (typeof value === "string") {
+        maskedRow[key] = maskProfanity(value) as T[keyof T];
+      }
+    }
+
+    return maskedRow;
+  });
+}
+
+
 function StatCard({
   label,
   value,
@@ -286,17 +305,17 @@ async function getResults() {
   ]);
 
   return {
-    playerRows: (playerResult.data || []) as PlayerRow[],
-    signingRows: (signingResult.data || []) as VoteRow[],
-    breakthroughRows: (breakthroughResult.data || []) as VoteRow[],
-    oneToWatchRows: (oneToWatchResult.data || []) as VoteRow[],
-    favouriteGameRows: (favouriteGameResult.data || []) as VoteRow[],
-    leastFavouriteGameRows: (leastFavouriteGameResult.data || []) as VoteRow[],
-    goalRows: (goalResult.data || []) as VoteRow[],
-    worstGoalRows: (worstGoalResult.data || []) as VoteRow[],
-    commentRows: (commentsResult.data || []) as CommentRow[],
+    playerRows: maskStringFields((playerResult.data || []) as PlayerRow[]),
+    signingRows: maskStringFields((signingResult.data || []) as VoteRow[]),
+    breakthroughRows: maskStringFields((breakthroughResult.data || []) as VoteRow[]),
+    oneToWatchRows: maskStringFields((oneToWatchResult.data || []) as VoteRow[]),
+    favouriteGameRows: maskStringFields((favouriteGameResult.data || []) as VoteRow[]),
+    leastFavouriteGameRows: maskStringFields((leastFavouriteGameResult.data || []) as VoteRow[]),
+    goalRows: maskStringFields((goalResult.data || []) as VoteRow[]),
+    worstGoalRows: maskStringFields((worstGoalResult.data || []) as VoteRow[]),
+    commentRows: maskStringFields((commentsResult.data || []) as CommentRow[]),
     summaryRow: summaryResult.data as SummaryRow | null,
-    wordCloudRows: (wordCloudResult.data || []) as WordCloudRow[],
+    wordCloudRows: maskStringFields((wordCloudResult.data || []) as WordCloudRow[]),
     hasError:
       playerResult.error ||
       signingResult.error ||
