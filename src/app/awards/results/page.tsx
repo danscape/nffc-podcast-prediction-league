@@ -146,7 +146,7 @@ function PlayerRaceBlock({ rows }: { rows: PlayerRow[] }) {
                     <span className="mr-2 text-cyan-300">
                       {String(index + 1).padStart(2, "0")}
                     </span>
-                    {row.label}
+                    {maskProfanity(row.label)}
                   </div>
 
                   <div className="mt-1 text-[10px] font-bold uppercase leading-relaxed tracking-[0.12em] text-yellow-300 md:text-xs">
@@ -230,7 +230,7 @@ function AwardResultBlock({
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <span className={`font-bold ${isLeader ? titleClass : "text-white"}`}>
-                    {row.label}
+                    {maskProfanity(row.label)}
                   </span>
                 </div>
 

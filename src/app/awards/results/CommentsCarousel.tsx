@@ -35,7 +35,9 @@ export default function CommentsCarousel({ rows }: { rows: CommentRow[] }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShuffledRows(shuffleRows(usableRows));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIndex(0);
   }, [usableRows]);
 
@@ -69,7 +71,9 @@ export default function CommentsCarousel({ rows }: { rows: CommentRow[] }) {
   }
 
   function reshuffle() {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShuffledRows(shuffleRows(usableRows));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIndex(0);
   }
 
