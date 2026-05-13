@@ -34,6 +34,7 @@ export const metadata: Metadata = {
 import { createClient } from "@supabase/supabase-js";
 import CommentsCarousel from "./CommentsCarousel";
 import WordCloud from "./WordCloud";
+import { maskProfanity } from "@/lib/maskProfanity";
 
 export const dynamic = "force-dynamic";
 
