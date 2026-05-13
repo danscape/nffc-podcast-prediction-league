@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import { maskProfanity } from "@/lib/maskProfanity";
 
 export const dynamic = "force-dynamic";
 
